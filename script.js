@@ -6,17 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const chatInputArea = document.querySelector('.chat-input-area');
     const proficiencySelect = document.getElementById('proficiency-select');
-    const correctionSelect = document.getElementById('correction-select');
+    // O 'correctionSelect' ainda existe no HTML, mas não precisamos mais lê-lo aqui.
     const languageSelect = document.getElementById('language-select');
     
-    // Elementos da Barra de Navegação
+    // ... (resto do mapeamento de elementos inalterado) ...
     const topNavBar = document.getElementById('top-nav-bar');
     const navHomeBtn = document.getElementById('nav-home-btn');
     const navCustomBtn = document.getElementById('nav-custom-btn');
     const navHistoryBtn = document.getElementById('nav-history-btn');
     const navSettingsBtn = document.getElementById('nav-settings-btn');
-
-    // Modais
     const feedbackModal = document.getElementById('feedback-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const feedbackContent = document.getElementById('feedback-content');
@@ -35,11 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const missionModalCloseBtn = document.getElementById('mission-modal-close-btn');
     const settingsModal = document.getElementById('settings-modal');
     const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
-    
+
     // --- Variáveis de Estado e Constantes ---
     const AVATAR_AI_URL = 'https://cdn.icon-icons.com/icons2/1371/PNG/512/robot02_90810.png'; 
     const AVATAR_USER_URL = 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png';
-    const TYPING_SIMULATION_DELAY = 1000; // ms
+    const TYPING_SIMULATION_DELAY = 1000;
 
     let conversationHistory = [];
     let currentScenario = null;
@@ -66,8 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendBtn.addEventListener('click', handleSendMessage);
     textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendMessage(); } });
     
-    // ===== LISTENER DE EVENTOS PRINCIPAL (ATUALIZADO COM VALIDAÇÃO) =====
-    mainContentArea.addEventListener('click', async (e) => { // Tornou-se async
+    mainContentArea.addEventListener('click', async (e) => {
         const scenarioCard = e.target.closest('.scenario-card');
         if (scenarioCard) {
             const scenarioName = scenarioCard.dataset.scenarioName;
@@ -90,8 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHomePage();
             return;
         }
-
-        // ===== LÓGICA DE VALIDAÇÃO DO CENÁRIO PERSONALIZADO =====
+        
         const customBtn = e.target.closest('#start-custom-scenario-btn');
         if (customBtn) {
             const customInput = document.getElementById('custom-scenario-input');
@@ -139,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners de Modais
+    // ... (Listeners de Modais inalterados) ...
     modalCloseBtn.addEventListener('click', () => feedbackModal.classList.add('modal-hidden'));
     feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) feedbackModal.classList.add('modal-hidden'); });
     translateBtn.addEventListener('click', handleTranslateFeedback);
@@ -163,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderScenarioPanel();
     }
 
-    // ===== FUNÇÃO MODIFICADA PARA INCLUIR ÁREA DE FEEDBACK =====
     function renderCustomScenarioPage() {
         updateActiveNavIcon('nav-custom-btn');
         mainContentArea.innerHTML = '';
@@ -182,12 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.appendChild(customScenarioContainer);
     }
 
-    // ===== NOVAS FUNÇÕES DE FEEDBACK NA UI =====
     function showCustomScenarioError(message) {
         const feedbackArea = document.getElementById('custom-scenario-feedback');
         if (feedbackArea) {
             feedbackArea.textContent = message;
-            feedbackArea.style.display = 'block'; // Garante que esteja visível
+            feedbackArea.style.display = 'block';
         }
     }
 
@@ -195,10 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const feedbackArea = document.getElementById('custom-scenario-feedback');
         if (feedbackArea) {
             feedbackArea.textContent = '';
-            feedbackArea.style.display = 'none'; // Esconde a área
+            feedbackArea.style.display = 'none';
         }
     }
-
 
     function renderHistoryPage() {
         updateActiveNavIcon('nav-history-btn');
@@ -239,7 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const apiKey = getApiKey();
             if (!apiKey) throw new Error("API Key not found");
-            const settings = { language: languageSelect.value, proficiency: proficiencySelect.value, correction: correctionSelect.value };
+            // LIMPEZA: O 'correction' foi removido daqui
+            const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(null, [], apiKey, currentScenario.details, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             
@@ -269,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setLoadingState(true);
 
         try {
-            const settings = { language: languageSelect.value, proficiency: proficiencySelect.value, correction: correctionSelect.value };
+            // LIMPEZA: O 'correction' foi removido daqui
+            const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, currentScenario.details, settings);
 
             setTimeout(() => {
@@ -309,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setLoadingState(false, false);
     }
     
-    // --- Funções de Tela de Conclusão e Feedback ---
     function displayCompletionScreen() {
         const completionContainer = document.createElement('div');
         completionContainer.className = 'completion-container';
@@ -340,106 +334,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function formatFeedbackText(text) { return text.replace(/### (.*)/g, '<h3>$1</h3>').replace(/^\*\s(.*?)$/gm, '<p class="feedback-item">$1</p>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
-    function displayFormattedFeedback(text) { feedbackContent.innerHTML = formatFeedbackText(text); }
-    
-    // --- Funções de Controle da UI e Auxiliares ---
-    function updateActiveNavIcon(activeBtnId) {
-        [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => {
-            if (btn.id === activeBtnId) {
-                btn.classList.add('active-nav-icon');
-            } else {
-                btn.classList.remove('active-nav-icon');
-            }
-        });
-    }
+    async function handleGetFeedback() {
+        feedbackModal.classList.remove('modal-hidden');
+        feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>';
+        translateBtn.classList.add('translate-btn-hidden');
+        try {
+            const apiKey = getApiKey();
+            if (!apiKey) throw new Error("Chave de API não encontrada. Configure no menu.");
 
-    function renderScenarioPanel() {
-        const panelContainer = document.createElement('div');
-        panelContainer.className = 'scenario-panel';
-        const categoryClassMap = { "🍔 Restaurantes e Cafés": "category-restaurantes", "✈️ Viagens e Transporte": "category-viagens", "🛒 Compras": "category-compras", "🤝 Situações Sociais": "category-sociais", "💼 Profissional": "category-profissional", "🎓 Estudos": "category-estudos", "❤️ Saúde e Bem-estar": "category-saude", "🏠 Moradia e Serviços": "category-moradia" };
-        
-        Object.keys(SCENARIOS).forEach(categoryName => {
-            const categorySection = document.createElement('section');
-            categorySection.className = 'panel-category-section';
-            const themeClass = categoryClassMap[categoryName] || 'category-profissional';
-            if (themeClass) { categorySection.classList.add(themeClass); }
-
-            const categoryTitle = document.createElement('h2');
-            categoryTitle.className = 'panel-category-title';
-            categoryTitle.textContent = categoryName;
-            categorySection.appendChild(categoryTitle);
-
-            const cardsContainer = document.createElement('div');
-            cardsContainer.className = 'scenario-cards-container';
-            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
-
-            scenariosToShow.forEach(scenarioName => {
-                const card = document.createElement('button');
-                card.className = 'scenario-card';
-                card.textContent = scenarioName;
-                card.dataset.categoryName = categoryName;
-                card.dataset.scenarioName = scenarioName;
-                cardsContainer.appendChild(card);
-            });
-            categorySection.appendChild(cardsContainer);
+            // LIMPEZA: O 'correction' foi removido daqui
+            const settings = {
+                language: languageSelect.value,
+                proficiency: proficiencySelect.value
+            };
             
-            const viewAllButton = document.createElement('button');
-            viewAllButton.className = 'view-all-btn';
-            viewAllButton.textContent = 'Ver todos →';
-            viewAllButton.dataset.categoryName = categoryName;
-            categorySection.appendChild(viewAllButton);
-
-            panelContainer.appendChild(categorySection);
-        });
-        mainContentArea.appendChild(panelContainer);
-    }
-
-    function renderCategoryPage(categoryName) {
-        mainContentArea.innerHTML = '';
-        mainContentArea.className = 'main-content-area category-page';
-        const categoryContainer = document.createElement('div');
-        categoryContainer.className = 'category-page-container';
-        const header = document.createElement('div');
-        header.className = 'category-page-header';
-        const backButton = document.createElement('button');
-        backButton.className = 'back-to-home-btn';
-        backButton.innerHTML = '&#8592; Voltar';
-        const title = document.createElement('h2');
-        title.textContent = categoryName;
-        header.appendChild(backButton);
-        header.appendChild(title);
-        const cardsContainer = document.createElement('div');
-        cardsContainer.className = 'scenario-cards-container full-view';
-        Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => {
-            const card = document.createElement('button');
-            card.className = 'scenario-card';
-            card.textContent = scenarioName;
-            card.dataset.categoryName = categoryName;
-            card.dataset.scenarioName = scenarioName;
-            cardsContainer.appendChild(card);
-        });
-        categoryContainer.appendChild(header);
-        categoryContainer.appendChild(cardsContainer);
-        mainContentArea.appendChild(categoryContainer);
-    }
-
-    function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
-    function setLoadingState(isLoading, isInputEnabled = false, shouldFocus = true) { textInput.disabled = isLoading || !isInputEnabled; sendBtn.disabled = isLoading || !isInputEnabled; if (isLoading) { showTypingIndicator(); } else { removeTypingIndicator(); if (isInputEnabled && shouldFocus) { textInput.focus(); } } }
-    function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
-
-    function initializeApp() {
-        if (!getApiKey()) {
-            openApiKeyModal(true);
-        } else {
-            renderHomePage();
+            originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings);
+            
+            const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+            if (history.length > 0 && !history[0].feedback) {
+                history[0].feedback = originalFeedback;
+                localStorage.setItem('conversationHistory', JSON.stringify(history));
+            }
+            displayFormattedFeedback(originalFeedback);
+            translateBtn.classList.remove('translate-btn-hidden');
+            isTranslated = false;
+            translateBtn.textContent = 'Traduzir para Português';
+        } catch (error) {
+            feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`;
         }
     }
 
-    initializeApp();
-
-    async function handleGetFeedback() { feedbackModal.classList.remove('modal-hidden'); feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; translateBtn.classList.add('translate-btn-hidden'); try { const apiKey = getApiKey(); if (!apiKey) throw new Error("Chave de API não encontrada. Configure no menu."); originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value); const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; if (history.length > 0 && !history[0].feedback) { history[0].feedback = originalFeedback; localStorage.setItem('conversationHistory', JSON.stringify(history)); } displayFormattedFeedback(originalFeedback); translateBtn.classList.remove('translate-btn-hidden'); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; } }
+    // ... (resto do código, que permanece inalterado, omitido para brevidade, mas deve ser mantido no seu arquivo) ...
     async function handleTranslateFeedback() { translateBtn.disabled = true; if (isTranslated) { displayFormattedFeedback(originalFeedback); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } else { feedbackContent.innerHTML = '<p>Traduzindo, por favor, aguarde...</p>'; try { if (!translatedFeedback) { const apiKey = getApiKey(); if (!apiKey) throw new Error("Chave de API não encontrada."); const protectedSnippets = []; const textToTranslate = originalFeedback.replace(/\*\*(.*?)\*\*/g, (match) => { protectedSnippets.push(match); return `%%PROTECTED_${protectedSnippets.length - 1}%%`; }); const translatedTextWithPlaceholders = await translateText(textToTranslate, apiKey, languageSelect.value); let finalTranslatedText = translatedTextWithPlaceholders; protectedSnippets.forEach((snippet, index) => { finalTranslatedText = finalTranslatedText.replace(`%%PROTECTED_${index}%%`, snippet); }); translatedFeedback = finalTranslatedText; } displayFormattedFeedback(translatedFeedback); isTranslated = true; translateBtn.textContent = 'Mostrar Original (English)'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao traduzir: ${error.message}</p>`; } } translateBtn.disabled = false; }
+    function formatFeedbackText(text) { return text.replace(/### (.*)/g, '<h3>$1</h3>').replace(/^\*\s(.*?)$/gm, '<p class="feedback-item">$1</p>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
+    function displayFormattedFeedback(text) { feedbackContent.innerHTML = formatFeedbackText(text); }
+    function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
+    function renderScenarioPanel() { const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel'; const categoryClassMap = { "🍔 Restaurantes e Cafés": "category-restaurantes", "✈️ Viagens e Transporte": "category-viagens", "🛒 Compras": "category-compras", "🤝 Situações Sociais": "category-sociais", "💼 Profissional": "category-profissional", "🎓 Estudos": "category-estudos", "❤️ Saúde e Bem-estar": "category-saude", "🏠 Moradia e Serviços": "category-moradia" }; Object.keys(SCENARIOS).forEach(categoryName => { const categorySection = document.createElement('section'); categorySection.className = 'panel-category-section'; const themeClass = categoryClassMap[categoryName] || 'category-profissional'; if (themeClass) { categorySection.classList.add(themeClass); } const categoryTitle = document.createElement('h2'); categoryTitle.className = 'panel-category-title'; categoryTitle.textContent = categoryName; categorySection.appendChild(categoryTitle); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container'; const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4); scenariosToShow.forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categorySection.appendChild(cardsContainer); const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName; categorySection.appendChild(viewAllButton); panelContainer.appendChild(categorySection); }); mainContentArea.appendChild(panelContainer); }
+    function renderCategoryPage(categoryName) { mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area category-page'; const categoryContainer = document.createElement('div'); categoryContainer.className = 'category-page-container'; const header = document.createElement('div'); header.className = 'category-page-header'; const backButton = document.createElement('button'); backButton.className = 'back-to-home-btn'; backButton.innerHTML = '&#8592; Voltar'; const title = document.createElement('h2'); title.textContent = categoryName; header.appendChild(backButton); header.appendChild(title); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container full-view'; Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categoryContainer.appendChild(header); categoryContainer.appendChild(cardsContainer); mainContentArea.appendChild(categoryContainer); }
+    function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
+    function setLoadingState(isLoading, isInputEnabled = false, shouldFocus = true) { textInput.disabled = isLoading || !isInputEnabled; sendBtn.disabled = isLoading || !isInputEnabled; if (isLoading) { showTypingIndicator(); } else { removeTypingIndicator(); if (isInputEnabled && shouldFocus) { textInput.focus(); } } }
+    function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
+    function initializeApp() { if (!getApiKey()) { openApiKeyModal(true); } else { renderHomePage(); } }
+    initializeApp();
     function displayMessage(text, sender) { if (sender === 'ai') { removeTypingIndicator(); } if (sender === 'system') { const systemEl = document.createElement('div'); systemEl.className = 'message system-message'; systemEl.innerHTML = `<p>${text}</p>`; mainContentArea.appendChild(systemEl); } else { const wrapper = document.createElement('div'); wrapper.className = 'message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message'; messageBubble.innerHTML = `<p>${text}</p>`; if (sender === 'user') { wrapper.classList.add('user-message-wrapper'); avatar.src = AVATAR_USER_URL; avatar.alt = 'User Avatar'; messageBubble.classList.add('user-message'); } else { wrapper.classList.add('ai-message-wrapper'); avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; messageBubble.classList.add('ai-message'); } wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); } scrollToBottom(); }
     function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); scrollToBottom(); }
+
 });
