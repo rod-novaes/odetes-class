@@ -60,7 +60,7 @@ async function getAIResponse(userMessage, history, apiKey, scenario, settings) {
 /**
  * Obtém um feedback detalhado sobre a performance do usuário.
  */
-async function getFeedbackForConversation(history, apiKey, language, settings) {
+async function getFeedbackForConversation(history, apiKey, language, settings, interactionMode) {
     const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     const languageMap = { "en-US": "English" };
     const targetLanguage = languageMap[language] || "English";
@@ -78,11 +78,19 @@ async function getFeedbackForConversation(history, apiKey, language, settings) {
             break;
     }
 
+    // NOVA INSTRUÇÃO CONDICIONAL PARA O MODO DE VOZ
+    let feedbackModeInstruction = '';
+    if (interactionMode === 'voice') {
+        feedbackModeInstruction = `
+        CRITICAL: This conversation was conducted via voice input. Therefore, you MUST completely ignore all punctuation and capitalization errors in your analysis. Do not correct them or mention them in the feedback. Focus ONLY on grammar, word choice, and natural phrasing.`;
+    }
+
     const systemPrompt = `You are an expert English language tutor. A student has just completed a role-playing conversation. Your task is to provide constructive, detailed, and encouraging feedback. Your response MUST be in ${targetLanguage}. Analyze ONLY the user's messages.
 
     IMPORTANT INSTRUCTION: You MUST tailor your feedback to the user's proficiency level.
     **User's Proficiency Level: ${settings.proficiency.toUpperCase()}**
     **Your Focus Area:** ${feedbackFocusInstruction}
+    ${feedbackModeInstruction}
 
     Please structure your feedback in three sections using Markdown:
     

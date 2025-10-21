@@ -35,7 +35,7 @@
         </main>
     </div>
 
-    <!-- ===== ESTRUTURA DOS MODAIS (Inalterada) ===== -->
+    <!-- ===== ESTRUTURA DOS MODAIS (Com alteração no Mission Modal) ===== -->
     <div id="feedback-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -84,8 +84,13 @@
                 <span class="modal-close" id="mission-modal-close-btn">&times;</span>
             </div>
             <div class="modal-body">
-                <p id="mission-goal-text">O objetivo da sua missão aparecerá aqui.</p><br>
-                <button id="start-mission-btn">Entendi a missão</button>
+                <p id="mission-goal-text">O objetivo da sua missão aparecerá aqui.</p>
+                <br>
+                <p style="text-align: center; font-weight: 500; margin-bottom: 20px;">Como você quer praticar?</p>
+                <div class="mission-choice-container">
+                    <button id="start-text-mission-btn">Por Texto</button>
+                    <button id="start-voice-mission-btn">Por Voz</button>
+                </div>
             </div>
         </div>
     </div>
