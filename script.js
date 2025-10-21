@@ -84,7 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const getApiKey = () => localStorage.getItem('groqApiKey');
     function openApiKeyModal(isPersistent = false) { if (isPersistent) { apiKeyModal.classList.add('modal-persistent'); } else { apiKeyModal.classList.remove('modal-persistent'); } apiKeyModal.classList.remove('modal-hidden'); }
     const closeApiKeyModal = () => apiKeyModal.classList.add('modal-hidden');
-    function saveApiKey() { const key = modalApiKeyInput.value.trim(); if (key) { localStorage.setItem('groqApiKey', key); closeApiKeyModal(); if (mainContentArea.innerHTML === '') { renderHomePage(); } } else { alert("Por favor, insira uma chave de API válida."); } }
+    function saveApiKey() {
+    const key = modalApiKeyInput.value.trim();
+    if (key) {
+        localStorage.setItem('groqApiKey', key);
+        closeApiKeyModal();
+        renderHomePage(); // A página inicial agora é chamada incondicionalmente.
+    } else {
+        alert("Por favor, insira uma chave de API válida.");
+    }
+}
 
     // --- Funções de Histórico ---
     function populateHistoryList(listElement) { const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; listElement.innerHTML = ''; if (history.length === 0) { listElement.innerHTML = '<li><small>Nenhum diálogo no histórico.</small></li>'; return; } history.forEach((item, index) => { const li = document.createElement('li'); li.className = 'history-item'; const viewButton = document.createElement('div'); viewButton.className = 'history-item-view'; viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; viewButton.dataset.index = index; const deleteButton = document.createElement('button'); deleteButton.className = 'history-item-delete'; deleteButton.innerHTML = '&times;'; deleteButton.title = 'Excluir este item'; deleteButton.dataset.index = index; li.appendChild(viewButton); li.appendChild(deleteButton); listElement.appendChild(li); }); }
