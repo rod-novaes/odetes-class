@@ -70,7 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Carrega as vozes disponíveis para a Síntese de Voz
         function populateVoiceList() {
-            voices = synthesis.getVoices();
+            if (synthesis.getVoices().length > 0) {
+                voices = synthesis.getVoices();
+            }
         }
         populateVoiceList();
         if (synthesis.onvoiceschanged !== undefined) {
@@ -293,15 +295,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Procura a melhor voz nativa em inglês disponível no navegador com uma cadeia de prioridades.
+     */
+    function findBestEnglishVoice() {
+        if (voices.length === 0) {
+            // Tenta obter as vozes novamente se o array estiver vazio
+            voices = synthesis.getVoices();
+            if (voices.length === 0) return null;
+        }
+
+        // Prioridade 1: Vozes de alta qualidade conhecidas (Google/Microsoft)
+        let bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google'));
+        if (bestVoice) return bestVoice;
+
+        bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft'));
+        if (bestVoice) return bestVoice;
+        
+        // Prioridade 2: Qualquer voz nativa de Inglês Americano (padrão)
+        bestVoice = voices.find(voice => voice.lang === 'en-US');
+        if (bestVoice) return bestVoice;
+
+        // Prioridade 3: Qualquer voz nativa de Inglês Britânico
+        bestVoice = voices.find(voice => voice.lang === 'en-GB');
+        if (bestVoice) return bestVoice;
+
+        // Prioridade 4: Qualquer outra voz em inglês como fallback
+        bestVoice = voices.find(voice => voice.lang.startsWith('en-'));
+        if (bestVoice) return bestVoice;
+
+        return null; // Nenhuma voz em inglês encontrada
+    }
+
     function speakText(text) {
         if (!text || text.trim() === '') {
-            startListening(); // Se a IA retornar texto vazio, passa a vez ao usuário
+            startListening();
             return;
         }
-        synthesis.cancel(); // Garante que nenhuma fala anterior continue
+        synthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        const englishVoice = voices.find(voice => voice.lang.startsWith('en-US'));
-        if (englishVoice) { utterance.voice = englishVoice; }
+        
+        // NOVA LÓGICA DE SELEÇÃO DE VOZ APRIMORADA
+        const bestVoice = findBestEnglishVoice();
+        if (bestVoice) {
+            utterance.voice = bestVoice;
+        } else {
+            console.warn("Nenhuma voz nativa em inglês foi encontrada. Usando a voz padrão do sistema.");
+        }
+
         utterance.onstart = () => { conversationState = 'AI_SPEAKING'; updateMicButtonState('disabled'); displayMessage(text, 'ai'); };
         utterance.onend = () => { startListening(); };
         utterance.onerror = (e) => { console.error('SpeechSynthesis error:', e); startListening(); };
@@ -329,12 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
                 conversationHistory.push({ role: 'assistant', content: cleanResponse });
                 if (cleanResponse) {
-                    const utterance = new SpeechSynthesisUtterance(cleanResponse);
-                    const englishVoice = voices.find(voice => voice.lang.startsWith('en-US'));
-                    if (englishVoice) utterance.voice = englishVoice;
-                    utterance.onstart = () => displayMessage(cleanResponse, 'ai');
-                    utterance.onend = () => finalizeConversation();
-                    synthesis.speak(utterance);
+                    speakText(cleanResponse); // Fala a resposta final e a finalização ocorrerá no 'onend'
+                    // Adiciona um listener para finalizar após a fala
+                    const finalUtterance = synthesis.getUtterances().pop();
+                    if (finalUtterance) {
+                        finalUtterance.onend = () => finalizeConversation();
+                    } else {
+                        finalizeConversation(); // Finaliza direto se não houver fala
+                    }
                 } else {
                     finalizeConversation();
                 }
@@ -353,11 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleRecognitionError(event) {
         console.error('SpeechRecognition error:', event.error);
-        if (event.error === 'no-speech') {
+        if (event.error === 'no-speech' && conversationState === 'USER_LISTENING') {
             startListening(); // Tenta ouvir novamente se houve silêncio
         } else if (event.error === 'not-allowed') {
             displayMessage("A permissão para o microfone foi negada. Por favor, habilite nas configurações do navegador.", 'system');
-        } else {
+            conversationState = 'IDLE';
+            updateMicButtonState('disabled');
+        } else if (event.error !== 'aborted') { // Ignora erros de aborto manual
             conversationState = 'IDLE';
             updateMicButtonState('disabled');
         }
@@ -376,7 +421,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE FINALIZAÇÃO (ATUALIZADA) ---
     async function finalizeConversation() {
         if (synthesis.speaking) synthesis.cancel();
-        if (recognition && conversationState === 'USER_LISTENING') recognition.abort();
+        if (recognition && conversationState === 'USER_LISTENING') {
+            conversationState = 'IDLE'; // Previne que reinicie o listening
+            recognition.abort();
+        }
         conversationState = 'IDLE';
 
         const apiKey = getApiKey();
@@ -405,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateActiveNavIcon(activeBtnId) {
         [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => {
-            // CORREÇÃO AQUI
             if (btn.id === activeBtnId) {
                 btn.classList.add('active-nav-icon');
             } else {
