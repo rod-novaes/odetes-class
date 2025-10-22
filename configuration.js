@@ -43,7 +43,13 @@ async function getAIResponse(userMessage, history, apiKey, scenario, settings) {
 
     const systemPrompt = `You are a helpful and immersive role-playing AI assistant for a language student. Your entire response MUST be in ${targetLanguage}.
     Your primary goal is to act as a character in a scenario and maintain a realistic conversation. Your character and the user's goal are defined below.
-    CRITICAL RULE: You MUST NOT correct the user's errors during the dialogue. Your role is to understand and respond naturally to keep the scenario immersive. Feedback will be provided separately, not by you.
+
+    --- CRITICAL RULES ---
+    1.  CRITICAL RULE: You MUST NOT correct the user's errors during the dialogue. Your role is to understand and respond naturally to keep the scenario immersive. Feedback will be provided separately, not by you.
+    2.  CRITICAL DIALOGUE RULE: Your spoken dialogue responses MUST NOT contain any formatting characters like asterisks (*), underscores (_), or hash symbols (#). Convey all emphasis and emotion naturally through word choice and sentence structure alone.
+    3.  CRITICAL LANGUAGE ENFORCEMENT RULE: If the user's response is not in ${targetLanguage}, you MUST NOT continue the scenario. Your primary function is to enforce ${targetLanguage} practice. Instead, you must deliver a short, polite, in-character message asking them to speak ${targetLanguage}. For example: 'I'm sorry, I don't quite understand. Could you please say that in ${targetLanguage}?' or 'My apologies, I only speak ${targetLanguage}. Could you try again?' Do not answer their question in the other language. After your request, wait for their corrected response.
+    --- END CRITICAL RULES ---
+
     LANGUAGE ADAPTATION: ${proficiencyInstruction}
     SCENARIO DETAILS:
     - Your Character's Role: Act as the character implied by the user's goal.
@@ -52,8 +58,7 @@ async function getAIResponse(userMessage, history, apiKey, scenario, settings) {
     CONVERSATION RULES:
     1. Guide the user toward their goal step-by-step.
     2. ALWAYS end your response with a direct question or a clear choice to keep the conversation moving.
-    3. When the user successfully achieves their goal, congratulate them and end your final message with the exact tag: [Scenario Complete]
-    CRITICAL DIALOGUE RULE: Your spoken dialogue responses MUST NOT contain any formatting characters like asterisks (*), underscores (_), or hash symbols (#). Convey all emphasis and emotion naturally through word choice and sentence structure alone`;
+    3. When the user successfully achieves their goal, congratulate them and end your final message with the exact tag: [Scenario Complete]`;
     
     // Adiciona a nova mensagem do usuário ao histórico para formar a conversa completa
     const fullHistory = [...history];
@@ -124,7 +129,7 @@ async function getFeedbackForConversation(history, apiKey, language, settings, i
         feedbackModeInstruction = `CRITICAL: This conversation was conducted via voice input. Therefore, you MUST completely ignore all punctuation and capitalization errors in your analysis. Do not correct them or mention them in the feedback. Focus ONLY on grammar, word choice, and natural phrasing.`;
     }
 
-    const systemPrompt = `You are an expert English language tutor. A student has just completed a role-playing conversation. Your task is to provide constructive, detailed, and encouraging feedback. Your response MUST be in ${targetLanguage}. Analyze ONLY the user's messages.
+    const systemPrompt = `You are an expert ${targetLanguage} language tutor. A student has just completed a role-playing conversation. Your task is to provide constructive, detailed, and encouraging feedback. Your response MUST be in ${targetLanguage}. Analyze ONLY the user's messages.
     IMPORTANT INSTRUCTION: You MUST tailor your feedback to the user's proficiency level.
     **User's Proficiency Level: ${settings.proficiency.toUpperCase()}**
     **Your Focus Area:** ${feedbackFocusInstruction}
@@ -205,7 +210,7 @@ async function translateText(textToTranslate, apiKey, language) {
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     const languageMap = { "en-US": "English" };
     const targetLanguage = languageMap[language] || "English";
-    const systemPrompt = `You are an expert translator. Translate the following English text to Brazilian Portuguese. CRITICAL RULE: The text may contain special placeholders like %%PROTECTED_0%%, %%PROTECTED_1%%, etc. You MUST keep these placeholders EXACTLY as they are in the translated text. DO NOT translate, alter, or remove these placeholders under any circumstances. Provide only the direct translation.`;
+    const systemPrompt = `You are an expert translator. Translate the following ${targetLanguage} text to Brazilian Portuguese. CRITICAL RULE: The text may contain special placeholders like %%PROTECTED_0%%, %%PROTECTED_1%%, etc. You MUST keep these placeholders EXACTLY as they are in the translated text. DO NOT translate, alter, or remove these placeholders under any circumstances. Provide only the direct translation.`;
     
     try {
         const response = await fetch(API_URL, { 
