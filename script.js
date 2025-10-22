@@ -443,11 +443,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- VERSÃO CORRIGIDA ---
     function startListening() {
         if (conversationState === 'USER_LISTENING' || !recognition) return;
         conversationState = 'USER_LISTENING';
         updateMicButtonState('listening');
-        try { recognition.start(); } catch (e) { console.error("Recognition start error:", e); }
+        
+        // Adiciona um pequeno delay para dar tempo ao navegador de preparar o microfone.
+        setTimeout(() => {
+            try {
+                // Garante que o estado ainda é de escuta antes de iniciar,
+                // caso o usuário tenha digitado algo durante o delay.
+                if (conversationState === 'USER_LISTENING') {
+                    recognition.start();
+                }
+            } catch (e) {
+                console.error("Recognition start error:", e);
+            }
+        }, 250); // Atraso de 250ms
     }
 
     async function handleRecognitionResult(event) {
