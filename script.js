@@ -479,10 +479,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRecognitionError(event) {
-        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        // Verifica primeiro se o erro é de permissão negada.
+        // Navegadores diferentes usam nomes diferentes para este erro ('not-allowed' ou 'permission-denied').
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+            console.error('SpeechRecognition permission error:', event.error);
+            // Exibe um alerta útil para o usuário, explicando como resolver o problema.
+            alert("A permissão para o microfone foi negada. Por favor, verifique as configurações do seu navegador e permita o acesso ao microfone para este site.");
+        } 
+        // Ignora erros que são parte do fluxo normal (usuário ficou em silêncio ou cancelou a fala).
+        else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+            // Para todos os outros erros inesperados, registra no console para depuração.
             console.error('SpeechRecognition error:', event.error);
+            // Opcional: Informa o usuário sobre um erro genérico.
+            alert("Ocorreu um erro inesperado com o reconhecimento de voz. Tente novamente.");
         }
-        // Garante que o usuário possa tentar de novo ou digitar
+
+        // Garante que o usuário sempre possa tentar de novo ou digitar, reabilitando os inputs.
         setUserTurnState(true);
     }
     
