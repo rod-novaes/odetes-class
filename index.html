@@ -51,18 +51,27 @@
         <div class="modal-content">
             <h2>Odete's Class</h2><hr><br>
             <div class="modal-header">
-                <h2>Primeira vez por aqui? Vamos conectar sua IA gratuita!</h2>
+                <h2>Conecte suas IAs (Chat e Voz)</h2>
             </div>
             <div class="modal-body">
+                <p style="text-align: left; margin-bottom: 24px;">Para o aplicativo funcionar, você precisa de duas chaves de API gratuitas. Siga os passos abaixo (você só precisa fazer isso uma vez):</p>
                 <ol class="step-by-step-list">
-                    <li><strong><a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Acesse o site da Groq.com</a></strong> (ele é o provedor da sua IA)</li>
-                    <li><strong>Faça login na Groq com sua conta do Google</strong> (ou crie uma conta gratuita da própria Groq)</li>
-                    <li><strong>Crie sua chave secreta em "Create API Key"</strong> (dê o nome que quiser para ela)</li>
+                    <li><strong><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Crie sua chave do Google AI Studio</a></strong>
+                        Faça login com sua conta Google, clique em "Create API key" e copie o código. Essa chave cuidará da inteligência da conversa.
+                    </li>
+                    <li><strong><a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer">Crie sua chave da ElevenLabs</a></strong>
+                        Crie uma conta (pode usar o login do Google), clique no ícone do seu perfil (canto superior direito) e em "Profile Settings". A chave estará lá para você copiar. Ela cuidará da voz de alta qualidade.
+                    </li>
                 </ol>
-                <label for="modal-api-key-input">Agora é só copiar e colar o código da sua <strong>Chave de API</strong> aqui:</label>
-                <input type="password" id="modal-api-key-input" placeholder="Cole sua chave aqui (ex: gsk_...)">
+                
+                <label for="modal-google-api-key-input">1. Chave de API do Google AI Studio (para o Chat)</label>
+                <input type="password" id="modal-google-api-key-input" placeholder="Cole sua chave do Google aqui (ex: AIza...)">
+                
+                <label for="modal-elevenlabs-api-key-input">2. Chave de API da ElevenLabs (para a Voz)</label>
+                <input type="password" id="modal-elevenlabs-api-key-input" placeholder="Cole sua chave da ElevenLabs aqui">
+
                 <button id="save-api-key-btn">Salvar e Começar</button>
-                <p class="modal-info-text">Sua chave é salva com segurança no seu navegador.</p>
+                <p class="modal-info-text">Suas chaves são salvas com segurança apenas no seu navegador.</p>
             </div>
         </div>
     </div>
@@ -115,7 +124,7 @@
                 </select>
 
                 <label>Conexão com a IA</label>
-                <button id="change-api-key-btn">Gerenciar Chave de API</button>
+                <button id="change-api-key-btn">Gerenciar Chaves de API</button>
             </div>
         </div>
     </div>

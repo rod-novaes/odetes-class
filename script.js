@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedbackContent = document.getElementById('feedback-content');
     const translateBtn = document.getElementById('translate-btn');
     const apiKeyModal = document.getElementById('api-key-modal');
-    const modalApiKeyInput = document.getElementById('modal-api-key-input');
+    const modalGoogleApiKeyInput = document.getElementById('modal-google-api-key-input');
+    const modalElevenLabsApiKeyInput = document.getElementById('modal-elevenlabs-api-key-input');
     const saveApiKeyBtn = document.getElementById('save-api-key-btn');
     const changeApiKeyBtn = document.getElementById('change-api-key-btn');
     const historyModal = document.getElementById('history-modal');
@@ -31,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
     const micBtn = document.getElementById('mic-btn');
 
-    // Mapeamento dos novos botões do modal da missão
     const startTextMissionBtn = document.getElementById('start-text-mission-btn');
     const startVoiceMissionBtn = document.getElementById('start-voice-mission-btn');
 
@@ -46,21 +46,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let translatedFeedback = '';
     let isTranslated = false;
 
-    // --- Novas Variáveis de Estado para Conversa por Voz ---
     let currentInteractionMode = null; // 'text' ou 'voice'
     let conversationState = 'IDLE';    // 'IDLE', 'AI_SPEAKING', 'USER_LISTENING', 'PROCESSING'
-    let recognition;                   // Instância da SpeechRecognition API
+    let recognition;
     const synthesis = window.speechSynthesis;
-    let voices = [];                   // Array para armazenar as vozes disponíveis no navegador
+    let voices = [];
+    let currentAudioPlayer = null; // Referência ao player de áudio atual para poder pará-lo
 
     // --- Funções de Inicialização da API de Voz ---
     function initializeSpeechAPI() {
-        // Verifica compatibilidade e inicializa a API de Reconhecimento de Voz
         window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (window.SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false; // Processa uma frase de cada vez
-            recognition.lang = 'en-US';     // Define o idioma de reconhecimento
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
 
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.onerror = handleRecognitionError;
         }
 
-        // Carrega as vozes disponíveis para a Síntese de Voz
         function populateVoiceList() {
             if (synthesis.getVoices().length > 0) {
                 voices = synthesis.getVoices();
@@ -81,19 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Funções de Gerenciamento da API Key ---
-    const getApiKey = () => localStorage.getItem('groqApiKey');
+    const getGoogleApiKey = () => localStorage.getItem('googleApiKey');
+    const getElevenLabsApiKey = () => localStorage.getItem('elevenLabsApiKey');
     function openApiKeyModal(isPersistent = false) { if (isPersistent) { apiKeyModal.classList.add('modal-persistent'); } else { apiKeyModal.classList.remove('modal-persistent'); } apiKeyModal.classList.remove('modal-hidden'); }
     const closeApiKeyModal = () => apiKeyModal.classList.add('modal-hidden');
-    function saveApiKey() {
-    const key = modalApiKeyInput.value.trim();
-    if (key) {
-        localStorage.setItem('groqApiKey', key);
-        closeApiKeyModal();
-        renderHomePage(); // A página inicial agora é chamada incondicionalmente.
-    } else {
-        alert("Por favor, insira uma chave de API válida.");
+    function saveApiKey() { 
+        const googleKey = modalGoogleApiKeyInput.value.trim(); 
+        const elevenLabsKey = modalElevenLabsApiKeyInput.value.trim();
+        if (googleKey && elevenLabsKey) { 
+            localStorage.setItem('googleApiKey', googleKey); 
+            localStorage.setItem('elevenLabsApiKey', elevenLabsKey);
+            closeApiKeyModal(); 
+            renderHomePage();
+        } else { 
+            alert("Por favor, insira as duas chaves de API para continuar."); 
+        } 
     }
-}
 
     // --- Funções de Histórico ---
     function populateHistoryList(listElement) { const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; listElement.innerHTML = ''; if (history.length === 0) { listElement.innerHTML = '<li><small>Nenhum diálogo no histórico.</small></li>'; return; } history.forEach((item, index) => { const li = document.createElement('li'); li.className = 'history-item'; const viewButton = document.createElement('div'); viewButton.className = 'history-item-view'; viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; viewButton.dataset.index = index; const deleteButton = document.createElement('button'); deleteButton.className = 'history-item-delete'; deleteButton.innerHTML = '&times;'; deleteButton.title = 'Excluir este item'; deleteButton.dataset.index = index; li.appendChild(viewButton); li.appendChild(deleteButton); listElement.appendChild(li); }); }
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customBtn) {
             const customInput = document.getElementById('custom-scenario-input');
             const goal = customInput.value.trim();
-            const apiKey = getApiKey();
+            const apiKey = getGoogleApiKey();
             if (!apiKey) { openApiKeyModal(true); return; }
             if (!goal) {
                 showCustomScenarioError("Por favor, descreva o cenário que você quer praticar.");
@@ -173,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners dos Modais
     modalCloseBtn.addEventListener('click', () => feedbackModal.classList.add('modal-hidden'));
     feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) feedbackModal.classList.add('modal-hidden'); });
     translateBtn.addEventListener('click', handleTranslateFeedback);
@@ -187,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
     changeApiKeyBtn.addEventListener('click', () => { settingsModal.classList.add('modal-hidden'); openApiKeyModal(false); });
     apiKeyModal.addEventListener('click', (e) => { if (!apiKeyModal.classList.contains('modal-persistent') && e.target === apiKeyModal) closeApiKeyModal(); });
 
-    // --- NOVOS EVENT LISTENERS PARA ESCOLHA DO MODO ---
     startTextMissionBtn.addEventListener('click', () => {
         currentInteractionMode = 'text';
         missionModal.classList.add('modal-hidden');
@@ -201,7 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Funções de Renderização de "Páginas" ---
-    function renderHomePage() { updateActiveNavIcon('nav-home-btn'); mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area'; chatInputArea.classList.add('chat-input-hidden'); renderScenarioPanel(); }
+    // --- VERSÃO CORRIGIDA ---
+    function renderHomePage() {
+        updateActiveNavIcon('nav-home-btn');
+        mainContentArea.innerHTML = '';
+        mainContentArea.className = 'main-content-area';
+        chatInputArea.classList.add('chat-input-hidden');
+        renderScenarioPanel(); // <<< LINHA ADICIONADA DE VOLTA
+    }
     function renderCustomScenarioPage() { updateActiveNavIcon('nav-custom-btn'); mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area custom-scenario-page'; chatInputArea.classList.add('chat-input-hidden'); const customScenarioContainer = document.createElement('div'); customScenarioContainer.className = 'custom-scenario-container'; customScenarioContainer.innerHTML = `<h2>Cenário Personalizado</h2><p>Descreva uma situação ou objetivo que você gostaria de praticar em inglês.</p><textarea id="custom-scenario-input" rows="6" placeholder="Ex: Pedir o reembolso de um produto com defeito em uma loja de eletrônicos..."></textarea><div id="custom-scenario-feedback" class="custom-scenario-feedback"></div><button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>`; mainContentArea.appendChild(customScenarioContainer); }
     function showCustomScenarioError(message) { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = message; feedbackArea.style.display = 'block'; } }
     function clearCustomScenarioError() { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = ''; feedbackArea.style.display = 'none'; } }
@@ -209,234 +215,313 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderChatInterface() { mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area chat-window'; chatInputArea.classList.remove('chat-input-hidden'); updateActiveNavIcon(null); }
 
     // --- Funções de Lógica Principal de Conversa ---
-    function startNewConversation(scenario) { if (!getApiKey()) { openApiKeyModal(true); return; } currentScenario = { details: scenario }; missionGoalText.textContent = scenario.goal; missionModal.classList.remove('modal-hidden'); }
+    function startNewConversation(scenario) { if (!getGoogleApiKey() || !getElevenLabsApiKey()) { openApiKeyModal(true); return; } currentScenario = { details: scenario }; missionGoalText.textContent = scenario.goal; missionModal.classList.remove('modal-hidden'); }
 
-    // --- LÓGICA PARA MODO TEXTO (FLUXO ORIGINAL) ---
     async function initiateChat() {
         if (!currentScenario) return;
+        currentInteractionMode = 'text';
         renderChatInterface();
+        micBtn.style.display = 'none'; // Esconde o microfone no modo texto
         textInput.style.display = 'block';
         sendBtn.style.display = 'flex';
-        micBtn.style.display = 'flex';
 
         conversationHistory = [];
         displayMessage(`🎯 Seu Objetivo: ${currentScenario.details.goal}`, 'system');
-        setLoadingState(true, true, false);
+        setProcessingState(true, 'text');
         try {
-            const apiKey = getApiKey();
-            if (!apiKey) throw new Error("API Key not found");
+            const apiKey = getGoogleApiKey();
+            if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(null, [], apiKey, currentScenario.details, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
-            setTimeout(() => { removeTypingIndicator(); displayMessage(aiResponse, 'ai'); setLoadingState(false, true, true); }, TYPING_SIMULATION_DELAY);
-        } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setLoadingState(false, true, true); }
+            setTimeout(() => { removeTypingIndicator(); displayMessage(aiResponse, 'ai'); setUserTurnState(true, 'text'); }, TYPING_SIMULATION_DELAY);
+        } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setUserTurnState(true, 'text'); }
     }
 
     async function handleSendMessage() {
-        if (!currentScenario) { displayMessage("Por favor, selecione um cenário.", 'ai'); return; }
-        const apiKey = getApiKey();
-        if (!apiKey) { openApiKeyModal(true); return; }
+        if (currentInteractionMode === 'voice') {
+            if (recognition && conversationState === 'USER_LISTENING') {
+                recognition.abort(); // Para o reconhecimento de voz se o texto for enviado
+            }
+        }
+
         const messageText = textInput.value.trim();
         if (!messageText) return;
+
+        setProcessingState(true);
+
         displayMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', content: messageText });
         textInput.value = '';
-        setLoadingState(true);
+
         try {
+            const apiKey = getGoogleApiKey();
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, currentScenario.details, settings);
-            setTimeout(() => {
-                removeTypingIndicator();
-                if (aiResponse.includes("[Scenario Complete]")) {
-                    const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
-                    if (cleanResponse) { conversationHistory.push({ role: 'assistant', content: cleanResponse }); displayMessage(cleanResponse, 'ai'); }
-                    finalizeConversation();
-                } else { conversationHistory.push({ role: 'assistant', content: aiResponse }); displayMessage(aiResponse, 'ai'); setLoadingState(false, true); }
-            }, TYPING_SIMULATION_DELAY);
-        } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setLoadingState(false, true); }
+            
+            if (aiResponse.includes("[Scenario Complete]")) {
+                const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
+                if (cleanResponse) { 
+                    conversationHistory.push({ role: 'assistant', content: cleanResponse });
+                    await handleAIResponse(cleanResponse); 
+                }
+                finalizeConversation();
+            } else {
+                conversationHistory.push({ role: 'assistant', content: aiResponse });
+                await handleAIResponse(aiResponse);
+            }
+        } catch (error) {
+            const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️.";
+            await handleAIResponse(userFriendlyError);
+        }
     }
 
-    // --- NOVA LÓGICA PARA MODO VOZ ---
-    function checkBrowserCompatibility() {
-        if (!window.SpeechRecognition || !window.speechSynthesis) {
-            alert("Desculpe, seu navegador não suporta a funcionalidade de voz. Recomendamos usar Google Chrome ou Firefox. Você pode continuar usando o modo de texto.");
-            return false;
-        }
-        return true;
+    // --- NOVA LÓGICA DE VOZ HÍBRIDA ---
+
+    // --- VERSÃO CORRIGIDA ---
+    function setupVoiceUI() {
+        // GARANTE que o container principal esteja visível, removendo a classe do CSS
+        chatInputArea.classList.remove('chat-input-hidden'); // <<< LINHA ADICIONADA
+
+        // Mostra todos os controles de input (voz e texto)
+        textInput.style.display = 'block';
+        sendBtn.style.display = 'flex';
+        micBtn.style.display = 'flex';
     }
 
     async function initiateVoiceChat() {
         if (!currentScenario) return;
         if (!checkBrowserCompatibility()) { renderHomePage(); return; }
+        currentInteractionMode = 'voice';
         renderChatInterface();
         setupVoiceUI();
         conversationHistory = [];
         displayMessage(`🎯 Seu Objetivo: ${currentScenario.details.goal}`, 'system');
-        updateMicButtonState('processing');
-        conversationState = 'PROCESSING';
+        setProcessingState(true);
         try {
-            const apiKey = getApiKey();
-            if (!apiKey) throw new Error("API Key not found");
+            const apiKey = getGoogleApiKey();
+            if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(null, [], apiKey, currentScenario.details, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
-            speakText(aiResponse);
+            await speakText(aiResponse);
         } catch (error) {
             console.error("Error initiating voice chat:", error);
             const userFriendlyError = `Erro: ${error.message}. A sessão foi encerrada.`;
             displayMessage(userFriendlyError, 'ai');
-            conversationState = 'IDLE';
-            updateMicButtonState('disabled');
+            setProcessingState(false);
         }
-    }
-
-    function setupVoiceUI() {
-        textInput.style.display = 'none';
-        sendBtn.style.display = 'none';
-        micBtn.style.display = 'flex';
     }
 
     function handleMicButtonClick() {
         if (currentInteractionMode !== 'voice') return;
-        if (conversationState === 'AI_SPEAKING') {
-            synthesis.cancel(); // Interrompe a fala da IA
-            startListening();   // E imediatamente começa a ouvir o usuário
+
+        if (currentAudioPlayer && !currentAudioPlayer.paused) {
+            currentAudioPlayer.pause(); // Para o áudio da IA
+        }
+        if (synthesis.speaking) {
+            synthesis.cancel(); // Para a voz nativa
+        }
+
+        if (conversationState === 'USER_LISTENING') {
+            recognition.stop();
+            updateMicButtonState('processing');
+        }
+    }
+    
+    async function handleAIResponse(text) {
+        if (currentInteractionMode === 'voice') {
+            await speakText(text);
+        } else {
+            // Modo texto: simula digitação e habilita input
+            setTimeout(() => {
+                removeTypingIndicator();
+                displayMessage(text, 'ai');
+                setUserTurnState(true, 'text');
+            }, TYPING_SIMULATION_DELAY);
+        }
+    }
+    
+    function checkBrowserCompatibility() {
+        if (!window.SpeechRecognition) {
+            alert("Desculpe, seu navegador não suporta o reconhecimento de voz. Você pode continuar usando o modo de texto.");
+            return false;
+        }
+        return true;
+    }
+    
+    // --- LÓGICA DE ESTADO DA INTERFACE ---
+
+    function setProcessingState(isProcessing) {
+        if (isProcessing) {
+            showTypingIndicator();
+            textInput.disabled = true;
+            sendBtn.disabled = true;
+            micBtn.disabled = true;
+            updateMicButtonState('processing');
+        } else {
+            removeTypingIndicator();
+            // A habilitação dos inputs é feita por setUserTurnState
         }
     }
 
-    /**
-     * Procura a melhor voz nativa em inglês disponível no navegador com uma cadeia de prioridades.
-     */
-    function findBestEnglishVoice() {
-        if (voices.length === 0) {
-            // Tenta obter as vozes novamente se o array estiver vazio
-            voices = synthesis.getVoices();
-            if (voices.length === 0) return null;
+    function setUserTurnState(isUserTurn) {
+        textInput.disabled = !isUserTurn;
+        sendBtn.disabled = !isUserTurn;
+        micBtn.disabled = !isUserTurn;
+
+        if (isUserTurn) {
+            textInput.focus();
+            if (currentInteractionMode === 'voice') {
+                startListening();
+            }
         }
-
-        // Prioridade 1: Vozes de alta qualidade conhecidas (Google/Microsoft)
-        let bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google'));
-        if (bestVoice) return bestVoice;
-
-        bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft'));
-        if (bestVoice) return bestVoice;
-        
-        // Prioridade 2: Qualquer voz nativa de Inglês Americano (padrão)
-        bestVoice = voices.find(voice => voice.lang === 'en-US');
-        if (bestVoice) return bestVoice;
-
-        // Prioridade 3: Qualquer voz nativa de Inglês Britânico
-        bestVoice = voices.find(voice => voice.lang === 'en-GB');
-        if (bestVoice) return bestVoice;
-
-        // Prioridade 4: Qualquer outra voz em inglês como fallback
-        bestVoice = voices.find(voice => voice.lang.startsWith('en-'));
-        if (bestVoice) return bestVoice;
-
-        return null; // Nenhuma voz em inglês encontrada
     }
 
-    function speakText(text) {
+    // --- SISTEMA DE VOZ HÍBRIDO E RECONHECIMENTO ---
+
+    async function speakText(text) {
+        text = text.replace(/[*_#]/g, '');
         if (!text || text.trim() === '') {
-            startListening();
+            setUserTurnState(true);
             return;
         }
-        synthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // NOVA LÓGICA DE SELEÇÃO DE VOZ APRIMORADA
-        const bestVoice = findBestEnglishVoice();
-        if (bestVoice) {
-            utterance.voice = bestVoice;
-        } else {
-            console.warn("Nenhuma voz nativa em inglês foi encontrada. Usando a voz padrão do sistema.");
+        displayMessage(text, 'ai');
+        removeTypingIndicator();
+
+        const elevenLabsApiKey = getElevenLabsApiKey();
+        if (!elevenLabsApiKey) {
+            return speakTextNative(text);
         }
 
-        utterance.onstart = () => { conversationState = 'AI_SPEAKING'; updateMicButtonState('disabled'); displayMessage(text, 'ai'); };
-        utterance.onend = () => { startListening(); };
-        utterance.onerror = (e) => { console.error('SpeechSynthesis error:', e); startListening(); };
-        synthesis.speak(utterance);
+        try {
+            const audioBlob = await getAudioFromElevenLabs(text, elevenLabsApiKey);
+            const audioUrl = URL.createObjectURL(audioBlob);
+            currentAudioPlayer = new Audio(audioUrl);
+
+            return new Promise((resolve) => {
+                currentAudioPlayer.onplay = () => { conversationState = 'AI_SPEAKING'; };
+                currentAudioPlayer.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    setUserTurnState(true);
+                    resolve();
+                };
+                currentAudioPlayer.onerror = () => {
+                    console.error('Audio playback error');
+                    URL.revokeObjectURL(audioUrl);
+                    setUserTurnState(true);
+                    resolve();
+                };
+                currentAudioPlayer.play();
+            });
+
+        } catch (error) {
+            console.warn("ElevenLabs API failed, falling back to native TTS.", error);
+            showFallbackNotification();
+            return speakTextNative(text);
+        }
+    }
+
+    function speakTextNative(text) {
+        return new Promise((resolve) => {
+            synthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const bestVoice = findBestEnglishVoice();
+            if (bestVoice) utterance.voice = bestVoice;
+
+            utterance.onstart = () => { conversationState = 'AI_SPEAKING'; };
+            utterance.onend = () => {
+                setUserTurnState(true);
+                resolve();
+            };
+            utterance.onerror = () => {
+                console.error('SpeechSynthesis error');
+                setUserTurnState(true);
+                resolve();
+            };
+            synthesis.speak(utterance);
+        });
     }
 
     function startListening() {
         if (conversationState === 'USER_LISTENING' || !recognition) return;
         conversationState = 'USER_LISTENING';
         updateMicButtonState('listening');
-        try { recognition.start(); } catch (e) { console.error("Recognition start error:", e); updateMicButtonState('disabled'); }
+        try { recognition.start(); } catch (e) { console.error("Recognition start error:", e); }
     }
 
     async function handleRecognitionResult(event) {
+        setProcessingState(true);
         const transcript = event.results[0][0].transcript;
-        conversationState = 'PROCESSING';
-        updateMicButtonState('processing');
         displayMessage(transcript, 'user');
         conversationHistory.push({ role: 'user', content: transcript });
+
         try {
-            const apiKey = getApiKey();
+            const apiKey = getGoogleApiKey();
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(transcript, conversationHistory, apiKey, currentScenario.details, settings);
+            
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
-                conversationHistory.push({ role: 'assistant', content: cleanResponse });
                 if (cleanResponse) {
-                    speakText(cleanResponse); // Fala a resposta final e a finalização ocorrerá no 'onend'
-                    // Adiciona um listener para finalizar após a fala
-                    const finalUtterance = synthesis.getUtterances().pop();
-                    if (finalUtterance) {
-                        finalUtterance.onend = () => finalizeConversation();
-                    } else {
-                        finalizeConversation(); // Finaliza direto se não houver fala
-                    }
-                } else {
-                    finalizeConversation();
+                    conversationHistory.push({ role: 'assistant', content: cleanResponse });
+                    await handleAIResponse(cleanResponse);
                 }
+                finalizeConversation();
             } else {
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
-                speakText(aiResponse);
+                await handleAIResponse(aiResponse);
             }
         } catch (error) {
-            console.error("Error handling recognition result:", error);
             const userFriendlyError = `Erro: ${error.message}. A sessão foi encerrada.`;
-            displayMessage(userFriendlyError, 'ai');
-            conversationState = 'IDLE';
-            updateMicButtonState('disabled');
+            await handleAIResponse(userFriendlyError);
         }
     }
 
     function handleRecognitionError(event) {
-        console.error('SpeechRecognition error:', event.error);
-        if (event.error === 'no-speech' && conversationState === 'USER_LISTENING') {
-            startListening(); // Tenta ouvir novamente se houve silêncio
-        } else if (event.error === 'not-allowed') {
-            displayMessage("A permissão para o microfone foi negada. Por favor, habilite nas configurações do navegador.", 'system');
-            conversationState = 'IDLE';
-            updateMicButtonState('disabled');
-        } else if (event.error !== 'aborted') { // Ignora erros de aborto manual
-            conversationState = 'IDLE';
-            updateMicButtonState('disabled');
+        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+            console.error('SpeechRecognition error:', event.error);
         }
+        // Garante que o usuário possa tentar de novo ou digitar
+        setUserTurnState(true);
+    }
+    
+    function showFallbackNotification() {
+        if (!sessionStorage.getItem('fallbackNotified')) {
+            alert("Seus créditos de voz premium da ElevenLabs podem ter acabado. O aplicativo continuará com a voz padrão do seu dispositivo. A qualidade da voz pode ser diferente.");
+            sessionStorage.setItem('fallbackNotified', 'true');
+        }
+    }
+
+    function findBestEnglishVoice() {
+        if (voices.length === 0) voices = synthesis.getVoices();
+        if (voices.length === 0) return null;
+        let bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google'));
+        if (bestVoice) return bestVoice;
+        bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft'));
+        if (bestVoice) return bestVoice;
+        bestVoice = voices.find(voice => voice.lang === 'en-US');
+        if (bestVoice) return bestVoice;
+        return voices.find(voice => voice.lang.startsWith('en-'));
     }
 
     function updateMicButtonState(state) {
         micBtn.classList.remove('mic-listening', 'mic-processing');
-        micBtn.disabled = false;
         switch (state) {
-            case 'listening': micBtn.classList.add('mic-listening'); micBtn.title = "Ouvindo... Clique para interromper a IA"; break;
-            case 'processing': micBtn.classList.add('mic-processing'); micBtn.title = "Processando..."; micBtn.disabled = true; break;
-            case 'disabled': default: micBtn.title = "Aguarde a IA responder..."; micBtn.disabled = true; break;
+            case 'listening': micBtn.classList.add('mic-listening'); micBtn.title = "Ouvindo... Clique para parar"; break;
+            case 'processing': micBtn.classList.add('mic-processing'); micBtn.title = "Processando..."; break;
+            default: micBtn.title = "Usar microfone"; break;
         }
     }
 
-    // --- LÓGICA DE FINALIZAÇÃO (ATUALIZADA) ---
+    // --- LÓGICA DE FINALIZAÇÃO ---
     async function finalizeConversation() {
-        if (synthesis.speaking) synthesis.cancel();
-        if (recognition && conversationState === 'USER_LISTENING') {
-            conversationState = 'IDLE'; // Previne que reinicie o listening
-            recognition.abort();
-        }
-        conversationState = 'IDLE';
-
-        const apiKey = getApiKey();
+        setProcessingState(false);
+        textInput.disabled = true;
+        sendBtn.disabled = true;
+        micBtn.disabled = true;
+        
+        const apiKey = getGoogleApiKey();
         let finalScenarioName = currentScenario.details.name;
         if (currentScenario.details.name === "Cenário Personalizado") {
             try { finalScenarioName = await getScenarioTitle(currentScenario.details.goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
@@ -446,17 +531,12 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('conversationHistory', JSON.stringify(history));
 
         displayCompletionScreen();
-        if (currentInteractionMode === 'text') {
-            setLoadingState(false, false);
-        } else {
-            chatInputArea.classList.add('chat-input-hidden');
-        }
     }
 
     function displayCompletionScreen() { const completionContainer = document.createElement('div'); completionContainer.className = 'completion-container'; completionContainer.innerHTML = `<div class="message system-message"><p>🎉 Parabéns! Você completou o cenário.</p></div>`; const actionsContainer = document.createElement('div'); actionsContainer.className = 'completion-actions'; actionsContainer.innerHTML = `<button id="feedback-btn">Ver Feedback</button><button id="next-challenge-btn">Próximo Desafio</button>`; actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback); actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', startNextChallenge); completionContainer.appendChild(actionsContainer); mainContentArea.appendChild(completionContainer); scrollToBottom(); }
     function startNextChallenge() { const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category).map(scenario => scenario[languageSelect.value])); const currentGoal = currentScenario.details.goal; const availableScenarios = allScenarios.filter(s => s.goal !== currentGoal); if (availableScenarios.length > 0) { const randomIndex = Math.floor(Math.random() * availableScenarios.length); startNewConversation(availableScenarios[randomIndex]); } else { renderHomePage(); alert("Você praticou todos os cenários disponíveis!"); } }
-    async function handleGetFeedback() { feedbackModal.classList.remove('modal-hidden'); feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; translateBtn.classList.add('translate-btn-hidden'); try { const apiKey = getApiKey(); if (!apiKey) throw new Error("Chave de API não encontrada. Configure no menu."); const settings = { language: languageSelect.value, proficiency: proficiencySelect.value }; originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode); const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; if (history.length > 0 && !history[0].feedback) { history[0].feedback = originalFeedback; localStorage.setItem('conversationHistory', JSON.stringify(history)); } displayFormattedFeedback(originalFeedback); translateBtn.classList.remove('translate-btn-hidden'); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; } }
-    async function handleTranslateFeedback() { translateBtn.disabled = true; if (isTranslated) { displayFormattedFeedback(originalFeedback); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } else { feedbackContent.innerHTML = '<p>Traduzindo, por favor, aguarde...</p>'; try { if (!translatedFeedback) { const apiKey = getApiKey(); if (!apiKey) throw new Error("Chave de API não encontrada."); const protectedSnippets = []; const textToTranslate = originalFeedback.replace(/\*\*(.*?)\*\*/g, (match) => { protectedSnippets.push(match); return `%%PROTECTED_${protectedSnippets.length - 1}%%`; }); const translatedTextWithPlaceholders = await translateText(textToTranslate, apiKey, languageSelect.value); let finalTranslatedText = translatedTextWithPlaceholders; protectedSnippets.forEach((snippet, index) => { finalTranslatedText = finalTranslatedText.replace(`%%PROTECTED_${index}%%`, snippet); }); translatedFeedback = finalTranslatedText; } displayFormattedFeedback(translatedFeedback); isTranslated = true; translateBtn.textContent = 'Mostrar Original (English)'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao traduzir: ${error.message}</p>`; } } translateBtn.disabled = false; }
+    async function handleGetFeedback() { feedbackModal.classList.remove('modal-hidden'); feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; translateBtn.classList.add('translate-btn-hidden'); try { const apiKey = getGoogleApiKey(); if (!apiKey) throw new Error("Chave de API do Google não encontrada."); const settings = { language: languageSelect.value, proficiency: proficiencySelect.value }; originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode); const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; if (history.length > 0 && !history[0].feedback) { history[0].feedback = originalFeedback; localStorage.setItem('conversationHistory', JSON.stringify(history)); } displayFormattedFeedback(originalFeedback); translateBtn.classList.remove('translate-btn-hidden'); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; } }
+    async function handleTranslateFeedback() { translateBtn.disabled = true; if (isTranslated) { displayFormattedFeedback(originalFeedback); isTranslated = false; translateBtn.textContent = 'Traduzir para Português'; } else { feedbackContent.innerHTML = '<p>Traduzindo, por favor, aguarde...</p>'; try { if (!translatedFeedback) { const apiKey = getGoogleApiKey(); if (!apiKey) throw new Error("Chave de API do Google não encontrada."); const protectedSnippets = []; const textToTranslate = originalFeedback.replace(/\*\*(.*?)\*\*/g, (match) => { protectedSnippets.push(match); return `%%PROTECTED_${protectedSnippets.length - 1}%%`; }); const translatedTextWithPlaceholders = await translateText(textToTranslate, apiKey, languageSelect.value); let finalTranslatedText = translatedTextWithPlaceholders; protectedSnippets.forEach((snippet, index) => { finalTranslatedText = finalTranslatedText.replace(`%%PROTECTED_${index}%%`, snippet); }); translatedFeedback = finalTranslatedText; } displayFormattedFeedback(translatedFeedback); isTranslated = true; translateBtn.textContent = 'Mostrar Original (English)'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao traduzir: ${error.message}</p>`; } } translateBtn.disabled = false; }
     function formatFeedbackText(text) { return text.replace(/### (.*)/g, '<h3>$1</h3>').replace(/^\*\s(.*?)$/gm, '<p class="feedback-item">$1</p>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
     function displayFormattedFeedback(text) { feedbackContent.innerHTML = formatFeedbackText(text); }
     
@@ -473,11 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderScenarioPanel() { const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel'; const categoryClassMap = { "🍔 Restaurantes e Cafés": "category-restaurantes", "✈️ Viagens e Transporte": "category-viagens", "🛒 Compras": "category-compras", "🤝 Situações Sociais": "category-sociais", "💼 Profissional": "category-profissional", "🎓 Estudos": "category-estudos", "❤️ Saúde e Bem-estar": "category-saude", "🏠 Moradia e Serviços": "category-moradia" }; Object.keys(SCENARIOS).forEach(categoryName => { const categorySection = document.createElement('section'); categorySection.className = 'panel-category-section'; const themeClass = categoryClassMap[categoryName] || 'category-profissional'; if (themeClass) { categorySection.classList.add(themeClass); } const categoryTitle = document.createElement('h2'); categoryTitle.className = 'panel-category-title'; categoryTitle.textContent = categoryName; categorySection.appendChild(categoryTitle); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container'; const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4); scenariosToShow.forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categorySection.appendChild(cardsContainer); const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName; categorySection.appendChild(viewAllButton); panelContainer.appendChild(categorySection); }); mainContentArea.appendChild(panelContainer); }
     function renderCategoryPage(categoryName) { mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area category-page'; const categoryContainer = document.createElement('div'); categoryContainer.className = 'category-page-container'; const header = document.createElement('div'); header.className = 'category-page-header'; const backButton = document.createElement('button'); backButton.className = 'back-to-home-btn'; backButton.innerHTML = '&#8592; Voltar'; const title = document.createElement('h2'); title.textContent = categoryName; header.appendChild(backButton); header.appendChild(title); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container full-view'; Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categoryContainer.appendChild(header); categoryContainer.appendChild(cardsContainer); mainContentArea.appendChild(categoryContainer); }
     function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
-    function setLoadingState(isLoading, isInputEnabled = false, shouldFocus = true) { textInput.disabled = isLoading || !isInputEnabled; sendBtn.disabled = isLoading || !isInputEnabled; if (isLoading) { showTypingIndicator(); } else { removeTypingIndicator(); if (isInputEnabled && shouldFocus) { textInput.focus(); } } }
     function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
-    function initializeApp() { if (!getApiKey()) { openApiKeyModal(true); } else { renderHomePage(); } initializeSpeechAPI(); }
+    function initializeApp() { if (!getGoogleApiKey() || !getElevenLabsApiKey()) { openApiKeyModal(true); } else { renderHomePage(); } initializeSpeechAPI(); }
     initializeApp();
     function displayMessage(text, sender) { if (sender === 'ai') { removeTypingIndicator(); } if (sender === 'system') { const systemEl = document.createElement('div'); systemEl.className = 'message system-message'; systemEl.innerHTML = `<p>${text}</p>`; mainContentArea.appendChild(systemEl); } else { const wrapper = document.createElement('div'); wrapper.className = 'message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message'; messageBubble.innerHTML = `<p>${text}</p>`; if (sender === 'user') { wrapper.classList.add('user-message-wrapper'); avatar.src = AVATAR_USER_URL; avatar.alt = 'User Avatar'; messageBubble.classList.add('user-message'); } else { wrapper.classList.add('ai-message-wrapper'); avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; messageBubble.classList.add('ai-message'); } wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); } scrollToBottom(); }
-    function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); scrollToBottom(); }
+    function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); }
 
 });
