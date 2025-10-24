@@ -6,6 +6,8 @@
  * - Todas as funções de texto usam o modelo gemini-1.5-flash-latest.
  * - A lógica de prompt foi corrigida usando o campo 'systemInstruction' para garantir a imersão da IA.
  * - Adicionada uma nova função para se conectar à API da ElevenLabs para TTS de alta qualidade.
+ * - Adicionada nova função para transcrição de áudio (STT) com Gemini.
+ * - Adicionada regra de tags <eng> no prompt de feedback para proteger o texto da tradução.
  */
 
 // --- FUNÇÃO AUXILIAR PARA CONVERTER O HISTÓRICO PARA O FORMATO DO GEMINI ---
@@ -134,13 +136,21 @@ async function getFeedbackForConversation(history, apiKey, language, settings, i
     **User's Proficiency Level: ${settings.proficiency.toUpperCase()}**
     **Your Focus Area:** ${feedbackFocusInstruction}
     ${feedbackModeInstruction}
+
+    --- CRITICAL FORMATTING RULE ---
+    1. For every correction or suggestion, you MUST wrap the complete English example phrase (both the user's original and your suggested alternative) in custom tags: <eng> and </eng>.
+    2. You should still use **bold markdown** for the specific part of the phrase that has been improved or corrected, but it must be INSIDE the <eng> tags.
+    3. The explanation of WHY the phrase is better must be OUTSIDE the tags.
+    4. EXAMPLE: * Original: <eng>I want a coffee.</eng>, Corrected: <eng>I **would like** a coffee.</eng> - This is more polite.
+    --- END CRITICAL FORMATTING RULE ---
+
     Please structure your feedback in three sections using Markdown:
     ### 👍 What You Did Well
     Start with a positive and encouraging comment, acknowledging their effort and success in achieving the goal.
     ### ✒️ Grammar & Spelling Corrections
-    For each correction, use a bullet point (*). Show the user's original phrase, then the corrected version, and briefly explain why, according to their proficiency level. Use **bold** for the corrected part. If no errors, state "No corrections needed, fantastic work!".
+    For each correction, use a bullet point (*). Show the user's original phrase, then the corrected version, and briefly explain why, according to their proficiency level. If no errors, state "No corrections needed, fantastic work!".
     ### ✨ Better & More Natural Phrases
-    For each suggestion, use a bullet point (*). Suggest more natural-sounding phrases they could have used. Explain why they are better (e.g., more common, more polite, more idiomatic). Use **bold** for the suggested phrase.
+    For each suggestion, use a bullet point (*). Suggest more natural-sounding phrases they could have used. Explain why they are better (e.g., more common, more polite, more idiomatic).
     Your response must be ONLY the feedback, formatted clearly.`;
 
     const conversationText = history.filter(msg => msg.role === 'user').map(msg => `Student: ${msg.content}`).join('\n');
@@ -200,6 +210,52 @@ async function getAudioFromElevenLabs(textToSpeak, apiKey) {
     } catch (error) {
         console.error("Error in getAudioFromElevenLabs:", error);
         throw error;
+    }
+}
+
+/**
+ * Transcreve um Blob de áudio usando a capacidade multimodal do Google Gemini.
+ */
+async function getTranscriptionFromAudio(audioBlob, apiKey) {
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    
+    // 1. Converter Blob para Base64
+    const base64Audio = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]); // Pega apenas a string Base64
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(audioBlob);
+    });
+
+    const systemPrompt = `You are a speech-to-text expert. Your only task is to accurately transcribe the audio provided by the user. Do not respond to the content, do not add any comments, and do not use any markdown formatting. Provide ONLY the transcribed text.`;
+
+    try {
+        const response = await fetch(API_URL, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+                contents: [{ 
+                    role: 'user', 
+                    parts: [
+                        { text: "Transcribe the audio:" },
+                        { inlineData: { mimeType: audioBlob.type, data: base64Audio } } // Envia o áudio
+                    ]
+                }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            }) 
+        });
+        
+        if (!response.ok) { const errorData = await response.json(); throw new Error(`API Error: ${errorData.error.message}`); }
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates.length > 0) {
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            throw new Error("The API did not return a valid transcription.");
+        }
+    } catch (error) { 
+        console.error("Error in getTranscriptionFromAudio:", error); 
+        throw error; 
     }
 }
 
