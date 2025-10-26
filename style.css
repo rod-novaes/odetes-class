@@ -1,41 +1,30 @@
-/* ===== ESTILOS GERAIS E NOVA PALETA DE CORES ===== */
+/* ===== NOVA IDENTIDADE VISUAL E PALETA DE CORES ===== */
 :root {
-    /* Paleta Principal */
-    --bg-main: #F8F9FA;
-    --bg-nav: #FFFFFF;
-    --primary-text: #1d232e;
-    --secondary-text: #6e7a8a;
-    --border-color: #E5E9F0;
-    --accent-color: #0052cc;
-    --accent-color-hover: #0041a3;
+    /* Paleta Principal - Inspirada na referência */
+    --bg-main: #F3F4F6; /* Cinza muito claro de fundo */
+    --bg-container: #FFFFFF; /* Branco para cards e painéis */
+    --bg-header: #111827; /* Azul marinho escuro para o cabeçalho */
+    
+    --color-accent: #A16207; /* Marrom/Ocre para destaque */
+    --color-accent-hover: #854D0E; /* Marrom mais escuro para hover */
+    --color-neutral: #E5E7EB; /* Cinza claro para botões secundários */
+    --color-neutral-hover: #D1D5DB; /* Cinza um pouco mais escuro para hover */
 
-    /* Cores do Chat */
-    --user-message-bg: #0052cc;
-    --ai-message-bg: #E9ECEF;
-    --user-message-text: #ffffff;
-    --ai-message-text: #1d232e;
+    --text-primary: #1F2937; /* Cinza-escuro para texto principal */
+    --text-secondary: #6B7280; /* Cinza médio para texto secundário */
+    --text-inverted: #FFFFFF; /* Branco para fundos escuros */
+
+    --border-color: #E5E7EB; /* Cinza claro para bordas */
+
+    /* Cores do Chat (Atualizadas) */
+    --user-message-bg: var(--color-accent);
+    --ai-message-bg: var(--bg-container);
+    --user-message-text: var(--text-inverted);
+    --ai-message-text: var(--text-primary);
     --hover-light: #f1f3f5;
 
-    /* Cores de Categoria */
-    --theme-border-restaurants: #E57373;
-    --theme-border-travel: #64B5F6;
-    --theme-border-shopping: #81C784;
-    --theme-border-social: #FFB74D;
-    --theme-border-professional: #BDBDBD;
-    
-    --theme-bg-restaurants: #FBE9E7;
-    --theme-bg-travel: #E3F2FD;
-    --theme-bg-shopping: #E8F5E9;
-    --theme-bg-social: #FFF3E0;
-    --theme-bg-professional: #F5F5F5;
-
-    /* NOVAS CORES DE CATEGORIA */
-    --theme-border-estudos: #9575CD;
-    --theme-bg-estudos: #F3E5F5;
-    --theme-border-saude: #4DB6AC;
-    --theme-bg-saude: #E0F2F1;
-    --theme-border-moradia: #A1887F;
-    --theme-bg-moradia: #EFEBE9;
+    /* -- AS CORES DE CATEGORIA ABAIXO NÃO SÃO MAIS USADAS -- */
+    /* -- Elas foram substituídas por um estilo unificado -- */
 }
 
 * {
@@ -49,19 +38,19 @@ html, body {
     height: 100dvh;
     overflow: hidden;
     background-color: var(--bg-main);
-    color: var(--primary-text);
+    color: var(--text-primary);
 }
 
-/* ===== NOVA BARRA DE NAVEGAÇÃO SUPERIOR ===== */
+/* ===== NOVA BARRA DE NAVEGAÇÃO SUPERIOR (ESTILO ESCURO) ===== */
 .top-nav-bar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 60px;
-    background-color: var(--bg-nav);
+    background-color: var(--bg-header); /* Fundo escuro */
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -69,12 +58,12 @@ html, body {
 }
 .top-nav-bar .icon-btn {
     font-size: 1.6rem;
-    color: var(--secondary-text);
+    color: var(--text-secondary); /* Cor base dos ícones */
     position: relative;
     padding: 8px;
 }
 .top-nav-bar .icon-btn.active-nav-icon {
-    color: var(--accent-color);
+    color: var(--text-inverted); /* Ícone ativo fica branco */
 }
 .top-nav-bar .icon-btn.active-nav-icon::after {
     content: '';
@@ -84,14 +73,14 @@ html, body {
     transform: translateX(-50%);
     width: 24px;
     height: 3px;
-    background-color: var(--accent-color);
+    background-color: var(--color-accent); /* Detalhe na cor de destaque */
     border-radius: 2px;
 }
 
 /* ===== LAYOUT PRINCIPAL ===== */
 .app-container {
     height: 100%;
-    padding-top: 60px; /* Espaço para a barra de navegação fixa */
+    padding-top: 60px;
 }
 .main-area {
     display: flex;
@@ -110,7 +99,7 @@ html, body {
     margin-bottom: 8px;
     border-top: 1px solid var(--border-color);
     gap: 8px;
-    background-color: var(--bg-nav);
+    background-color: var(--bg-container);
 }
 .chat-input-hidden {
     display: none;
@@ -121,13 +110,13 @@ html, body {
 }
 #text-input:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.2);
 }
 .icon-btn {
-    background: none; border: none; font-size: 1.5rem; padding: 8px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--secondary-text); transition: background-color 0.2s ease, color 0.2s ease;
+    background: none; border: none; font-size: 1.5rem; padding: 8px; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); transition: background-color 0.2s ease, color 0.2s ease;
 }
-.icon-btn:hover { background-color: var(--hover-light); color: var(--accent-color); }
+.icon-btn:hover { background-color: var(--hover-light); color: var(--color-accent); }
 .icon-btn:disabled {
     color: #c0c0c0;
     cursor: not-allowed;
@@ -135,7 +124,7 @@ html, body {
 }
 
 
-/* ===== ESTILOS DO CHAT COM AVATARES ===== */
+/* ===== ESTILOS DO CHAT COM AVATARES (CORES ATUALIZADAS) ===== */
 .main-content-area.chat-window {
     display: flex;
     flex-direction: column;
@@ -159,13 +148,13 @@ html, body {
     border-radius: 50%;
     background-color: var(--border-color);
     flex-shrink: 0;
-    object-fit: cover; /* Garante que a imagem do avatar preencha o espaço */
+    object-fit: cover;
 }
 .message { padding: 12px 18px; border-radius: 18px; line-height: 1.5; font-size: 0.95rem; }
 
 /* Mensagens da IA */
 .ai-message-wrapper { align-self: flex-start; }
-.ai-message { background-color: var(--ai-message-bg); color: var(--ai-message-text); border-bottom-left-radius: 5px; }
+.ai-message { background-color: var(--ai-message-bg); color: var(--ai-message-text); border: 1px solid var(--border-color); border-bottom-left-radius: 5px; }
 
 /* Mensagens do Usuário */
 .user-message-wrapper { align-self: flex-end; flex-direction: row-reverse; }
@@ -180,7 +169,7 @@ html, body {
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
-/* ===== TELA DE CONCLUSÃO E BOTÕES DE AÇÃO ===== */
+/* ===== TELA DE CONCLUSÃO E BOTÕES DE AÇÃO (CORES ATUALIZADAS) ===== */
 .completion-container { text-align: center; margin-top: 16px; }
 .completion-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
 .completion-actions button {
@@ -193,51 +182,58 @@ html, body {
     transition: all 0.2s ease;
 }
 #feedback-btn {
-    background: linear-gradient(45deg, #28a745, #218838);
-    color: white;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    background-color: var(--color-accent);
+    color: var(--text-inverted);
+    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.2);
 }
-#feedback-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4); }
+#feedback-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(161, 98, 7, 0.3); background-color: var(--color-accent-hover); }
+
 #next-challenge-btn {
-    background-color: transparent;
-    color: var(--accent-color);
-    border: 2px solid var(--accent-color);
+    background-color: var(--color-neutral);
+    color: var(--text-primary);
 }
-#next-challenge-btn:hover { background-color: var(--accent-color); color: white; }
+#next-challenge-btn:hover { background-color: var(--color-neutral-hover); }
 
-/* ===== PAINEL DE CENÁRIOS (HOME) ===== */
+/* ===== PAINEL DE CENÁRIOS (HOME) - ESTILO UNIFICADO ===== */
 .scenario-panel { width: 100%; }
-.panel-category-section { margin-bottom: 24px; padding: 20px; border-radius: 12px; transition: background-color 0.3s ease; }
-.panel-category-title { font-size: 1.2rem; font-weight: 600; color: var(--primary-text); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 3px solid; }
+.panel-category-section { margin-bottom: 24px; padding: 0; } /* Removido padding e fundo */
+.panel-category-title { 
+    font-size: 1.2rem; 
+    font-weight: 600; 
+    color: var(--text-primary); 
+    margin-bottom: 16px; 
+    padding-bottom: 8px; 
+    border-bottom: 2px solid var(--border-color); 
+}
 .scenario-cards-container { display: flex; flex-wrap: wrap; gap: 12px; }
-.scenario-card { flex: 1 1 180px; background-color: var(--bg-nav); color: var(--primary-text); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; font-size: 0.95rem; font-weight: 500; text-align: left; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.scenario-card:hover { transform: translateY(-3px); border-color: var(--accent-color); color: var(--accent-color); box-shadow: 0 4px 15px rgba(0, 82, 204, 0.1); }
+.scenario-card { 
+    flex: 1 1 180px; 
+    background-color: var(--bg-container); 
+    color: var(--text-primary); 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    padding: 16px; 
+    font-size: 0.95rem; 
+    font-weight: 500; 
+    text-align: left; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+}
+.scenario-card:hover { 
+    transform: translateY(-3px); 
+    border-color: var(--color-accent); 
+    color: var(--color-accent); 
+    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1); 
+}
 
-/* Temas de Categoria */
-.category-restaurantes { background-color: var(--theme-bg-restaurants); }
-.category-restaurantes .panel-category-title { border-color: var(--theme-border-restaurants); }
-.category-viagens { background-color: var(--theme-bg-travel); }
-.category-viagens .panel-category-title { border-color: var(--theme-border-travel); }
-.category-compras { background-color: var(--theme-bg-shopping); }
-.category-compras .panel-category-title { border-color: var(--theme-border-shopping); }
-.category-sociais { background-color: var(--theme-bg-social); }
-.category-sociais .panel-category-title { border-color: var(--theme-border-social); }
-.category-profissional { background-color: var(--theme-bg-professional); }
-.category-profissional .panel-category-title { border-color: var(--theme-border-professional); }
+/* ===== REMOÇÃO DOS TEMAS DE CATEGORIA INDIVIDUAIS ===== */
+/* As classes .category-restaurantes, .category-viagens, etc., não são mais necessárias para estilização de fundo/borda. */
 
-/* ===== NOVA SEÇÃO: NOVOS TEMAS DE CATEGORIA ===== */
-.category-estudos { background-color: var(--theme-bg-estudos); }
-.category-estudos .panel-category-title { border-color: var(--theme-border-estudos); }
-.category-saude { background-color: var(--theme-bg-saude); }
-.category-saude .panel-category-title { border-color: var(--theme-border-saude); }
-.category-moradia { background-color: var(--theme-bg-moradia); }
-.category-moradia .panel-category-title { border-color: var(--theme-border-moradia); }
-
-/* ===== NOVA SEÇÃO: BOTÃO "VER TODOS" ===== */
 .view-all-btn {
     background: none;
     border: none;
-    color: var(--accent-color);
+    color: var(--color-accent);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -248,7 +244,7 @@ html, body {
     transition: color 0.2s ease;
 }
 .view-all-btn:hover {
-    color: var(--accent-color-hover);
+    color: var(--color-accent-hover);
 }
 
 
@@ -268,7 +264,7 @@ html, body {
     margin-bottom: 12px;
 }
 .custom-scenario-container p {
-    color: var(--secondary-text);
+    color: var(--text-secondary);
     margin-bottom: 24px;
     line-height: 1.6;
 }
@@ -278,17 +274,17 @@ html, body {
     border-radius: 10px;
     border: 1px solid var(--border-color);
     font-size: 1rem;
-    background-color: var(--bg-nav);
+    background-color: var(--bg-container);
     margin-bottom: 16px;
 }
 .custom-scenario-container textarea:focus {
-    outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+    outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.2);
 }
 
 .primary-btn {
     width: 100%;
-    background-color: var(--accent-color);
-    color: white;
+    background-color: var(--color-accent);
+    color: var(--text-inverted);
     border: none;
     font-weight: 600;
     font-size: 1rem;
@@ -297,9 +293,9 @@ html, body {
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-.primary-btn:hover { background-color: var(--accent-color-hover); }
+.primary-btn:hover { background-color: var(--color-accent-hover); }
 
-/* ===== NOVA SEÇÃO: PÁGINA DE DETALHES DA CATEGORIA ===== */
+/* ===== PÁGINA DE DETALHES DA CATEGORIA ===== */
 .category-page-container {
     width: 100%;
 }
@@ -313,7 +309,7 @@ html, body {
 .category-page-header h2 {
     font-size: 1.3rem;
     font-weight: 600;
-    color: var(--primary-text);
+    color: var(--text-primary);
     text-align: center;
 }
 .back-to-home-btn {
@@ -323,7 +319,7 @@ html, body {
     transform: translateY(-50%);
     background: none;
     border: 1px solid var(--border-color);
-    color: var(--secondary-text);
+    color: var(--text-secondary);
     padding: 6px 14px;
     border-radius: 20px;
     cursor: pointer;
@@ -333,31 +329,31 @@ html, body {
 }
 .back-to-home-btn:hover {
     background-color: var(--hover-light);
-    border-color: var(--secondary-text);
+    border-color: var(--text-secondary);
 }
 
 
 /* ===== ESTILOS DO HISTÓRICO ===== */
 #history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 24px; text-align: left; }
-.history-item { display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-nav); border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s ease; }
-.history-item:hover { border-color: var(--accent-color); }
+.history-item { display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-container); border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s ease; }
+.history-item:hover { border-color: var(--color-accent); }
 .history-item-view { flex-grow: 1; padding: 12px 16px; cursor: pointer; }
-.history-item-view span { display: block; font-size: 0.9rem; font-weight: 500; color: var(--primary-text); margin-bottom: 4px; }
-.history-item-view small { font-size: 0.75rem; color: var(--secondary-text); }
-.history-item-delete { background: none; border: none; color: var(--secondary-text); font-size: 1.5rem; font-weight: bold; cursor: pointer; padding: 0 16px; align-self: stretch; transition: color 0.2s ease; }
+.history-item-view span { display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+.history-item-view small { font-size: 0.75rem; color: var(--text-secondary); }
+.history-item-delete { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; font-weight: bold; cursor: pointer; padding: 0 16px; align-self: stretch; transition: color 0.2s ease; }
 .history-item-delete:hover { color: #ff4d4d; }
 
-/* ===== ESTILOS DOS MODAIS (Revisados para consistência) ===== */
+/* ===== ESTILOS DOS MODAIS ===== */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 3000; opacity: 1; visibility: visible; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .modal-hidden { opacity: 0; visibility: hidden; }
-.modal-content { background-color: var(--bg-nav); padding: 24px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); width: 90%; max-width: 500px; transform: scale(1); transition: transform 0.3s ease; }
+.modal-content { background-color: var(--bg-container); padding: 24px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); width: 90%; max-width: 500px; transform: scale(1); transition: transform 0.3s ease; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; gap: 16px; }
 .modal-header h2 { font-size: 1.2rem; }
 .modal-close { font-size: 2rem; cursor: pointer; }
 .modal-body { max-height: 70vh; overflow-y: auto; line-height: 1.7; padding-right: 10px; }
-.modal-body h3 { margin-top: 20px; margin-bottom: 12px; color: var(--accent-color); border-bottom: 2px solid var(--hover-light); padding-bottom: 5px; }
+.modal-body h3 { margin-top: 20px; margin-bottom: 12px; color: var(--color-accent); border-bottom: 2px solid var(--hover-light); padding-bottom: 5px; }
 
-/* Mission Modal (NOVOS ESTILOS) */
+/* Mission Modal */
 .mission-choice-container {
     display: flex;
     gap: 16px;
@@ -373,29 +369,29 @@ html, body {
     transition: all 0.2s ease;
 }
 #start-text-mission-btn {
-    background-color: transparent;
-    border: 2px solid var(--accent-color);
-    color: var(--accent-color);
+    background-color: var(--color-neutral);
+    border: 2px solid var(--color-neutral);
+    color: var(--text-primary);
 }
 #start-text-mission-btn:hover {
-    background-color: var(--accent-color);
-    color: white;
+    background-color: var(--color-neutral-hover);
+    border-color: var(--color-neutral-hover);
 }
 #start-voice-mission-btn {
-    background-color: var(--accent-color);
-    border: 2px solid var(--accent-color);
-    color: white;
+    background-color: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    color: var(--text-inverted);
 }
 #start-voice-mission-btn:hover {
-    background-color: var(--accent-color-hover);
-    border-color: var(--accent-color-hover);
+    background-color: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
 }
 
 
 #api-key-modal button {
     width: 100%;
-    background-color: var(--accent-color);
-    color: white;
+    background-color: var(--color-accent);
+    color: var(--text-inverted);
     border: none;
     font-weight: 600;
     font-size: 1rem;
@@ -404,34 +400,34 @@ html, body {
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
-#api-key-modal button:hover { background-color: var(--accent-color-hover); }
+#api-key-modal button:hover { background-color: var(--color-accent-hover); }
 
 /* Feedback Modal */
-#translate-btn { background-color: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.2s ease; }
-#translate-btn:hover { background-color: var(--accent-color); color: white; }
+#translate-btn { background-color: transparent; border: 1px solid var(--color-accent); color: var(--color-accent); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.2s ease; }
+#translate-btn:hover { background-color: var(--color-accent); color: white; }
 .translate-btn-hidden { display: none; }
 .feedback-item { position: relative; padding-left: 25px; margin-bottom: 12px; }
-.feedback-item::before { content: '➤'; position: absolute; left: 0; top: 1px; color: var(--accent-color); font-weight: bold; }
+.feedback-item::before { content: '➤'; position: absolute; left: 0; top: 1px; color: var(--color-accent); font-weight: bold; }
 
 /* Modal de API Key */
 #api-key-modal .modal-content { max-width: 500px; }
-#api-key-modal label { display: block; text-align: left; margin: 24px 0 8px 0; color: var(--primary-text); font-weight: 500; }
+#api-key-modal label { display: block; text-align: left; margin: 24px 0 8px 0; color: var(--text-primary); font-weight: 500; }
 #api-key-modal input[type="password"] { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 1rem; }
-#api-key-modal input[type="password"]:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2); }
+#api-key-modal input[type="password"]:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.2); }
 #api-key-modal .step-by-step-list { list-style: none; padding-left: 0; counter-reset: steps-counter; margin-top: 16px; text-align: left; }
-#api-key-modal .step-by-step-list li { position: relative; padding-left: 45px; margin-bottom: 24px; font-size: 0.9rem; line-height: 1.5; color: var(--secondary-text); }
-#api-key-modal .step-by-step-list li::before { content: counter(steps-counter); counter-increment: steps-counter; position: absolute; left: 0; top: 0; width: 30px; height: 30px; background-color: var(--accent-color); border-radius: 50%; color: white; font-weight: 700; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
-#api-key-modal .step-by-step-list li strong { display: block; font-weight: 600; color: var(--primary-text); margin-bottom: 4px; font-size: 1rem; }
-#api-key-modal .step-by-step-list li a { color: var(--accent-color); text-decoration: none; font-weight: 600; }
+#api-key-modal .step-by-step-list li { position: relative; padding-left: 45px; margin-bottom: 24px; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); }
+#api-key-modal .step-by-step-list li::before { content: counter(steps-counter); counter-increment: steps-counter; position: absolute; left: 0; top: 0; width: 30px; height: 30px; background-color: var(--color-accent); border-radius: 50%; color: white; font-weight: 700; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+#api-key-modal .step-by-step-list li strong { display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; font-size: 1rem; }
+#api-key-modal .step-by-step-list li a { color: var(--color-accent); text-decoration: none; font-weight: 600; }
 #api-key-modal .step-by-step-list li a:hover { text-decoration: underline; }
-#api-key-modal .modal-info-text { font-size: 0.8rem; text-align: center; margin-top: 16px; color: var(--secondary-text); }
+#api-key-modal .modal-info-text { font-size: 0.8rem; text-align: center; margin-top: 16px; color: var(--text-secondary); }
 
 /* Settings Modal */
-#settings-modal-body label { display: block; font-size: 0.9rem; font-weight: 600; margin: 20px 0 8px 0; color: var(--secondary-text); }
-#settings-modal-body select { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 0.95rem; background-color: var(--bg-main); color: var(--primary-text); }
-#settings-modal-body select:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2); }
-#settings-modal-body button#change-api-key-btn { width: 100%; background-color: transparent; color: var(--secondary-text); border: 1px solid var(--border-color); font-weight: 500; font-size: 0.95rem; padding: 12px; border-radius: 10px; margin-top: 24px; cursor: pointer; transition: all 0.2s ease; }
-#settings-modal-body button#change-api-key-btn:hover { background-color: var(--hover-light); border-color: var(--accent-color); color: var(--accent-color); }
+#settings-modal-body label { display: block; font-size: 0.9rem; font-weight: 600; margin: 20px 0 8px 0; color: var(--text-secondary); }
+#settings-modal-body select { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 0.95rem; background-color: var(--bg-main); color: var(--text-primary); }
+#settings-modal-body select:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.2); }
+#settings-modal-body button#change-api-key-btn { width: 100%; background-color: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); font-weight: 500; font-size: 0.95rem; padding: 12px; border-radius: 10px; margin-top: 24px; cursor: pointer; transition: all 0.2s ease; }
+#settings-modal-body button#change-api-key-btn:hover { background-color: var(--hover-light); border-color: var(--color-accent); color: var(--color-accent); }
 
 /* ===== MEDIA QUERY PARA DESKTOP ===== */
 @media (min-width: 800px) {
@@ -464,6 +460,6 @@ html, body {
 }
 
 #mic-btn.mic-processing {
-    color: var(--accent-color);
+    color: var(--color-accent);
     cursor: wait;
 }
