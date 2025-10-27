@@ -3,21 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Odete's English Class v.12</title>
+    <title>Odete's Class 21</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- NOVA BARRA DE NAVEGAÇÃO SUPERIOR -->
-    <nav class="top-nav-bar" id="top-nav-bar">
-        <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
-        <button class="icon-btn" id="nav-custom-btn" title="Cenário Personalizado">✨</button>
-        <button class="icon-btn" id="nav-history-btn" title="Histórico">🕒</button>
-        <button class="icon-btn" id="nav-settings-btn" title="Configurações">⚙️</button>
-    </nav>
-
-    <!-- O CONTAINER PRINCIPAL AGORA ENVOLVE A ÁREA DE CONTEÚDO E O INPUT DO CHAT -->
+    <!-- O CONTAINER PRINCIPAL AGORA ENVOLVE O CABEÇALHO GLOBAL, ÁREA DE CONTEÚDO E O INPUT DO CHAT -->
     <div class="app-container">
+
+        <!-- CABEÇALHO GLOBAL -->
+        <div class="context-bar" id="context-bar">
+            <!-- Indicadores de Status (Esquerda) -->
+            <div class="header-indicators">
+                <button class="icon-btn header-indicator-btn" id="lang-indicator-btn" title="Mudar Idioma">
+                    <!-- O emoji da bandeira será inserido aqui via JS, ex: 🇺🇸 -->
+                </button>
+                <button class="icon-btn header-indicator-btn" id="proficiency-indicator-btn" title="Mudar Nível de Conversa">
+                    <!-- As estrelas serão inseridas aqui via JS, ex: ★★☆ -->
+                </button>
+            </div>
+
+            <!-- Ações e Status (Direita) -->
+            <div class="header-actions">
+                <!-- Placeholder para a Pontuação -->
+                <div id="score-indicator" class="score-indicator">
+                    <!-- A pontuação será inserida aqui via JS, ex: 🦉 15 -->
+                </div>
+                <!-- NOVO: Botão Voltar (Oculto por padrão) -->
+                <button id="header-back-btn" class="exit-chat-btn back-btn-hidden">Voltar</button>
+                <!-- Botão de Sair (Oculto por padrão) -->
+                <button id="exit-chat-btn" class="exit-chat-btn exit-chat-btn-hidden">Sair</button>
+                <!-- Botão de tela cheia -->
+                <button id="fullscreen-btn" class="icon-btn header-indicator-btn" title="Alternar Tela Cheia">
+                    <span>⛶</span> <!-- Ícone de expandir -->
+                </button>
+            </div>
+        </div>
+
         <main class="main-area">
             
             <!-- ÁREA DE CONTEÚDO DINÂMICA (Exibirá a Home, Histórico, Chat, etc.) -->
@@ -35,7 +57,7 @@
         </main>
     </div>
 
-    <!-- ===== ESTRUTURA DOS MODAIS (Com alteração no Mission Modal) ===== -->
+    <!-- ===== ESTRUTURA DOS MODAIS (Inalterada) ===== -->
     <div id="feedback-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -116,11 +138,11 @@
                     <option value="en-US">Inglês</option>
                 </select>
                 
-                <label for="proficiency-select">Nível de Proficiência</label>
+                <label for="proficiency-select">Nível de Conversa</label>
                 <select id="proficiency-select" name="proficiency">
-                    <option value="basic">Básico</option>
-                    <option value="intermediate">Intermediário</option>
-                    <option value="advanced">Avançado</option>
+                    <option value="basic">Básico (Respostas Diretas)</option>
+                    <option value="intermediate">Intermediário (Conversa Natural)</option>
+                    <option value="advanced">Avançado (Respostas Detalhadas)</option>
                 </select>
 
                 <label>Conexão com a IA</label>
@@ -128,6 +150,14 @@
             </div>
         </div>
     </div>
+
+    <!-- NOVA BARRA DE NAVEGAÇÃO INFERIOR -->
+    <nav class="bottom-nav-bar" id="bottom-nav-bar">
+        <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
+        <button class="icon-btn" id="nav-custom-btn" title="Cenário Personalizado">✨</button>
+        <button class="icon-btn" id="nav-history-btn" title="Histórico">🕒</button>
+        <button class="icon-btn" id="nav-settings-btn" title="Configurações">⚙️</button>
+    </nav>
 
     <!-- Scripts da Aplicação -->
     <script src="configuration.js"></script>
