@@ -1,3 +1,5 @@
+// CÓDIGO ATUALIZADO PARA script.js
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- Mapeamento de Elementos ---
@@ -48,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentInteractionMode = null; // 'text' ou 'voice'
     let conversationState = 'IDLE';    // 'IDLE', 'AI_SPEAKING', 'USER_LISTENING', 'PROCESSING'
-    let isConversationActive = false; // <<< NOVO: Controla o estado geral da conversa
+    let isConversationActive = false; 
     const synthesis = window.speechSynthesis;
     let voices = [];
     let currentAudioPlayer = null;
@@ -102,6 +104,21 @@ document.addEventListener('DOMContentLoaded', () => {
     micBtn.addEventListener('click', handleMicButtonClick);
 
     mainContentArea.addEventListener('click', async (e) => {
+
+        // --- INÍCIO DA MODIFICAÇÃO: Lógica para o botão da sugestão ---
+        const suggestionBtn = e.target.closest('#start-suggestion-btn');
+        if (suggestionBtn) {
+            const categoryName = suggestionBtn.dataset.categoryName;
+            const scenarioName = suggestionBtn.dataset.scenarioName;
+            const lang = languageSelect.value;
+            const scenario = SCENARIOS[categoryName]?.[scenarioName]?.[lang];
+            if (scenario) {
+                startNewConversation(scenario);
+            }
+            return;
+        }
+        // --- FIM DA MODIFICAÇÃO ---
+
         const scenarioCard = e.target.closest('.scenario-card');
         if (scenarioCard) {
             const scenarioName = scenarioCard.dataset.scenarioName;
@@ -111,6 +128,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scenario) { startNewConversation(scenario); }
             return;
         }
+        
+        const categoryTitle = e.target.closest('.panel-category-title');
+        if (categoryTitle) {
+            const section = categoryTitle.closest('.panel-category-section');
+            const content = section.querySelector('.collapsible-content');
+            const icon = categoryTitle.querySelector('.category-toggle-icon');
+            
+            if (content) {
+                const isExpanded = content.classList.contains('expanded');
+                content.classList.toggle('expanded');
+                categoryTitle.classList.toggle('expanded');
+                
+                if (!isExpanded) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    if (icon) icon.textContent = '▾';
+                } else {
+                    content.style.maxHeight = '0px';
+                    if (icon) icon.textContent = '▸';
+                }
+            }
+            return;
+        }
+
         const viewAllBtn = e.target.closest('.view-all-btn');
         if (viewAllBtn) {
             const categoryName = viewAllBtn.dataset.categoryName;
@@ -196,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.innerHTML = '';
         mainContentArea.className = 'main-content-area';
         chatInputArea.classList.add('chat-input-hidden');
-        renderScenarioPanel();
+        renderHomePageContent();
     }
     function renderCustomScenarioPage() { updateActiveNavIcon('nav-custom-btn'); mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area custom-scenario-page'; chatInputArea.classList.add('chat-input-hidden'); const customScenarioContainer = document.createElement('div'); customScenarioContainer.className = 'custom-scenario-container'; customScenarioContainer.innerHTML = `<h2>Cenário Personalizado</h2><p>Descreva uma situação ou objetivo que você gostaria de praticar em inglês.</p><textarea id="custom-scenario-input" rows="6" placeholder="Ex: Pedir o reembolso de um produto com defeito em uma loja de eletrônicos..."></textarea><div id="custom-scenario-feedback" class="custom-scenario-feedback"></div><button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>`; mainContentArea.appendChild(customScenarioContainer); }
     function showCustomScenarioError(message) { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = message; feedbackArea.style.display = 'block'; } }
@@ -209,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initiateChat() {
         if (!currentScenario) return;
-        isConversationActive = true; // <<< NOVO: Inicia a conversa
+        isConversationActive = true; 
         currentInteractionMode = 'text';
         renderChatInterface();
         micBtn.style.display = 'none';
@@ -255,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initiateVoiceChat() {
         if (!currentScenario) return;
         if (!checkBrowserCompatibility()) { renderHomePage(); return; }
-        isConversationActive = true; // <<< NOVO: Inicia a conversa
+        isConversationActive = true; 
         currentInteractionMode = 'voice';
         renderChatInterface();
         setupVoiceUI();
@@ -329,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setUserTurnState(isUserTurn) {
-        if (!isConversationActive) return; // <<< NOVO: Impede a reativação se a conversa acabou
+        if (!isConversationActive) return;
 
         textInput.disabled = !isUserTurn;
         sendBtn.disabled = !isUserTurn;
@@ -462,7 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NOVO CÓDIGO - Cole este no lugar do antigo
     async function processUserMessage(messageText) {
         displayMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', content: messageText });
@@ -475,19 +514,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
                 
-                // --- INÍCIO DA CORREÇÃO DEFINITIVA ---
-                // 1. Finaliza o estado da conversa PRIMEIRO. Isso define isConversationActive = false.
                 await finalizeConversation(); 
 
-                // 2. Reproduz a fala final. Quando terminar, a verificação de estado impedirá a reativação do microfone.
                 if (cleanResponse) { 
                     conversationHistory.push({ role: 'assistant', content: cleanResponse });
                     await handleAIResponse(cleanResponse); 
                 }
                 
-                // 3. Exibe a tela de conclusão por último para garantir a ordem visual correta.
                 displayCompletionScreen();
-                // --- FIM DA CORREÇÃO DEFINITIVA ---
 
             } else {
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
@@ -518,22 +552,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return voices.find(voice => voice.lang.startsWith('en-'));
     }
 
-    // <<< FUNÇÃO ATUALIZADA PARA USABILIDADE >>>
     function updateMicButtonState(state) {
         micBtn.classList.remove('mic-listening', 'mic-processing');
         switch (state) {
             case 'listening':
                 micBtn.classList.add('mic-listening');
-                micBtn.innerHTML = '⏹️'; // Ícone de Parar
+                micBtn.innerHTML = '⏹️'; 
                 micBtn.title = "Falando... Clique para enviar";
                 break;
             case 'processing':
                 micBtn.classList.add('mic-processing');
-                micBtn.innerHTML = '🎤'; // Ícone de Microfone
+                micBtn.innerHTML = '🎤'; 
                 micBtn.title = "Processando...";
                 break;
             default: // idle
-                micBtn.innerHTML = '🎤'; // Ícone de Microfone
+                micBtn.innerHTML = '🎤'; 
                 micBtn.title = "Aguarde sua vez";
                 break;
         }
@@ -556,8 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
         history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details.goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
-
-        // A linha displayCompletionScreen() foi REMOVIDA daqui.
     }
 
     function displayCompletionScreen() { const completionContainer = document.createElement('div'); completionContainer.className = 'completion-container'; completionContainer.innerHTML = `<div class="message system-message"><p>🎉 Parabéns! Você completou o cenário.</p></div>`; const actionsContainer = document.createElement('div'); actionsContainer.className = 'completion-actions'; actionsContainer.innerHTML = `<button id="feedback-btn">Ver Feedback</button><button id="next-challenge-btn">Próximo Desafio</button>`; actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback); actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', startNextChallenge); completionContainer.appendChild(actionsContainer); mainContentArea.appendChild(completionContainer); scrollToBottom(); }
@@ -618,8 +649,85 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // --- INÍCIO DA MODIFICAÇÃO: Função principal de renderização da Home ---
+    function renderHomePageContent() {
+        // 1. Limpa a área principal
+        mainContentArea.innerHTML = '';
 
-    function renderScenarioPanel() { const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel'; const categoryClassMap = { "🍔 Restaurantes e Cafés": "category-restaurantes", "✈️ Viagens e Transporte": "category-viagens", "🛒 Compras": "category-compras", "🤝 Situações Sociais": "category-sociais", "💼 Profissional": "category-profissional", "🎓 Estudos": "category-estudos", "❤️ Saúde e Bem-estar": "category-saude", "🏠 Moradia e Serviços": "category-moradia" }; Object.keys(SCENARIOS).forEach(categoryName => { const categorySection = document.createElement('section'); categorySection.className = 'panel-category-section'; const themeClass = categoryClassMap[categoryName] || 'category-profissional'; if (themeClass) { categorySection.classList.add(themeClass); } const categoryTitle = document.createElement('h2'); categoryTitle.className = 'panel-category-title'; categoryTitle.textContent = categoryName; categorySection.appendChild(categoryTitle); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container'; const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4); scenariosToShow.forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categorySection.appendChild(cardsContainer); const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName; categorySection.appendChild(viewAllButton); panelContainer.appendChild(categorySection); }); mainContentArea.appendChild(panelContainer); }
+        // 2. Lógica para pegar um cenário aleatório
+        const lang = languageSelect.value;
+        const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) =>
+            Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({
+                ...scenarioData[lang],
+                categoryName: categoryName,
+                scenarioName: scenarioName
+            }))
+        ).filter(Boolean); // Filtra possíveis cenários sem a língua selecionada
+
+        const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
+
+        // 3. Cria a seção de sugestão
+        const suggestionSection = document.createElement('section');
+        suggestionSection.className = 'suggestion-section';
+        suggestionSection.innerHTML = `
+            <!--<h2 class="suggestion-title">Sugestão do Dia ✨</h2>-->
+            <div class="suggestion-card">
+                <h3>${suggestedScenario.name}</h3>
+                <p>${suggestedScenario.goal}</p>
+                <button id="start-suggestion-btn" class="primary-btn" data-category-name="${suggestedScenario.categoryName}" data-scenario-name="${suggestedScenario.scenarioName}">
+                    Começar a Praticar
+                </button>
+            </div>
+        `;
+        mainContentArea.appendChild(suggestionSection);
+
+
+        // 4. Cria o painel de categorias (acordeão)
+        const panelContainer = document.createElement('div');
+        panelContainer.className = 'scenario-panel';
+        Object.keys(SCENARIOS).forEach(categoryName => {
+            const categorySection = document.createElement('section');
+            categorySection.className = 'panel-category-section';
+
+            const categoryTitle = document.createElement('h2');
+            categoryTitle.className = 'panel-category-title';
+            categoryTitle.innerHTML = `
+                <span class="category-title-text">${categoryName}</span>
+                <span class="category-toggle-icon">▸</span>
+            `;
+            categorySection.appendChild(categoryTitle);
+
+            const collapsibleContent = document.createElement('div');
+            collapsibleContent.className = 'collapsible-content';
+
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'scenario-cards-container';
+            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
+            scenariosToShow.forEach(scenarioName => {
+                const card = document.createElement('button');
+                card.className = 'scenario-card';
+                card.textContent = scenarioName;
+                card.dataset.categoryName = categoryName;
+                card.dataset.scenarioName = scenarioName;
+                cardsContainer.appendChild(card);
+            });
+
+            const viewAllButton = document.createElement('button');
+            viewAllButton.className = 'view-all-btn';
+            viewAllButton.textContent = 'Ver todos →';
+            viewAllButton.dataset.categoryName = categoryName;
+
+            collapsibleContent.appendChild(cardsContainer);
+            collapsibleContent.appendChild(viewAllButton);
+            
+            categorySection.appendChild(collapsibleContent);
+            panelContainer.appendChild(categorySection);
+        });
+        mainContentArea.appendChild(panelContainer);
+    }
+    // --- FIM DA MODIFICAÇÃO ---
+    
     function renderCategoryPage(categoryName) { mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area category-page'; const categoryContainer = document.createElement('div'); categoryContainer.className = 'category-page-container'; const header = document.createElement('div'); header.className = 'category-page-header'; const backButton = document.createElement('button'); backButton.className = 'back-to-home-btn'; backButton.innerHTML = '&#8592; Voltar'; const title = document.createElement('h2'); title.textContent = categoryName; header.appendChild(backButton); header.appendChild(title); const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container full-view'; Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); categoryContainer.appendChild(header); categoryContainer.appendChild(cardsContainer); mainContentArea.appendChild(categoryContainer); }
     function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
     function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }

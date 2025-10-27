@@ -1,3 +1,5 @@
+/* CÓDIGO ATUALIZADO PARA style.css */
+
 /* ===== NOVA IDENTIDADE VISUAL E PALETA DE CORES ===== */
 :root {
     /* Paleta Principal - Inspirada na referência */
@@ -22,9 +24,6 @@
     --user-message-text: var(--text-inverted);
     --ai-message-text: var(--text-primary);
     --hover-light: #f1f3f5;
-
-    /* -- AS CORES DE CATEGORIA ABAIXO NÃO SÃO MAIS USADAS -- */
-    /* -- Elas foram substituídas por um estilo unificado -- */
 }
 
 * {
@@ -196,7 +195,9 @@ html, body {
 
 /* ===== PAINEL DE CENÁRIOS (HOME) - ESTILO UNIFICADO ===== */
 .scenario-panel { width: 100%; }
-.panel-category-section { margin-bottom: 24px; padding: 0; } /* Removido padding e fundo */
+.panel-category-section { margin-bottom: 24px; }
+
+/* --- INÍCIO DA MODIFICAÇÃO: Estilos para o acordeão --- */
 .panel-category-title { 
     font-size: 1.2rem; 
     font-weight: 600; 
@@ -204,7 +205,30 @@ html, body {
     margin-bottom: 16px; 
     padding-bottom: 8px; 
     border-bottom: 2px solid var(--border-color); 
+    cursor: pointer; /* Indica que é clicável */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: color 0.2s ease;
 }
+.panel-category-title:hover {
+    color: var(--color-accent);
+}
+.category-toggle-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease-in-out;
+}
+.panel-category-title.expanded .category-toggle-icon {
+    transform: rotate(90deg);
+}
+.collapsible-content {
+    max-height: 0; /* Inicia fechado */
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out;
+}
+
+/* --- FIM DA MODIFICAÇÃO --- */
+
 .scenario-cards-container { display: flex; flex-wrap: wrap; gap: 12px; }
 .scenario-card { 
     flex: 1 1 180px; 
@@ -226,9 +250,6 @@ html, body {
     color: var(--color-accent); 
     box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1); 
 }
-
-/* ===== REMOÇÃO DOS TEMAS DE CATEGORIA INDIVIDUAIS ===== */
-/* As classes .category-restaurantes, .category-viagens, etc., não são mais necessárias para estilização de fundo/borda. */
 
 .view-all-btn {
     background: none;
@@ -463,3 +484,49 @@ html, body {
     color: var(--color-accent);
     cursor: wait;
 }
+
+/* ===== INÍCIO DOS NOVOS ESTILOS: Seção de Sugestão ===== */
+
+.suggestion-section {
+    width: 100%;
+    margin-bottom: 40px; /* Aumenta o espaço antes das categorias */
+}
+
+.suggestion-title {
+    font-size: 1.2rem; 
+    font-weight: 600; 
+    color: var(--text-primary); 
+    margin-bottom: 16px; 
+    padding-bottom: 8px; 
+    border-bottom: 2px solid var(--border-color); 
+}
+
+.suggestion-card {
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    text-align: left;
+}
+
+.suggestion-card h3 {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.suggestion-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.suggestion-card .primary-btn {
+    width: auto; /* Para não ocupar 100% da largura */
+    padding-left: 32px;
+    padding-right: 32px;
+}
+
+/* ===== FIM DOS NOVOS ESTILOS ===== */
