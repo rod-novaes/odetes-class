@@ -105,73 +105,85 @@ const SCENARIOS = {
         "Comprando um bilhete de metrô": {
             "en-US": {
                 name: "Buying a subway ticket",
-                goal: "Go to a ticket machine or counter and buy one single-journey ticket."
+                goal: "Go to a ticket machine or counter and buy one single-journey ticket.",
+                image: "assets/viagens/comprando-bilhete-do-metro.png"
             }
         },
         "Pedindo direções na rua": {
             "en-US": {
                 name: "Asking for directions on the street",
-                goal: "You are lost. Ask a person on the street how to get to the nearest museum."
+                goal: "You are lost. Ask a person on the street how to get to the nearest museum.",
+                image: "assets/viagens/pedindo-direcoes.png"
             }
         },
         "Fazendo check-in no voo": {
             "en-US": {
                 name: "Checking in for a flight",
-                goal: "Go to the airline counter, say you want to check in for your flight to New York, and that you have one bag to check."
+                goal: "Go to the airline counter, say you want to check in for your flight to New York, and that you have one bag to check.",
+                image: "assets/viagens/fazendo-check-in.png"
             }
         },
         "Passando pela segurança do aeroporto": {
             "en-US": {
                 name: "Going through airport security",
-                goal: "An agent asks you to remove your laptop from your bag and take off your shoes. Acknowledge and follow the instructions."
+                goal: "An agent asks you to remove your laptop from your bag and take off your shoes. Acknowledge and follow the instructions.",
+                image: "assets/viagens/passando-pela-seguranca.png"
             }
         },
         "Fazendo check-in no hotel": {
             "en-US": {
                 name: "Checking into a hotel",
-                goal: "Check into the hotel with a reservation under the name 'Alex Smith' for two nights."
+                goal: "Check into the hotel with a reservation under the name 'Alex Smith' for two nights.",
+                image: "assets/viagens/fazendo-check-in-no-hotel.png"
             }
         },
         "Pedindo informações no aeroporto": {
             "en-US": {
                 name: "Asking for information at the airport",
-                goal: "Ask an airline employee where the departure gate for flight BA249 to London is."
+                goal: "Ask an airline employee where the departure gate for flight BA249 to London is.",
+                image: "assets/viagens/pedindo-informacoes-no-aeroporto.png"
             }
         },
         "Reportando uma bagagem perdida": {
             "en-US": {
                 name: "Reporting a lost baggage",
-                goal: "Your checked bag did not arrive. Go to the lost and found desk and report your missing suitcase."
+                goal: "Your checked bag did not arrive. Go to the lost and found desk and report your missing suitcase.",
+                image: "assets/viagens/reportando-bagagem-perdida.png"
             }
         },
         "Perguntando sobre um voo atrasado": {
             "en-US": {
                 name: "Asking about a delayed flight",
-                goal: "Your flight is delayed. Ask an airline employee for the new departure time and the reason for the delay."
+                goal: "Your flight is delayed. Ask an airline employee for the new departure time and the reason for the delay.",
+                image: "assets/viagens/perguntando-sobre-voo.png"
             }
         },
         "Alugando um carro": {
             "en-US": {
                 name: "Renting a car",
-                goal: "Go to a car rental desk. Say you have a reservation for a compact car and ask about insurance options."
+                goal: "Go to a car rental desk. Say you have a reservation for a compact car and ask about insurance options.",
+                image: "assets/viagens/alugando-carro.png"
             }
         },
         "Reclamando do barulho no quarto do hotel": {
             "en-US": {
                 name: "Complaining about noise in the hotel room",
-                goal: "The room next to yours is being very loud late at night. Call the front desk to complain and ask them to intervene."
+                goal: "The room next to yours is being very loud late at night. Call the front desk to complain and ask them to intervene.",
+                image: "assets/viagens/reclamando-do-barulho.png"
             }
         },
         "Tentando remarcar um voo cancelado": {
             "en-US": {
                 name: "Trying to rebook a cancelled flight",
-                goal: "Your flight was cancelled due to weather. Go to the airline counter and ask to be booked on the next available flight."
+                goal: "Your flight was cancelled due to weather. Go to the airline counter and ask to be booked on the next available flight.",
+                image: "assets/viagens/remarcando-voo.png"
             }
         },
         "Resolvendo um problema na conta do hotel": {
             "en-US": {
                 name: "Resolving a hotel bill issue",
-                goal: "You are checking out and see charges from the minibar that you did not consume. Explain the situation to the receptionist and ask for the charges to be removed."
+                goal: "You are checking out and see charges from the minibar that you did not consume. Explain the situation to the receptionist and ask for the charges to be removed.",
+                image: "assets/viagens/resolvendo-problema-na-conta-do-hotel.png"
             }
         }
     },
