@@ -18,73 +18,85 @@ const SCENARIOS = {
         "Pedindo um café simples": {
             "en-US": {
                 name: "Ordering a simple coffee",
-                goal: "Go to a coffee shop and order one black coffee to go."
+                goal: "Go to a coffee shop and order one black coffee to go.",
+                image: "assets/restaurantes/pedindo-cafe.jpg"
             }
         },
         "Pedindo a conta": {
             "en-US": {
                 name: "Asking for the check",
-                goal: "You have finished your meal. Get the waiter's attention and ask for the check."
+                goal: "You have finished your meal. Get the waiter's attention and ask for the check.",
+                image: "assets/restaurantes/pedindo-a-conta.jpg"
             }
         },
         "Pedindo uma mesa para dois": {
             "en-US": {
                 name: "Asking for a table for two",
-                goal: "Enter a restaurant and ask the host for a table for two people."
+                goal: "Enter a restaurant and ask the host for a table for two people.",
+                image: "assets/restaurantes/pedindo-mesa.jpg"
             }
         },
         "Fazendo um pedido do cardápio": {
             "en-US": {
                 name: "Ordering from the menu",
-                goal: "The waiter is ready to take your order. Order a cheeseburger with fries and a soda."
+                goal: "The waiter is ready to take your order. Order a cheeseburger with fries and a soda.",
+                image: "assets/restaurantes/vendo-menu.jpg"
             }
         },
         "Reservando uma mesa por telefone": {
             "en-US": {
                 name: "Booking a table by phone",
-                goal: "Call a restaurant and book a table for four people for this Friday at 8 PM."
+                goal: "Call a restaurant and book a table for four people for this Friday at 8 PM.",
+                image: "assets/restaurantes/reservando-mesa.jpg"
             }
         },
         "Perguntando sobre ingredientes (alergia)": {
             "en-US": {
                 name: "Asking about ingredients (allergy)",
-                goal: "Ask the waiter if the chicken pasta dish contains any nuts, as you have an allergy."
+                goal: "Ask the waiter if the chicken pasta dish contains any nuts, as you have an allergy.",
+                image: "assets/restaurantes/perguntando-sobre-ingredientes.jpg"
             }
         },
         "Pedindo recomendações ao garçom": {
             "en-US": {
                 name: "Asking the waiter for recommendations",
-                goal: "You are undecided. Ask the waiter what the most popular dish on the menu is."
+                goal: "You are undecided. Ask the waiter what the most popular dish on the menu is.",
+                image: "assets/restaurantes/perguntando-ao-garcom.jpg"
             }
         },
         "Reclamando de um prato frio": {
             "en-US": {
                 name: "Complaining about a cold dish",
-                goal: "Your steak has arrived cold. Politely get the waiter's attention and ask them to heat it up."
+                goal: "Your steak has arrived cold. Politely get the waiter's attention and ask them to heat it up.",
+                image: "assets/restaurantes/reclamando-ao-garcom.jpg"
             }
         },
         "Pedindo para dividir a conta": {
             "en-US": {
                 name: "Asking to split the check",
-                goal: "You ate with a friend. Ask the waiter if it's possible to split the check evenly between two people."
+                goal: "You ate with a friend. Ask the waiter if it's possible to split the check evenly between two people.",
+                image: "assets/restaurantes/dividindo-a-conta.jpg"
             }
         },
         "Reclamando de um item errado no pedido": {
             "en-US": {
                 name: "Complaining about a wrong item in the order",
-                goal: "You ordered a vegetarian pizza, but you received one with pepperoni. Inform the waiter about the mistake."
+                goal: "You ordered a vegetarian pizza, but you received one with pepperoni. Inform the waiter about the mistake.",
+                image: "assets/restaurantes/reclamando-da-pizza.jpg"
             }
         },
         "Questionando um valor na conta": {
             "en-US": {
                 name: "Questioning a charge on the bill",
-                goal: "You see an extra charge on your bill for a drink you didn't order. Ask the waiter to explain and correct it."
+                goal: "You see an extra charge on your bill for a drink you didn't order. Ask the waiter to explain and correct it.",
+                image: "assets/restaurantes/reclamando-da-conta.jpg"
             }
         },
         "Reclamando do serviço com o gerente": {
             "en-US": {
                 name: "Complaining about the service to the manager",
-                goal: "The service has been extremely slow and the waiter was rude. Ask to speak to the manager to make a formal complaint."
+                goal: "The service has been extremely slow and the waiter was rude. Ask to speak to the manager to make a formal complaint.",
+                image: "assets/restaurantes/reclamando-com-gerente.jpg"
             }
         }
     },

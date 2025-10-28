@@ -367,7 +367,7 @@ html, body {
 }
 
 
-/* ===== PÁGINA DE CENÁRIO PERSONALIZADO E HISTÓRICO ===== */
+/* ===== PÁGINA DE CENÁRIO PERSONALIZADO E HISTÓRIO ===== */
 .custom-scenario-page, .history-page {
     display: flex;
     justify-content: flex-start;
@@ -485,6 +485,20 @@ html, body {
 #start-voice-mission-btn:hover {
     background-color: var(--color-accent-hover);
     border-color: var(--color-accent-hover);
+}
+
+/* NOVO: Estilos para a imagem no Mission Modal */
+.mission-image-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+#mission-image-container img {
+    display: block;
+    margin: 0 auto; /* Centraliza a imagem horizontalmente */
+    max-width: 150px; /* Define uma largura máxima menor */
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 
@@ -619,7 +633,7 @@ html, body {
 /* Estiliza a imagem da Odete */
 .suggestion-avatar {
     width: 100%;
-    max-width: 240px;
+    max-width: 180px;
     margin-bottom: 12px;
     user-select: none;
 }

@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const missionModal = document.getElementById('mission-modal');
     const missionGoalText = document.getElementById('mission-goal-text');
     const missionModalCloseBtn = document.getElementById('mission-modal-close-btn');
+    const missionImageContainer = document.getElementById('mission-image-container'); // LINHA CORRIGIDA
     const settingsModal = document.getElementById('settings-modal');
     const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
     const micBtn = document.getElementById('mic-btn');
@@ -43,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exitChatBtn = document.getElementById('exit-chat-btn');
     const scoreIndicator = document.getElementById('score-indicator');
     const headerBackBtn = document.getElementById('header-back-btn');
-    const fullscreenBtn = document.getElementById('fullscreen-btn'); // NOVO: Mapeamento do botão de tela cheia
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
 
 
     // --- Variáveis de Estado e Constantes ---
@@ -374,7 +375,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Funções de Lógica Principal de Conversa ---
-    function startNewConversation(scenario) { if (!getGoogleApiKey() || !getElevenLabsApiKey()) { openApiKeyModal(true); return; } currentScenario = { details: scenario }; missionGoalText.textContent = scenario.goal; missionModal.classList.remove('modal-hidden'); }
+    function startNewConversation(scenario) {
+        if (!getGoogleApiKey() || !getElevenLabsApiKey()) {
+            openApiKeyModal(true);
+            return;
+        }
+
+        // A variável 'scenario' que recebemos aqui já é o objeto de detalhes.
+        // O resto da aplicação espera que a variável global 'currentScenario' tenha uma propriedade 'details'.
+        currentScenario = { details: scenario };
+
+        // Popula o modal com as informações corretas
+        missionGoalText.textContent = scenario.goal;
+
+        // Lógica CORRIGIDA para exibir a imagem do cenário no modal
+        if (scenario && scenario.image) {
+            // Se o cenário tem uma imagem, cria o elemento e o exibe
+            missionImageContainer.innerHTML = `<img src="${scenario.image}" alt="Ilustração do cenário: ${scenario.name}">`;
+            missionImageContainer.classList.remove('modal-hidden');
+        } else {
+            // Se não houver imagem, garante que o contêiner esteja vazio e oculto
+            missionImageContainer.innerHTML = '';
+            missionImageContainer.classList.add('modal-hidden');
+        }
+
+        // Finalmente, abre o modal
+        missionModal.classList.remove('modal-hidden');
+    }
 
     async function initiateChat() {
         if (!currentScenario) return;
@@ -891,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.appendChild(suggestionSection);
 
         const renderNewSuggestion = () => {
-            // Mapeia os nomes das categorias aos seus respectivos arquivos de imagem.
+            // NÍVEL 2 DE FALLBACK: Mapeia categorias para imagens (continua necessário).
             const categoryImageMap = {
                 "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.png',
                 "✈️ Viagens e Transporte": 'assets/avatar-viagens.png',
@@ -903,28 +930,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 "🏠 Moradia e Serviços": 'assets/avatar-moradia.png'
             };
 
-            // Seleciona um cenário aleatório (lógica existente)
+            // Seleciona um cenário aleatório
             const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
             
-            // Seleciona os elementos do DOM necessários
+            // Seleciona os elementos do DOM
             const suggestionTitleEl = document.getElementById('suggestion-title');
             const startSuggestionBtn = document.getElementById('start-suggestion-btn');
-            const suggestionAvatarEl = document.querySelector('.suggestion-avatar'); // Elemento da imagem
+            const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
 
             if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
-                // 1. Atualiza o texto do título e os dados do botão (lógica existente)
+                // 1. Atualiza o texto do título e os dados do botão
                 suggestionTitleEl.textContent = suggestedScenario.name;
                 startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName;
                 startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
 
-                // 2. Determina a imagem correta com base na categoria do cenário
-                const categoryName = suggestedScenario.categoryName;
-                const imagePath = categoryImageMap[categoryName] || 'assets/odete.png'; // Usa odete.png como fallback
+                // 2. NOVA LÓGICA DE FALLBACK EM CASCATA PARA A IMAGEM
+                // Prioridade 1: Imagem específica do cenário (se existir em scenarios.js)
+                // Prioridade 2: Imagem da categoria
+                // Prioridade 3: Imagem padrão 'odete.png'
+                const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.png';
 
-                // 3. Atualiza a imagem e seu texto alternativo para acessibilidade
+                // 3. Atualiza a imagem e seu texto alternativo
                 suggestionAvatarEl.src = imagePath;
-                const cleanCategoryName = categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); // Remove emojis para o alt text
-                suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`;
+
+                // Melhora o texto alternativo para ser mais específico se possível
+                if (suggestedScenario.image) {
+                    suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario.name}`;
+                } else {
+                    const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim();
+                    suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`;
+                }
             }
         };
 
