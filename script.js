@@ -911,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 id="suggestion-title"></h3>
                 </div>
                 <button id="start-suggestion-btn" class="primary-btn">
-                    Começar a Praticar
+                    Começar Missão
                 </button>
             </div>
         `;
