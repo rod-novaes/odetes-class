@@ -891,14 +891,40 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.appendChild(suggestionSection);
 
         const renderNewSuggestion = () => {
+            // Mapeia os nomes das categorias aos seus respectivos arquivos de imagem.
+            const categoryImageMap = {
+                "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.png',
+                "✈️ Viagens e Transporte": 'assets/avatar-viagens.png',
+                "🛒 Compras": 'assets/avatar-compras.png',
+                "🤝 Situações Sociais": 'assets/avatar-social.png',
+                "💼 Profissional": 'assets/avatar-profissional.png',
+                "🎓 Estudos": 'assets/avatar-estudos.png',
+                "❤️ Saúde e Bem-estar": 'assets/avatar-saude.png',
+                "🏠 Moradia e Serviços": 'assets/avatar-moradia.png'
+            };
+
+            // Seleciona um cenário aleatório (lógica existente)
             const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
+            
+            // Seleciona os elementos do DOM necessários
             const suggestionTitleEl = document.getElementById('suggestion-title');
             const startSuggestionBtn = document.getElementById('start-suggestion-btn');
+            const suggestionAvatarEl = document.querySelector('.suggestion-avatar'); // Elemento da imagem
 
-            if (suggestionTitleEl && startSuggestionBtn) {
+            if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
+                // 1. Atualiza o texto do título e os dados do botão (lógica existente)
                 suggestionTitleEl.textContent = suggestedScenario.name;
                 startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName;
                 startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
+
+                // 2. Determina a imagem correta com base na categoria do cenário
+                const categoryName = suggestedScenario.categoryName;
+                const imagePath = categoryImageMap[categoryName] || 'assets/odete.png'; // Usa odete.png como fallback
+
+                // 3. Atualiza a imagem e seu texto alternativo para acessibilidade
+                suggestionAvatarEl.src = imagePath;
+                const cleanCategoryName = categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); // Remove emojis para o alt text
+                suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`;
             }
         };
 
