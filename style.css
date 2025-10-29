@@ -634,7 +634,7 @@ html, body {
 /* Estiliza a imagem da Odete */
 .suggestion-avatar {
     width: 100%;
-    max-width: 180px;
+    max-width: 240px;
     margin-bottom: 12px;
     user-select: none;
 }
