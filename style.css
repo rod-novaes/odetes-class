@@ -296,6 +296,7 @@ html, body {
     font-size: 1.8rem;
     font-weight: 700;
     margin-bottom: 24px;
+    text-align: center;
 }
 .scenario-panel { width: 100%; }
 .panel-category-section { margin-bottom: 24px; }

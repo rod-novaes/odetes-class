@@ -889,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const title = document.createElement('h1');
         title.className = 'main-page-title';
-        title.textContent = "Odete's English Class";
+        title.textContent = "Missões da Odete";
         mainContentArea.appendChild(title);
 
         const lang = languageSelect.value;
@@ -907,7 +907,7 @@ document.addEventListener('DOMContentLoaded', () => {
         suggestionSection.innerHTML = `
             <div class="suggestion-card">
                 <div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão">
-                    <img src="assets/odete.png" alt="Mascote Odete" class="suggestion-avatar">
+                    <img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar">
                     <h3 id="suggestion-title"></h3>
                 </div>
                 <button id="start-suggestion-btn" class="primary-btn">
@@ -920,14 +920,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const renderNewSuggestion = () => {
             // NÍVEL 2 DE FALLBACK: Mapeia categorias para imagens (continua necessário).
             const categoryImageMap = {
-                "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.png',
-                "✈️ Viagens e Transporte": 'assets/avatar-viagens.png',
-                "🛒 Compras": 'assets/avatar-compras.png',
-                "🤝 Situações Sociais": 'assets/avatar-social.png',
-                "💼 Profissional": 'assets/avatar-profissional.png',
-                "🎓 Estudos": 'assets/avatar-estudos.png',
-                "❤️ Saúde e Bem-estar": 'assets/avatar-saude.png',
-                "🏠 Moradia e Serviços": 'assets/avatar-moradia.png'
+                "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg',
+                "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg',
+                "🛒 Compras": 'assets/avatar-compras.jpg',
+                "🤝 Situações Sociais": 'assets/avatar-social.jpg',
+                "💼 Profissional": 'assets/avatar-profissional.jpg',
+                "🎓 Estudos": 'assets/avatar-estudos.jpg',
+                "❤️ Saúde e Bem-estar": 'assets/avatar-saude.jpg',
+                "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg'
             };
 
             // Seleciona um cenário aleatório
@@ -947,8 +947,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 2. NOVA LÓGICA DE FALLBACK EM CASCATA PARA A IMAGEM
                 // Prioridade 1: Imagem específica do cenário (se existir em scenarios.js)
                 // Prioridade 2: Imagem da categoria
-                // Prioridade 3: Imagem padrão 'odete.png'
-                const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.png';
+                // Prioridade 3: Imagem padrão 'odete.jpg'
+                const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg';
 
                 // 3. Atualiza a imagem e seu texto alternativo
                 suggestionAvatarEl.src = imagePath;
