@@ -30,16 +30,17 @@ async function getAIResponse(userMessage, history, apiKey, scenario, settings) {
     const languageMap = { "en-US": "English" };
     const targetLanguage = languageMap[settings.language] || "English";
 
+    // --- LÓGICA DE NÍVEIS ATUALIZADA ---
     let proficiencyInstruction = '';
     switch (settings.proficiency) {
         case 'basic':
-            proficiencyInstruction = "Because the user is at a BASIC level, you MUST use simple vocabulary (A1-A2), short sentences, and avoid idioms.";
+            proficiencyInstruction = "CRITICAL: The user is an absolute beginner (A1 level). You MUST use extremely simple vocabulary, very short sentences (max 5-8 words), and direct questions. Primarily use the simple present tense. Avoid idioms, complex tenses (like perfect tenses), and phrasal verbs entirely.";
             break;
         case 'intermediate':
-            proficiencyInstruction = "Because the user is at an INTERMEDIATE level, you can use common vocabulary and sentence structures (B1-B2).";
+            proficiencyInstruction = "The user is at a BASIC level (A2-B1). You MUST use simple vocabulary, short sentences, and avoid complex idioms. This is for direct conversation practice.";
             break;
         case 'advanced':
-            proficiencyInstruction = "Because the user is at an ADVANCED level, you are encouraged to use rich, natural, and nuanced vocabulary (C1).";
+            proficiencyInstruction = "The user is at an INTERMEDIATE level (B1-B2). You can use common vocabulary and more natural sentence structures to make the conversation flow well.";
             break;
     }
 
@@ -68,17 +69,12 @@ async function getAIResponse(userMessage, history, apiKey, scenario, settings) {
         fullHistory.push({ role: 'user', content: userMessage });
     }
 
-    // *** INÍCIO DA CORREÇÃO ***
     let contents;
-    // Se a conversa ainda não começou, o histórico está vazio.
-    // Enviamos um "kick-start" para a IA com uma primeira mensagem de usuário vazia.
     if (fullHistory.length === 0) {
         contents = [{ role: 'user', parts: [{ text: 'Please start the conversation based on your instructions.' }] }];
     } else {
-        // Se a conversa já começou, convertemos o histórico normalmente.
         contents = convertHistoryToGeminiFormat(fullHistory);
     }
-    // *** FIM DA CORREÇÃO ***
     
     try {
         const response = await fetch(API_URL, { 
@@ -113,16 +109,17 @@ async function getFeedbackForConversation(history, apiKey, language, settings, i
     const languageMap = { "en-US": "English" };
     const targetLanguage = languageMap[language] || "English";
 
+    // --- LÓGICA DE FEEDBACK ATUALIZADA ---
     let feedbackFocusInstruction = '';
     switch (settings.proficiency) {
         case 'basic':
-            feedbackFocusInstruction = "The user is at a BASIC level. In your feedback, focus on fundamental errors: simple verb tenses (past/present/future), articles (a/an/the), basic prepositions, and word order. Keep your explanations very simple and encouraging.";
+            feedbackFocusInstruction = "The user is an absolute beginner. In your feedback, focus ONLY on the most fundamental errors: verb 'to be', simple present tense verbs, articles (a/an/the), and basic pronouns (I/you/he/she/it). Keep explanations extremely simple and highly encouraging. Avoid overwhelming them.";
             break;
         case 'intermediate':
-            feedbackFocusInstruction = "The user is at an INTERMEDIATE level. In your feedback, focus on more complex areas: correct use of verb tenses (e.g., perfect tenses), phrasal verbs, sentence connectors, and suggesting more varied vocabulary. Explain why the natural phrases are better.";
+            feedbackFocusInstruction = "The user is at a BASIC level. In your feedback, focus on fundamental errors: simple verb tenses (past/present/future), articles (a/an/the), basic prepositions, and word order. Keep your explanations very simple and encouraging.";
             break;
         case 'advanced':
-            feedbackFocusInstruction = "The user is at an ADVANCED level. Provide detailed and nuanced feedback. Focus on subtle errors, awkward phrasing, tone, style, and the use of idiomatic language. Suggest sophisticated alternatives to make their speech sound more native.";
+            feedbackFocusInstruction = "The user is at an INTERMEDIATE level. In your feedback, focus on more complex areas: correct use of verb tenses (e.g., perfect tenses), common phrasal verbs, sentence connectors, and suggesting more varied vocabulary. Explain why the natural phrases are better.";
             break;
     }
     
