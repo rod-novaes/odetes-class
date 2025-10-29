@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const missionModal = document.getElementById('mission-modal');
     const missionGoalText = document.getElementById('mission-goal-text');
     const missionModalCloseBtn = document.getElementById('mission-modal-close-btn');
-    const missionImageContainer = document.getElementById('mission-image-container'); // LINHA CORRIGIDA
+    const missionImageContainer = document.getElementById('mission-image-container');
     const settingsModal = document.getElementById('settings-modal');
     const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
     const micBtn = document.getElementById('mic-btn');
@@ -184,8 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (suggestionBtn) {
             const categoryName = suggestionBtn.dataset.categoryName;
             const scenarioName = suggestionBtn.dataset.scenarioName;
-            const lang = languageSelect.value;
-            const scenario = SCENARIOS[categoryName]?.[scenarioName]?.[lang];
+            // MODIFICADO: Busca o objeto de cenário completo, sem especificar o idioma.
+            const scenario = SCENARIOS[categoryName]?.[scenarioName];
             if (scenario) {
                 startNewConversation(scenario);
             }
@@ -196,8 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scenarioCard) {
             const scenarioName = scenarioCard.dataset.scenarioName;
             const categoryName = scenarioCard.dataset.categoryName;
-            const lang = languageSelect.value;
-            const scenario = SCENARIOS[categoryName]?.[scenarioName]?.[lang];
+            // MODIFICADO: Busca o objeto de cenário completo.
+            const scenario = SCENARIOS[categoryName]?.[scenarioName];
             if (scenario) { startNewConversation(scenario); }
             return;
         }
@@ -248,7 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const validation = await validateScenarioGoal(goal, apiKey);
                 if (validation.isValid) {
-                    startNewConversation({ name: "Cenário Personalizado", goal });
+                    // MODIFICADO: Cria a estrutura bilíngue para cenários personalizados.
+                    const customScenario = {
+                        "pt-BR": { goal: goal },
+                        "en-US": { name: "Custom Scenario", goal: goal }
+                    };
+                    startNewConversation(customScenario);
                 } else {
                     showCustomScenarioError(validation.reason || "Ocorreu um erro ao validar o cenário.");
                 }
@@ -381,25 +386,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // A variável 'scenario' que recebemos aqui já é o objeto de detalhes.
-        // O resto da aplicação espera que a variável global 'currentScenario' tenha uma propriedade 'details'.
         currentScenario = { details: scenario };
 
-        // Popula o modal com as informações corretas
-        missionGoalText.textContent = scenario.goal;
+        // MODIFICADO: Exibe o objetivo em Português no modal.
+        missionGoalText.textContent = scenario['pt-BR'].goal;
 
-        // Lógica CORRIGIDA para exibir a imagem do cenário no modal
         if (scenario && scenario.image) {
-            // Se o cenário tem uma imagem, cria o elemento e o exibe
-            missionImageContainer.innerHTML = `<img src="${scenario.image}" alt="Ilustração do cenário: ${scenario.name}">`;
+            missionImageContainer.innerHTML = `<img src="${scenario.image}" alt="Ilustração do cenário">`;
             missionImageContainer.classList.remove('modal-hidden');
         } else {
-            // Se não houver imagem, garante que o contêiner esteja vazio e oculto
             missionImageContainer.innerHTML = '';
             missionImageContainer.classList.add('modal-hidden');
         }
 
-        // Finalmente, abre o modal
         missionModal.classList.remove('modal-hidden');
     }
 
@@ -413,14 +412,17 @@ document.addEventListener('DOMContentLoaded', () => {
         sendBtn.style.display = 'flex';
 
         conversationHistory = [];
-        displayMessage(`Cenário: ${currentScenario.details.name}`, 'system');
-        displayMessage(`🎯 Seu Objetivo: ${currentScenario.details.goal}`, 'system');
+        // MODIFICADO: Exibe o nome e o objetivo em Inglês no chat para imersão.
+        const scenarioInEnglish = currentScenario.details['en-US'];
+        displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
+        displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
         setProcessingState(true);
         try {
             const apiKey = getGoogleApiKey();
             if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            const aiResponse = await getAIResponse(null, [], apiKey, currentScenario.details, settings);
+            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
+            const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             setTimeout(() => { removeTypingIndicator(); displayMessage(aiResponse, 'ai'); setUserTurnState(true); }, TYPING_SIMULATION_DELAY);
         } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setUserTurnState(true); }
@@ -482,14 +484,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChatInterface();
         setupVoiceUI();
         conversationHistory = [];
-        displayMessage(`Cenário: ${currentScenario.details.name}`, 'system');
-        displayMessage(`🎯 Seu Objetivo: ${currentScenario.details.goal}`, 'system');
+        // MODIFICADO: Exibe o nome e o objetivo em Inglês no chat para imersão.
+        const scenarioInEnglish = currentScenario.details['en-US'];
+        displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
+        displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
         setProcessingState(true);
         try {
             const apiKey = getGoogleApiKey();
             if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            const aiResponse = await getAIResponse(null, [], apiKey, currentScenario.details, settings);
+            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
+            const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             await speakText(aiResponse);
         } catch (error) {
@@ -692,7 +697,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const apiKey = getGoogleApiKey();
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, currentScenario.details, settings);
+            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
+            const scenarioInEnglish = currentScenario.details['en-US'];
+            const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, scenarioInEnglish, settings);
             
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
@@ -768,12 +775,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateScoreDisplay();
 
         const apiKey = getGoogleApiKey();
-        let finalScenarioName = currentScenario.details.name;
-        if (currentScenario.details.name === "Cenário Personalizado") {
-            try { finalScenarioName = await getScenarioTitle(currentScenario.details.goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
+        let finalScenarioName = currentScenario.details['en-US'].name;
+        // MODIFICADO: Usa o goal em inglês para gerar o título se for um cenário personalizado.
+        if (finalScenarioName === "Custom Scenario" || finalScenarioName === "Cenário Personalizado") {
+            try { finalScenarioName = await getScenarioTitle(currentScenario.details['en-US'].goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
         }
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
-        history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details.goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
+        history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details['en-US'].goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
     }
 
@@ -797,7 +805,20 @@ document.addEventListener('DOMContentLoaded', () => {
             exitChatBtn.textContent = 'Voltar ao Início';
         }
     }
-    function startNextChallenge() { const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category).map(scenario => scenario[languageSelect.value])); const currentGoal = currentScenario.details.goal; const availableScenarios = allScenarios.filter(s => s.goal !== currentGoal); if (availableScenarios.length > 0) { const randomIndex = Math.floor(Math.random() * availableScenarios.length); startNewConversation(availableScenarios[randomIndex]); } else { renderHomePage(); alert("Você praticou todos os cenários disponíveis!"); } }
+    function startNextChallenge() { 
+        // MODIFICADO: Busca a lista completa de cenários.
+        const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category)); 
+        const currentGoal = currentScenario.details['en-US'].goal; 
+        // MODIFICADO: Filtra com base no goal em inglês.
+        const availableScenarios = allScenarios.filter(s => s['en-US'].goal !== currentGoal); 
+        if (availableScenarios.length > 0) { 
+            const randomIndex = Math.floor(Math.random() * availableScenarios.length); 
+            startNewConversation(availableScenarios[randomIndex]); 
+        } else { 
+            renderHomePage(); 
+            alert("Você praticou todos os cenários disponíveis!"); 
+        } 
+    }
     async function handleGetFeedback() { feedbackModal.classList.remove('modal-hidden'); feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; translateBtn.classList.add('translate-btn-hidden'); try { const apiKey = getGoogleApiKey(); if (!apiKey) throw new Error("Chave de API do Google não encontrada."); const settings = { language: languageSelect.value, proficiency: proficiencySelect.value }; originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode); const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; if (history.length > 0 && !history[0].feedback) { history[0].feedback = originalFeedback; localStorage.setItem('conversationHistory', JSON.stringify(history)); } displayFormattedFeedback(originalFeedback); translateBtn.classList.remove('translate-btn-hidden'); isTranslated = false; translatedFeedback = ''; translateBtn.textContent = 'Traduzir para Português'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; } }
     
     async function handleTranslateFeedback() { 
@@ -882,8 +903,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // SUBSTITUA A FUNÇÃO 'renderHomePageContent' INTEIRA POR ESTA:
-    // SUBSTITUA A FUNÇÃO 'renderHomePageContent' INTEIRA POR ESTA NOVA VERSÃO:
     function renderHomePageContent() {
         mainContentArea.innerHTML = '';
 
@@ -892,10 +911,10 @@ document.addEventListener('DOMContentLoaded', () => {
         title.textContent = "Missões da Odete";
         mainContentArea.appendChild(title);
 
-        const lang = languageSelect.value;
+        // MODIFICADO: Busca a lista completa de cenários para a sugestão.
         const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) =>
             Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({
-                ...scenarioData[lang],
+                ...scenarioData, // Pega o objeto completo com pt-BR, en-US, image, etc.
                 categoryName: categoryName,
                 scenarioName: scenarioName
             }))
@@ -903,7 +922,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const suggestionSection = document.createElement('section');
         suggestionSection.className = 'suggestion-section';
-        // MUDANÇA AQUI: Removemos o botão de atualizar e envolvemos a imagem e o título em um novo 'div' clicável.
         suggestionSection.innerHTML = `
             <div class="suggestion-card">
                 <div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão">
@@ -918,7 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.appendChild(suggestionSection);
 
         const renderNewSuggestion = () => {
-            // NÍVEL 2 DE FALLBACK: Mapeia categorias para imagens (continua necessário).
             const categoryImageMap = {
                 "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg',
                 "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg',
@@ -930,32 +947,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg'
             };
 
-            // Seleciona um cenário aleatório
             const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
             
-            // Seleciona os elementos do DOM
             const suggestionTitleEl = document.getElementById('suggestion-title');
             const startSuggestionBtn = document.getElementById('start-suggestion-btn');
             const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
 
             if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
-                // 1. Atualiza o texto do título e os dados do botão
-                suggestionTitleEl.textContent = suggestedScenario.name;
+                // MODIFICADO: Exibe o nome em inglês, mas usa o nome do cenário em português (chave) para os datasets.
+                suggestionTitleEl.textContent = suggestedScenario.scenarioName;
                 startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName;
                 startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
 
-                // 2. NOVA LÓGICA DE FALLBACK EM CASCATA PARA A IMAGEM
-                // Prioridade 1: Imagem específica do cenário (se existir em scenarios.js)
-                // Prioridade 2: Imagem da categoria
-                // Prioridade 3: Imagem padrão 'odete.jpg'
                 const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg';
-
-                // 3. Atualiza a imagem e seu texto alternativo
                 suggestionAvatarEl.src = imagePath;
 
-                // Melhora o texto alternativo para ser mais específico se possível
                 if (suggestedScenario.image) {
-                    suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario.name}`;
+                    suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario['en-US'].name}`;
                 } else {
                     const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim();
                     suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`;
@@ -965,7 +973,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderNewSuggestion();
 
-        // MUDANÇA AQUI: O listener agora está no 'div' que envolve a imagem e o título.
         document.getElementById('new-suggestion-trigger').addEventListener('click', renderNewSuggestion);
 
         const panelContainer = document.createElement('div');
@@ -1011,9 +1018,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContentArea.appendChild(panelContainer);
     }
     
-    // ATUALIZADO: Função renderCategoryPage
     function renderCategoryPage(categoryName) {
-        // Lógica de visibilidade do cabeçalho
         scoreIndicator.classList.add('score-indicator-hidden');
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         headerBackBtn.classList.remove('back-btn-hidden');
@@ -1026,7 +1031,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const header = document.createElement('div'); 
         header.className = 'category-page-header'; 
-        // O botão voltar foi removido daqui
         const title = document.createElement('h2'); 
         title.textContent = categoryName; 
         header.appendChild(title); 
