@@ -514,7 +514,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Interview: 'Tell me about yourself'",
                 goal: "You are in a job interview. Answer the question: 'Tell me a little about yourself'."
-            }
+            },
+            image: "assets/profissional/falando-em-entrevista.png"
         },
         "Apresentando-se a um colega": {
             "pt-BR": {
