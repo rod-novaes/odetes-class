@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('mic-btn');
     const startTextMissionBtn = document.getElementById('start-text-mission-btn');
     const startVoiceMissionBtn = document.getElementById('start-voice-mission-btn');
+    const practiceAgainBtn = document.getElementById('practice-again-btn');
     
     // Mapeamento do cabeçalho global e seus componentes
     const contextBar = document.getElementById('context-bar');
@@ -45,6 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreIndicator = document.getElementById('score-indicator');
     const headerBackBtn = document.getElementById('header-back-btn');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    // ===== NOVO: Mapeamento de Elementos da Notificação de Recompensa =====
+    const rewardNotification = document.getElementById('reward-notification');
+    const rewardText = document.getElementById('reward-text');
+    const rewardImage = document.getElementById('reward-image');
 
 
     // --- Variáveis de Estado e Constantes ---
@@ -130,17 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('userScore', newScore);
     }
 
-    function addPointsForLevel(level) {
-        const pointsMap = {
-            basic: 1,
-            intermediate: 2,
-            advanced: 3
-        };
-        const pointsToAdd = pointsMap[level] || 0;
-        const currentScore = getScore();
-        const newScore = currentScore + pointsToAdd;
-        saveScore(newScore);
-    }
+    // A função addPointsForLevel foi removida pois sua lógica foi substituída e expandida.
     
     function updateScoreDisplay() {
         scoreIndicator.innerHTML = `🦉 ${getScore()}`;
@@ -166,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     langIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
     proficiencyIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
 
-    // NOVO: Listeners para tela cheia
     fullscreenBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
 
@@ -184,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (suggestionBtn) {
             const categoryName = suggestionBtn.dataset.categoryName;
             const scenarioName = suggestionBtn.dataset.scenarioName;
-            // MODIFICADO: Busca o objeto de cenário completo, sem especificar o idioma.
             const scenario = SCENARIOS[categoryName]?.[scenarioName];
             if (scenario) {
                 startNewConversation(scenario);
@@ -196,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scenarioCard) {
             const scenarioName = scenarioCard.dataset.scenarioName;
             const categoryName = scenarioCard.dataset.categoryName;
-            // MODIFICADO: Busca o objeto de cenário completo.
             const scenario = SCENARIOS[categoryName]?.[scenarioName];
             if (scenario) { startNewConversation(scenario); }
             return;
@@ -248,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const validation = await validateScenarioGoal(goal, apiKey);
                 if (validation.isValid) {
-                    // MODIFICADO: Cria a estrutura bilíngue para cenários personalizados.
                     const customScenario = {
                         "pt-BR": { goal: goal },
                         "en-US": { name: "Custom Scenario", goal: goal }
@@ -304,6 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initiateVoiceChat();
     });
 
+    practiceAgainBtn.addEventListener('click', handlePracticeAgain);
+
     // --- Funções de Renderização de "Páginas" ---
     function renderHomePage() {
         updateActiveNavIcon('nav-home-btn');
@@ -312,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
         
-        // Lógica de visibilidade do cabeçalho
         scoreIndicator.classList.remove('score-indicator-hidden');
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
@@ -326,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
 
-        // Lógica de visibilidade do cabeçalho
         scoreIndicator.classList.remove('score-indicator-hidden');
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
@@ -352,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
         
-        // Lógica de visibilidade do cabeçalho
         scoreIndicator.classList.remove('score-indicator-hidden');
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
@@ -373,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateActiveNavIcon(null);
         bottomNavBar.classList.add('nav-hidden');
         
-        // Lógica de visibilidade do cabeçalho
         scoreIndicator.classList.add('score-indicator-hidden');
         exitChatBtn.classList.remove('exit-chat-btn-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
@@ -388,7 +378,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentScenario = { details: scenario };
 
-        // MODIFICADO: Exibe o objetivo em Português no modal.
+        // ===== INÍCIO DA MODIFICAÇÃO =====
+        // Calcula os pontos para cada modo com base no nível atual
+        const currentLevel = proficiencySelect.value;
+        const textPoints = calculateMissionPoints(currentLevel, 'text');
+        const voicePoints = calculateMissionPoints(currentLevel, 'voice');
+
+        // Define o plural correto para "ponto" ou "pontos"
+        const textPlural = textPoints === 1 ? 'pt' : 'pts';
+        const voicePlural = voicePoints === 1 ? 'pt' : 'pts';
+
+        // Atualiza o HTML interno dos botões para incluir o badge
+        startTextMissionBtn.innerHTML = `
+            <span>Por Texto</span>
+            <span class="mission-points-badge badge-text">+${textPoints} ${textPlural}</span>
+        `;
+        startVoiceMissionBtn.innerHTML = `
+            <span>Por Voz</span>
+            <span class="mission-points-badge badge-voice">+${voicePoints} ${voicePlural}</span>
+        `;
+        // ===== FIM DA MODIFICAÇÃO =====
+
         missionGoalText.textContent = scenario['pt-BR'].goal;
 
         if (scenario && scenario.image) {
@@ -412,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sendBtn.style.display = 'flex';
 
         conversationHistory = [];
-        // MODIFICADO: Exibe o nome e o objetivo em Inglês no chat para imersão.
         const scenarioInEnglish = currentScenario.details['en-US'];
         displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
         displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
@@ -421,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiKey = getGoogleApiKey();
             if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
             const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             setTimeout(() => { removeTypingIndicator(); displayMessage(aiResponse, 'ai'); setUserTurnState(true); }, TYPING_SIMULATION_DELAY);
@@ -466,6 +474,18 @@ document.addEventListener('DOMContentLoaded', () => {
         currentScenario = null;
         renderHomePage();
     }
+
+    // ===== NOVA FUNÇÃO PARA O BOTÃO "PRATICAR NOVAMENTE" =====
+    function handlePracticeAgain() {
+        if (!currentScenario) return; // Apenas uma verificação de segurança
+
+        feedbackModal.classList.add('modal-hidden');
+
+        // Um pequeno atraso para a animação do modal ser suave
+        setTimeout(() => {
+            startNewConversation(currentScenario.details);
+        }, 300); // 300ms é o tempo da transição do modal no CSS
+    }
     
     // --- LÓGICA DE VOZ HÍBRIDA ---
 
@@ -484,7 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChatInterface();
         setupVoiceUI();
         conversationHistory = [];
-        // MODIFICADO: Exibe o nome e o objetivo em Inglês no chat para imersão.
         const scenarioInEnglish = currentScenario.details['en-US'];
         displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
         displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
@@ -493,7 +512,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiKey = getGoogleApiKey();
             if (!apiKey) throw new Error("Chave de API do Google não encontrada");
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
             const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             await speakText(aiResponse);
@@ -697,21 +715,25 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const apiKey = getGoogleApiKey();
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-            // MODIFICADO: Passa o objeto do cenário em Inglês para a IA.
             const scenarioInEnglish = currentScenario.details['en-US'];
             const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, scenarioInEnglish, settings);
             
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
                 
-                await finalizeConversation(); 
+                // ===== INÍCIO DA MODIFICAÇÃO =====
+                // Captura os pontos ganhos ao finalizar a conversa
+                const pointsEarned = await finalizeConversation(); 
+                // ===== FIM DA MODIFICAÇÃO =====
 
                 if (cleanResponse) { 
                     conversationHistory.push({ role: 'assistant', content: cleanResponse });
                     await handleAIResponse(cleanResponse); 
                 }
                 
-                displayCompletionScreen();
+                // ===== MODIFICAÇÃO =====
+                // Passa os pontos ganhos para a tela de conclusão
+                displayCompletionScreen(pointsEarned);
 
             } else {
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
@@ -762,7 +784,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function calculateMissionPoints(level, mode) {
+        const pointsMap = {
+            basic: { text: 1, voice: 2 },
+            intermediate: { text: 2, voice: 4 },
+            advanced: { text: 4, voice: 8 }
+        };
+        return pointsMap[level]?.[mode] || 0;
+    }
+
     // --- LÓGICA DE FINALIZAÇÃO E FEEDBACK ---
+
+    // ===== NOVO: Funções Auxiliares para Pontuação e Streak =====
+    function calculateMissionPoints(level, mode) {
+        const pointsMap = {
+            basic: { text: 1, voice: 2 },
+            intermediate: { text: 2, voice: 4 },
+            advanced: { text: 4, voice: 8 }
+        };
+        return pointsMap[level]?.[mode] || 0;
+    }
+
+    function calculateStreakBonus(streak) {
+        if (streak >= 30) return 8;
+        if (streak >= 14) return 4;
+        if (streak >= 7) return 2;
+        if (streak >= 3) return 1;
+        return 0;
+    }
+    
+    function getTodayDateString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // ===== NOVO: Função para exibir a notificação de recompensa =====
+    function showRewardNotification(message) {
+        if (!rewardNotification || !rewardText || !rewardImage) return;
+
+        rewardText.textContent = message;
+        // Força o reinício da animação do GIF
+        const originalSrc = rewardImage.src;
+        rewardImage.src = '';
+        rewardImage.src = originalSrc;
+        
+        rewardNotification.classList.add('visible');
+
+        setTimeout(() => {
+            rewardNotification.classList.remove('visible');
+        }, 4000); // A notificação fica visível por 4 segundos
+    }
+
+
+    // ===== ATUALIZADO: Função finalizeConversation com a nova lógica de pontuação e streak =====
     async function finalizeConversation() {
         isConversationActive = false; 
         setProcessingState(false);
@@ -771,24 +848,74 @@ document.addEventListener('DOMContentLoaded', () => {
         micBtn.disabled = true;
         updateMicButtonState('default');
         
-        addPointsForLevel(proficiencySelect.value);
+        let totalPointsToAdd = 0;
+        
+        // 1. Calcular pontos da missão
+        const missionPoints = calculateMissionPoints(proficiencySelect.value, currentInteractionMode);
+        totalPointsToAdd += missionPoints;
+
+        // 2. Lógica de Streak
+        const todayStr = getTodayDateString();
+        const lastCompletionDate = localStorage.getItem('lastCompletionDate');
+        let currentStreak = parseInt(localStorage.getItem('currentStreak') || '0', 10);
+        let bonusPoints = 0;
+
+        if (lastCompletionDate !== todayStr) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            
+            if (lastCompletionDate === yesterdayStr) {
+                currentStreak++;
+            } else {
+                currentStreak = 1;
+            }
+            
+            bonusPoints = calculateStreakBonus(currentStreak);
+            if (bonusPoints > 0) {
+                totalPointsToAdd += bonusPoints;
+                showRewardNotification(`🔥 Sequência de ${currentStreak} dias! +${bonusPoints} pontos!`);
+            }
+
+            localStorage.setItem('lastCompletionDate', todayStr);
+            localStorage.setItem('currentStreak', currentStreak);
+        }
+        
+        // 3. Salvar pontuação final
+        const currentScore = getScore();
+        saveScore(currentScore + totalPointsToAdd);
         updateScoreDisplay();
 
         const apiKey = getGoogleApiKey();
         let finalScenarioName = currentScenario.details['en-US'].name;
-        // MODIFICADO: Usa o goal em inglês para gerar o título se for um cenário personalizado.
         if (finalScenarioName === "Custom Scenario" || finalScenarioName === "Cenário Personalizado") {
             try { finalScenarioName = await getScenarioTitle(currentScenario.details['en-US'].goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
         }
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
         history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details['en-US'].goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
+        
+        // ===== MODIFICAÇÃO =====
+        // Retorna o total de pontos ganhos nesta missão
+        return totalPointsToAdd;
     }
 
-    function displayCompletionScreen() {
+
+    function displayCompletionScreen(pointsEarned) {
         const completionContainer = document.createElement('div');
         completionContainer.className = 'completion-container';
-        completionContainer.innerHTML = `<div class="message system-message"><p>🎉 Parabéns! Você completou o cenário.</p></div>`;
+
+        // ===== INÍCIO DA MODIFICAÇÃO =====
+        // Cria a mensagem de conclusão com base nos pontos ganhos
+        let completionMessage = "🎉 Parabéns! Você completou o cenário.";
+        if (pointsEarned > 0) {
+            const plural = pointsEarned === 1 ? 'ponto' : 'pontos';
+            completionMessage = `🎉 Parabéns! Você completou o cenário e ganhou <strong>${pointsEarned}</strong> ${plural}.`;
+        }
+        
+        completionContainer.innerHTML = `<div class="message system-message"><p>${completionMessage}</p></div>`;
+        // ===== FIM DA MODIFICAÇÃO =====
         
         const actionsContainer = document.createElement('div');
         actionsContainer.className = 'completion-actions';
@@ -805,11 +932,10 @@ document.addEventListener('DOMContentLoaded', () => {
             exitChatBtn.textContent = 'Voltar ao Início';
         }
     }
+
     function startNextChallenge() { 
-        // MODIFICADO: Busca a lista completa de cenários.
         const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category)); 
         const currentGoal = currentScenario.details['en-US'].goal; 
-        // MODIFICADO: Filtra com base no goal em inglês.
         const availableScenarios = allScenarios.filter(s => s['en-US'].goal !== currentGoal); 
         if (availableScenarios.length > 0) { 
             const randomIndex = Math.floor(Math.random() * availableScenarios.length); 
@@ -911,10 +1037,9 @@ document.addEventListener('DOMContentLoaded', () => {
         title.textContent = "Missões da Odete";
         mainContentArea.appendChild(title);
 
-        // MODIFICADO: Busca a lista completa de cenários para a sugestão.
         const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) =>
             Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({
-                ...scenarioData, // Pega o objeto completo com pt-BR, en-US, image, etc.
+                ...scenarioData,
                 categoryName: categoryName,
                 scenarioName: scenarioName
             }))
@@ -954,7 +1079,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
 
             if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
-                // MODIFICADO: Exibe o nome em inglês, mas usa o nome do cenário em português (chave) para os datasets.
                 suggestionTitleEl.textContent = suggestedScenario.scenarioName;
                 startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName;
                 startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
@@ -1048,7 +1172,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         categoryContainer.appendChild(header); 
         categoryContainer.appendChild(cardsContainer); 
-        mainContentArea.appendChild(categoryContainer); 
+        mainContentArea.appendChild(categoryContainer);
+        
+        // Correção para rolar para o topo
+        mainContentArea.scrollTop = 0;
     }
 
     function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
@@ -1064,6 +1191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHomePage(); 
         } 
         initializeSpeechAPI(); 
+        //Animação de teste
+        //showRewardNotification("🎉 Animação de Teste! +10 Pontos!");
     }
     
     initializeApp();
