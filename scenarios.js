@@ -268,7 +268,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking for the price of an item",
                 goal: "Find a shirt you like but it doesn't have a price tag. Ask a shop assistant how much it costs."
-            }
+            },
+            image: "assets/compras/perguntando-preco.png"
         },
         "Procurando por um produto": {
             "pt-BR": {
@@ -277,7 +278,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Looking for a product",
                 goal: "You are in a supermarket. Ask an employee in which aisle you can find pasta."
-            }
+            },
+            image: "assets/compras/procurando-produto.png"
         },
         "Pagando pelas compras": {
             "pt-BR": {
@@ -286,7 +288,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Paying for your shopping",
                 goal: "You are at the cashier. Say you would like to pay with a credit card."
-            }
+            },
+            image: "assets/compras/pagando-compras.png"
         },
         "Pedindo um tamanho ou cor diferente": {
             "pt-BR": {
@@ -295,7 +298,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking for a different size or color",
                 goal: "Ask a shop assistant if they have a blue T-shirt in a medium size."
-            }
+            },
+            image: "assets/compras/pedindo-cor-diferente.png"
         },
         "Perguntando onde ficam os provadores": {
             "pt-BR": {
@@ -304,7 +308,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking for the fitting rooms",
                 goal: "You want to try on some jeans. Ask a store employee where the fitting rooms are."
-            }
+            },
+            image: "assets/compras/perguntando-sobre-provadores.png"
         },
         "Devolvendo um item com defeito": {
             "pt-BR": {
@@ -313,7 +318,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Returning a faulty item",
                 goal: "Return a pair of headphones that stopped working after one day. You have the receipt and want a refund."
-            }
+            },
+            image: "assets/compras/devolvendo-item.png"
         },
         "Perguntando sobre a política de devolução": {
             "pt-BR": {
@@ -322,7 +328,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking about the return policy",
                 goal: "Before buying a gift, ask the cashier how many days the person has to return or exchange the item."
-            }
+            },
+            image: "assets/compras/perguntando-sobre-devolução.png"
         },
         "Pedindo um desconto": {
             "pt-BR": {
@@ -331,7 +338,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking for a discount",
                 goal: "You are buying a display model of a TV that has a small scratch. Ask the manager if they can offer a discount."
-            }
+            },
+            image: "assets/compras/pedindo-desconto.png"
         },
         "Inscrevendo-se em um programa de fidelidade": {
             "pt-BR": {
@@ -340,7 +348,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Signing up for a loyalty program",
                 goal: "The cashier asks if you want to join their free loyalty program. Ask what the benefits are before deciding."
-            }
+            },
+            image: "assets/compras/inscrevendo-fidelidade.png"
         },
         "Reportando um produto vencido na prateleira": {
             "pt-BR": {
@@ -349,7 +358,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Reporting an expired product on the shelf",
                 goal: "You found a carton of milk on the shelf that is past its expiration date. Politely inform a store employee."
-            }
+            },
+            image: "assets/compras/reportando-produto-vencido.png"
         },
         "Reclamando de propaganda enganosa": {
             "pt-BR": {
@@ -358,7 +368,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Complaining about false advertising",
                 goal: "An item was advertised at a special price, but it scanned at the full price. Show the advertisement to the cashier and ask them to honor the discount."
-            }
+            },
+            image: "assets/compras/reclamando-sobre-anuncio.png"
         },
         "Falando com o gerente da loja": {
             "pt-BR": {
@@ -367,7 +378,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Speaking with the store manager",
                 goal: "A salesperson was very unhelpful and rude. Ask to speak to the store manager to report the incident."
-            }
+            },
+            image: "assets/compras/falando-com-gerente.png"
         }
     },
 
