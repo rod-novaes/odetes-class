@@ -728,6 +728,7 @@ html, body {
     position: absolute; /* Permite que fique sobreposto ao GIF durante a transição */
     opacity: 0;
     transition: opacity 1s ease-in-out;
+    top: 40%; /* Move o topo do texto para 45% da altura da tela */
 }
 
 #app-container {
