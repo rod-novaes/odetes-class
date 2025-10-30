@@ -47,10 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerBackBtn = document.getElementById('header-back-btn');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
 
-    // ===== NOVO: Mapeamento de Elementos da Notificação de Recompensa =====
+    // Mapeamento de Elementos da Notificação de Recompensa
     const rewardNotification = document.getElementById('reward-notification');
     const rewardText = document.getElementById('reward-text');
     const rewardImage = document.getElementById('reward-image');
+
+    // ===== NOVO: Mapeamento dos Elementos da Splash Screen =====
+    const splashScreen = document.getElementById('splash-screen');
+    const splashGif = document.getElementById('splash-gif');
+    const splashTitle = document.getElementById('splash-title');
+    const appContainer = document.getElementById('app-container');
 
 
     // --- Variáveis de Estado e Constantes ---
@@ -135,8 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveScore(newScore) {
         localStorage.setItem('userScore', newScore);
     }
-
-    // A função addPointsForLevel foi removida pois sua lógica foi substituída e expandida.
     
     function updateScoreDisplay() {
         scoreIndicator.innerHTML = `🦉 ${getScore()}`;
@@ -283,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveApiKeyBtn.addEventListener('click', saveApiKey);
     changeApiKeyBtn.addEventListener('click', () => { settingsModal.classList.add('modal-hidden'); openApiKeyModal(false); });
     apiKeyModal.addEventListener('click', (e) => { if (!apiKeyModal.classList.contains('modal-persistent') && e.target === apiKeyModal) closeApiKeyModal(); });
+    practiceAgainBtn.addEventListener('click', handlePracticeAgain);
 
     startTextMissionBtn.addEventListener('click', () => {
         currentInteractionMode = 'text';
@@ -295,8 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
         missionModal.classList.add('modal-hidden');
         initiateVoiceChat();
     });
-
-    practiceAgainBtn.addEventListener('click', handlePracticeAgain);
 
     // --- Funções de Renderização de "Páginas" ---
     function renderHomePage() {
@@ -378,17 +381,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentScenario = { details: scenario };
 
-        // ===== INÍCIO DA MODIFICAÇÃO =====
-        // Calcula os pontos para cada modo com base no nível atual
         const currentLevel = proficiencySelect.value;
         const textPoints = calculateMissionPoints(currentLevel, 'text');
         const voicePoints = calculateMissionPoints(currentLevel, 'voice');
 
-        // Define o plural correto para "ponto" ou "pontos"
         const textPlural = textPoints === 1 ? 'pt' : 'pts';
         const voicePlural = voicePoints === 1 ? 'pt' : 'pts';
 
-        // Atualiza o HTML interno dos botões para incluir o badge
         startTextMissionBtn.innerHTML = `
             <span>Por Texto</span>
             <span class="mission-points-badge badge-text">+${textPoints} ${textPlural}</span>
@@ -397,7 +396,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <span>Por Voz</span>
             <span class="mission-points-badge badge-voice">+${voicePoints} ${voicePlural}</span>
         `;
-        // ===== FIM DA MODIFICAÇÃO =====
 
         missionGoalText.textContent = scenario['pt-BR'].goal;
 
@@ -474,19 +472,17 @@ document.addEventListener('DOMContentLoaded', () => {
         currentScenario = null;
         renderHomePage();
     }
-
-    // ===== NOVA FUNÇÃO PARA O BOTÃO "PRATICAR NOVAMENTE" =====
+    
     function handlePracticeAgain() {
-        if (!currentScenario) return; // Apenas uma verificação de segurança
+        if (!currentScenario) return; 
 
         feedbackModal.classList.add('modal-hidden');
 
-        // Um pequeno atraso para a animação do modal ser suave
         setTimeout(() => {
             startNewConversation(currentScenario.details);
-        }, 300); // 300ms é o tempo da transição do modal no CSS
+        }, 300);
     }
-    
+
     // --- LÓGICA DE VOZ HÍBRIDA ---
 
     function setupVoiceUI() {
@@ -721,18 +717,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
                 
-                // ===== INÍCIO DA MODIFICAÇÃO =====
-                // Captura os pontos ganhos ao finalizar a conversa
                 const pointsEarned = await finalizeConversation(); 
-                // ===== FIM DA MODIFICAÇÃO =====
 
                 if (cleanResponse) { 
                     conversationHistory.push({ role: 'assistant', content: cleanResponse });
                     await handleAIResponse(cleanResponse); 
                 }
                 
-                // ===== MODIFICAÇÃO =====
-                // Passa os pontos ganhos para a tela de conclusão
                 displayCompletionScreen(pointsEarned);
 
             } else {
@@ -784,18 +775,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function calculateMissionPoints(level, mode) {
-        const pointsMap = {
-            basic: { text: 1, voice: 2 },
-            intermediate: { text: 2, voice: 4 },
-            advanced: { text: 4, voice: 8 }
-        };
-        return pointsMap[level]?.[mode] || 0;
-    }
-
     // --- LÓGICA DE FINALIZAÇÃO E FEEDBACK ---
 
-    // ===== NOVO: Funções Auxiliares para Pontuação e Streak =====
     function calculateMissionPoints(level, mode) {
         const pointsMap = {
             basic: { text: 1, voice: 2 },
@@ -821,12 +802,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${year}-${month}-${day}`;
     }
 
-    // ===== NOVO: Função para exibir a notificação de recompensa =====
     function showRewardNotification(message) {
         if (!rewardNotification || !rewardText || !rewardImage) return;
 
         rewardText.textContent = message;
-        // Força o reinício da animação do GIF
         const originalSrc = rewardImage.src;
         rewardImage.src = '';
         rewardImage.src = originalSrc;
@@ -835,11 +814,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             rewardNotification.classList.remove('visible');
-        }, 4000); // A notificação fica visível por 4 segundos
+        }, 4000); 
     }
 
-
-    // ===== ATUALIZADO: Função finalizeConversation com a nova lógica de pontuação e streak =====
     async function finalizeConversation() {
         isConversationActive = false; 
         setProcessingState(false);
@@ -850,11 +827,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let totalPointsToAdd = 0;
         
-        // 1. Calcular pontos da missão
         const missionPoints = calculateMissionPoints(proficiencySelect.value, currentInteractionMode);
         totalPointsToAdd += missionPoints;
 
-        // 2. Lógica de Streak
         const todayStr = getTodayDateString();
         const lastCompletionDate = localStorage.getItem('lastCompletionDate');
         let currentStreak = parseInt(localStorage.getItem('currentStreak') || '0', 10);
@@ -882,7 +857,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('currentStreak', currentStreak);
         }
         
-        // 3. Salvar pontuação final
         const currentScore = getScore();
         saveScore(currentScore + totalPointsToAdd);
         updateScoreDisplay();
@@ -896,18 +870,13 @@ document.addEventListener('DOMContentLoaded', () => {
         history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details['en-US'].goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
         
-        // ===== MODIFICAÇÃO =====
-        // Retorna o total de pontos ganhos nesta missão
         return totalPointsToAdd;
     }
-
 
     function displayCompletionScreen(pointsEarned) {
         const completionContainer = document.createElement('div');
         completionContainer.className = 'completion-container';
 
-        // ===== INÍCIO DA MODIFICAÇÃO =====
-        // Cria a mensagem de conclusão com base nos pontos ganhos
         let completionMessage = "🎉 Parabéns! Você completou o cenário.";
         if (pointsEarned > 0) {
             const plural = pointsEarned === 1 ? 'ponto' : 'pontos';
@@ -915,7 +884,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         completionContainer.innerHTML = `<div class="message system-message"><p>${completionMessage}</p></div>`;
-        // ===== FIM DA MODIFICAÇÃO =====
         
         const actionsContainer = document.createElement('div');
         actionsContainer.className = 'completion-actions';
@@ -932,7 +900,6 @@ document.addEventListener('DOMContentLoaded', () => {
             exitChatBtn.textContent = 'Voltar ao Início';
         }
     }
-
     function startNextChallenge() { 
         const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category)); 
         const currentGoal = currentScenario.details['en-US'].goal; 
@@ -1174,7 +1141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryContainer.appendChild(cardsContainer); 
         mainContentArea.appendChild(categoryContainer);
         
-        // Correção para rolar para o topo
         mainContentArea.scrollTop = 0;
     }
 
@@ -1191,13 +1157,48 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHomePage(); 
         } 
         initializeSpeechAPI(); 
-        //Animação de teste
-        //showRewardNotification("🎉 Animação de Teste! +10 Pontos!");
     }
     
-    initializeApp();
-
     function displayMessage(text, sender) { if (sender === 'ai') { removeTypingIndicator(); } if (sender === 'system') { const systemEl = document.createElement('div'); systemEl.className = 'message system-message'; systemEl.innerHTML = `<p>${text}</p>`; mainContentArea.appendChild(systemEl); } else { const wrapper = document.createElement('div'); wrapper.className = 'message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message'; messageBubble.innerHTML = `<p>${text}</p>`; if (sender === 'user') { wrapper.classList.add('user-message-wrapper'); avatar.src = AVATAR_USER_URL; avatar.alt = 'User Avatar'; messageBubble.classList.add('user-message'); } else { wrapper.classList.add('ai-message-wrapper'); avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; messageBubble.classList.add('ai-message'); } wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); } scrollToBottom(); }
     function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); }
+
+
+    // ===== NOVO: LÓGICA DE INICIALIZAÇÃO COM SPLASH SCREEN =====
+
+    const GIF_DURATION = 3300; // IMPORTANTE: Ajuste para a duração do seu GIF em milissegundos
+    const TITLE_DURATION = 2000; // Duração do fade-in/fade-out do título
+    const TRANSITION_DURATION = 500; // Duração do fade entre splash e app
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    async function handleAppOpening() {
+        if (sessionStorage.getItem('hasVisited')) {
+            // Se já visitou nesta sessão, pular splash screen
+            splashScreen.style.display = 'none';
+            appContainer.classList.add('visible');
+            initializeApp();
+        } else {
+            // Primeira visita na sessão, mostrar splash screen
+            sessionStorage.setItem('hasVisited', 'true');
+            initializeApp(); // Inicia o app em segundo plano
+
+            await delay(GIF_DURATION);
+
+            // Transição do GIF para o Título
+            splashGif.classList.add('hidden');
+            splashTitle.classList.add('visible');
+
+            await delay(TITLE_DURATION);
+
+            // Transição da Splash para o App
+            splashScreen.classList.add('hidden');
+            appContainer.classList.add('visible');
+
+            await delay(TRANSITION_DURATION);
+            splashScreen.style.display = 'none'; // Remove da árvore de renderização
+        }
+    }
+
+    handleAppOpening();
 
 });

@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missões da Odete 27</title>
+    <title>Missões da Odete 28</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- ===== NOVO: ESTRUTURA DA SPLASH SCREEN ===== -->
+    <div id="splash-screen">
+        <img src="assets/animacoes/odete-airport.gif" alt="Animação de Odete chegando ao aeroporto" id="splash-gif">
+        <h1 id="splash-title">Missões da Odete</h1>
+    </div>
+
+
     <!-- O CONTAINER PRINCIPAL AGORA ENVOLVE O CABEÇALHO GLOBAL, ÁREA DE CONTEÚDO E O INPUT DO CHAT -->
-    <div class="app-container">
+    <div class="app-container" id="app-container">
 
         <!-- CABEÇALHO GLOBAL -->
         <div class="context-bar" id="context-bar">
@@ -57,7 +64,7 @@
         </main>
     </div>
 
-    <!-- ===== ESTRUTURA DOS MODAIS (Inalterada) ===== -->
+    <!-- ===== ESTRUTURA DOS MODAIS ===== -->
     <div id="feedback-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -65,7 +72,9 @@
                 <button id="translate-btn" class="translate-btn-hidden">Traduzir para Português</button>
                 <span class="modal-close" id="modal-close-btn">&times;</span>
             </div>
-            <div class="modal-body" id="feedback-content"></div>
+            <div class="modal-body" id="feedback-content">
+                <!-- O feedback será inserido aqui -->
+            </div>
             <div class="modal-footer">
                 <button id="practice-again-btn" class="primary-btn">Praticar Novamente</button>
             </div>
@@ -118,7 +127,7 @@
                 <span class="modal-close" id="mission-modal-close-btn">&times;</span>
             </div>
             <div class="modal-body">
-                <!-- NOVO CONTAINER PARA A IMAGEM -->
+                <!-- CONTAINER PARA A IMAGEM -->
                 <div id="mission-image-container" class="mission-image-container modal-hidden">
                     <!-- A imagem será inserida aqui via JS -->
                 </div>
@@ -158,7 +167,7 @@
         </div>
     </div>
 
-    <!-- NOVA BARRA DE NAVEGAÇÃO INFERIOR -->
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav-bar" id="bottom-nav-bar">
         <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
         <button class="icon-btn" id="nav-custom-btn" title="Cenário Personalizado">✨</button>
@@ -166,7 +175,7 @@
         <button class="icon-btn" id="nav-settings-btn" title="Configurações">⚙️</button>
     </nav>
     
-    <!-- ===== NOVO: ESTRUTURA DA NOTIFICAÇÃO DE RECOMPENSA ===== -->
+    <!-- ESTRUTURA DA NOTIFICAÇÃO DE RECOMPENSA -->
     <div id="reward-notification" class="reward-notification">
         <!-- O ideal é que a imagem seja um GIF com fundo transparente -->
         <img src="assets/animacoes/odete-celebrating.gif" alt="Odete comemorando" id="reward-image">
