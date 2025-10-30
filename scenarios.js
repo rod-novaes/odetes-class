@@ -391,7 +391,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Introducing yourself at a party",
                 goal: "You are at a party. Introduce yourself to a new person and ask them what they do for a living."
-            }
+            },
+            image: "assets/social/apresentando-se-em-festa.png"
         },
         "Falando sobre o tempo": {
             "pt-BR": {
@@ -400,7 +401,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Talking about the weather",
                 goal: "Start a small talk conversation with someone at a bus stop. Make a comment about the beautiful weather."
-            }
+            },
+            image: "assets/social/falando-sobre-tempo.png"
         },
         "Elogiando alguém": {
             "pt-BR": {
@@ -409,7 +411,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Giving a compliment",
                 goal: "You like your colleague's new haircut. Give them a compliment."
-            }
+            },
+            image: "assets/social/elogiando-cabelo.png"
         },
         "Convidando um amigo para um café": {
             "pt-BR": {
@@ -418,7 +421,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Inviting a friend for coffee",
                 goal: "Ask your friend if they are free to get a coffee together sometime this week."
-            }
+            },
+            image: "assets/social/convidando-para-cafe.png"
         },
         "Aceitando um convite": {
             "pt-BR": {
@@ -427,7 +431,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Accepting an invitation",
                 goal: "A friend invites you to their birthday party on Saturday. Enthusiastically accept the invitation and ask if you should bring anything."
-            }
+            },
+            image: "assets/social/aceitando-convite.png"
         },
         "Recusando um convite educadamente": {
             "pt-BR": {
@@ -436,7 +441,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Declining an invitation politely",
                 goal: "A colleague invites you to a movie, but you already have plans. Politely decline and thank them for the invitation."
-            }
+            },
+            image: "assets/social/recusando-convite.png"
         },
         "Pedindo um favor a um vizinho": {
             "pt-BR": {
@@ -445,7 +451,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Asking a neighbor for a favor",
                 goal: "You are going on vacation. Ask your neighbor if they could water your plants for you while you're away."
-            }
+            },
+            image: "assets/social/pedindo-favor.png"
         },
         "Contando sobre seu fim de semana": {
             "pt-BR": {
@@ -454,7 +461,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Telling about your weekend",
                 goal: "A coworker asks you what you did over the weekend. Briefly describe one or two activities you did."
-            }
+            },
+            image: "assets/social/conversando-no-trabalho.png"
         },
         "Juntando-se a uma conversa em andamento": {
             "pt-BR": {
@@ -463,7 +471,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Joining an ongoing conversation",
                 goal: "Your friends are discussing a movie you've seen. Find a good moment to join the conversation and share your opinion."
-            }
+            },
+            image: "assets/social/conversando-com-amigos.png"
         },
         "Discordando educadamente de uma opinião": {
             "pt-BR": {
@@ -472,7 +481,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Disagreeing politely with an opinion",
                 goal: "Someone says they dislike a book that you love. Express your different opinion respectfully."
-            }
+            },
+            image: "assets/social/discordando-com-livro.png"
         },
         "Terminando uma conversa educadamente": {
             "pt-BR": {
@@ -481,7 +491,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Ending a conversation politely",
                 goal: "You have been talking to someone for a while, but now you need to leave. Politely end the conversation."
-            }
+            },
+            image: "assets/social/tentando-ir-embora.png"
         },
         "Confortando um amigo": {
             "pt-BR": {
@@ -490,7 +501,8 @@ const SCENARIOS = {
             "en-US": {
                 name: "Comforting a friend",
                 goal: "Your friend is sad because they had a bad day at work. Offer words of comfort and support."
-            }
+            },
+            image: "assets/social/confortando-amigo.png"
         }
     },
 
