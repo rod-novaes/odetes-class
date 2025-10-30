@@ -712,13 +712,23 @@ html, body {
 /* ===== NOVO: ESTILOS PARA BADGE DE PONTOS NO MODAL ===== */
 /* ======================================== */
 
-/* 1. Ajusta os botões para alinhar o texto e o badge */
+/* 1. Mudar a direção do layout para vertical */
 #start-text-mission-btn,
 #start-voice-mission-btn {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px; /* Adiciona um espaço entre o texto e o badge */
+    flex-direction: column; /* <-- A MUDANÇA PRINCIPAL */
+    align-items: center;   /* Centraliza o conteúdo horizontalmente */
+    gap: 4px;              /* Reduz o espaço entre as linhas */
+    padding-top: 12px;     /* Ajusta o preenchimento para o novo layout */
+    padding-bottom: 12px;
+}
+
+/* 2. Opcional, mas recomendado: Estilizar a primeira linha para dar mais destaque */
+#start-text-mission-btn span:first-child,
+#start-voice-mission-btn span:first-child {
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.2; /* Garante um espaçamento consistente */
 }
 
 /* 2. Estilo base para todos os badges */
