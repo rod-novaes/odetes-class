@@ -1165,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== NOVO: LÓGICA DE INICIALIZAÇÃO COM SPLASH SCREEN =====
 
-    const GIF_DURATION = 3300; // IMPORTANTE: Ajuste para a duração do seu GIF em milissegundos
+    const GIF_DURATION = 3900; // IMPORTANTE: Ajuste para a duração do seu GIF em milissegundos
     const TITLE_DURATION = 2000; // Duração do fade-in/fade-out do título
     const TRANSITION_DURATION = 500; // Duração do fade entre splash e app
 
