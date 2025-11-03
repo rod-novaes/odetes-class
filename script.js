@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rewardText = document.getElementById('reward-text');
     const rewardImage = document.getElementById('reward-image');
 
-    // ===== NOVO: Mapeamento dos Elementos da Splash Screen =====
+    // Mapeamento dos Elementos da Splash Screen
     const splashScreen = document.getElementById('splash-screen');
     const splashGif = document.getElementById('splash-gif');
     const splashTitle = document.getElementById('splash-title');
@@ -165,6 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     langIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
     proficiencyIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
+    
+    scoreIndicator.addEventListener('click', renderJornadaPage);
 
     fullscreenBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
@@ -185,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const scenarioName = suggestionBtn.dataset.scenarioName;
             const scenario = SCENARIOS[categoryName]?.[scenarioName];
             if (scenario) {
-                startNewConversation(scenario);
+                startNewConversation(scenario, categoryName);
             }
             return;
         }
@@ -195,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const scenarioName = scenarioCard.dataset.scenarioName;
             const categoryName = scenarioCard.dataset.categoryName;
             const scenario = SCENARIOS[categoryName]?.[scenarioName];
-            if (scenario) { startNewConversation(scenario); }
+            if (scenario) { startNewConversation(scenario, categoryName); }
             return;
         }
         
@@ -249,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         "pt-BR": { goal: goal },
                         "en-US": { name: "Custom Scenario", goal: goal }
                     };
-                    startNewConversation(customScenario);
+                    startNewConversation(customScenario, 'custom');
                 } else {
                     showCustomScenarioError(validation.reason || "Ocorreu um erro ao validar o cenário.");
                 }
@@ -373,13 +375,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Funções de Lógica Principal de Conversa ---
-    function startNewConversation(scenario) {
+    function startNewConversation(scenario, categoryName) {
         if (!getGoogleApiKey() || !getElevenLabsApiKey()) {
             openApiKeyModal(true);
             return;
         }
 
-        currentScenario = { details: scenario };
+        currentScenario = { 
+            details: scenario,
+            categoryName: categoryName 
+        };
 
         const currentLevel = proficiencySelect.value;
         const textPoints = calculateMissionPoints(currentLevel, 'text');
@@ -479,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         feedbackModal.classList.add('modal-hidden');
 
         setTimeout(() => {
-            startNewConversation(currentScenario.details);
+            startNewConversation(currentScenario.details, currentScenario.categoryName);
         }, 300);
     }
 
@@ -833,6 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const todayStr = getTodayDateString();
         const lastCompletionDate = localStorage.getItem('lastCompletionDate');
         let currentStreak = parseInt(localStorage.getItem('currentStreak') || '0', 10);
+        let bestStreak = parseInt(localStorage.getItem('bestStreak') || '0', 10);
         let bonusPoints = 0;
 
         if (lastCompletionDate !== todayStr) {
@@ -850,11 +856,16 @@ document.addEventListener('DOMContentLoaded', () => {
             bonusPoints = calculateStreakBonus(currentStreak);
             if (bonusPoints > 0) {
                 totalPointsToAdd += bonusPoints;
-                showRewardNotification(`🔥 Sequência de ${currentStreak} dias! +${bonusPoints} pontos!`);
+                setTimeout(() => showRewardNotification(`🔥 Sequência de ${currentStreak} dias! +${bonusPoints} pontos!`), 500);
             }
 
             localStorage.setItem('lastCompletionDate', todayStr);
             localStorage.setItem('currentStreak', currentStreak);
+        }
+
+        if (currentStreak > bestStreak) {
+            bestStreak = currentStreak;
+            localStorage.setItem('bestStreak', bestStreak);
         }
         
         const currentScore = getScore();
@@ -867,7 +878,16 @@ document.addEventListener('DOMContentLoaded', () => {
             try { finalScenarioName = await getScenarioTitle(currentScenario.details['en-US'].goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
         }
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
-        history.unshift({ scenarioName: finalScenarioName, scenarioGoal: currentScenario.details['en-US'].goal, timestamp: new Date().getTime(), transcript: conversationHistory, feedback: '' });
+        
+        history.unshift({ 
+            scenarioName: finalScenarioName, 
+            scenarioGoal: currentScenario.details['en-US'].goal, 
+            timestamp: new Date().getTime(), 
+            transcript: conversationHistory, 
+            feedback: '',
+            interactionMode: currentInteractionMode,
+            categoryName: currentScenario.categoryName
+        });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
         
         return totalPointsToAdd;
@@ -901,12 +921,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     function startNextChallenge() { 
-        const allScenarios = Object.values(SCENARIOS).flatMap(category => Object.values(category)); 
+        const allScenarios = Object.entries(SCENARIOS).flatMap(([category, scenarios]) => 
+            Object.values(scenarios).map(s => ({ ...s, categoryName: category }))
+        );
         const currentGoal = currentScenario.details['en-US'].goal; 
         const availableScenarios = allScenarios.filter(s => s['en-US'].goal !== currentGoal); 
+
         if (availableScenarios.length > 0) { 
             const randomIndex = Math.floor(Math.random() * availableScenarios.length); 
-            startNewConversation(availableScenarios[randomIndex]); 
+            const nextScenario = availableScenarios[randomIndex];
+            startNewConversation(nextScenario, nextScenario.categoryName); 
         } else { 
             renderHomePage(); 
             alert("Você praticou todos os cenários disponíveis!"); 
@@ -985,6 +1009,218 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // =======================================================
+    // --- LÓGICA DA PÁGINA "MINHA JORNADA" ---
+    // =======================================================
+
+    function getPerformanceData() {
+        const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+        const validHistory = history.filter(item => item.categoryName && item.interactionMode);
+
+        const missionsCompleted = validHistory.length;
+
+        const modeCount = validHistory.reduce((acc, item) => {
+            acc[item.interactionMode] = (acc[item.interactionMode] || 0) + 1;
+            return acc;
+        }, { text: 0, voice: 0 });
+
+        const categoryCount = validHistory.reduce((acc, item) => {
+            const category = item.categoryName === 'custom' ? 'Personalizado ✨' : item.categoryName;
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+        
+        const activityByDay = validHistory.reduce((acc, item) => {
+            const date = new Date(item.timestamp);
+            const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            acc[dateString] = (acc[dateString] || 0) + 1;
+            return acc;
+        }, {});
+
+        return { missionsCompleted, modeCount, categoryCount, activityByDay };
+    }
+
+    function renderJornadaPage() {
+        updateActiveNavIcon(null);
+        mainContentArea.innerHTML = '';
+        mainContentArea.className = 'main-content-area performance-page';
+        chatInputArea.classList.add('chat-input-hidden');
+        bottomNavBar.classList.add('nav-hidden');
+
+        scoreIndicator.classList.add('score-indicator-hidden');
+        exitChatBtn.classList.add('exit-chat-btn-hidden');
+        headerBackBtn.classList.remove('back-btn-hidden');
+
+        const performanceData = getPerformanceData();
+        const totalPoints = getScore();
+        const currentStreak = localStorage.getItem('currentStreak') || 0;
+        const bestStreak = localStorage.getItem('bestStreak') || currentStreak;
+
+        const container = document.createElement('div');
+        container.className = 'jornada-container';
+
+        container.innerHTML = `
+            <div class="jornada-header">
+                <h2>Minha Jornada</h2>
+            </div>
+
+            <section class="jornada-section stats-grid-section">
+                <div class="summary-card">
+                    <div class="summary-icon-wrapper theme-points"><span class="summary-icon">🦉</span></div>
+                    <span class="summary-value">${totalPoints}</span>
+                    <span class="summary-label">Pontos Totais</span>
+                </div>
+                 <div class="summary-card">
+                    <div class="summary-icon-wrapper theme-missions"><span class="summary-icon">✅</span></div>
+                    <span class="summary-value">${performanceData.missionsCompleted}</span>
+                    <span class="summary-label">Missões Concluídas</span>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon-wrapper theme-streak"><span class="summary-icon">🔥</span></div>
+                    <span class="summary-value">${currentStreak}</span>
+                    <span class="summary-label">Sequência Atual</span>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon-wrapper theme-best-streak"><span class="summary-icon">🏆</span></div>
+                    <span class="summary-value">${bestStreak}</span>
+                    <span class="summary-label">Melhor Sequência</span>
+                </div>
+            </section>
+
+            <section class="jornada-section">
+                <h3>Modo de Prática</h3>
+                <div class="stat-card chart-card">
+                    <canvas id="modeChart"></canvas>
+                </div>
+            </section>
+
+            <section class="jornada-section">
+                <h3>Desempenho por Categoria</h3>
+                <div class="stat-card chart-card">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </section>
+
+            <section class="jornada-section">
+                <h3>Calendário de Atividades</h3>
+                <div class="stat-card calendar-card" id="calendar-container">
+                    <!-- O calendário será gerado aqui -->
+                </div>
+            </section>
+        `;
+
+        mainContentArea.appendChild(container);
+        
+        createModeChart(document.getElementById('modeChart'), performanceData.modeCount);
+        createCategoryChart(document.getElementById('categoryChart'), performanceData.categoryCount);
+        createActivityCalendar(document.getElementById('calendar-container'), performanceData.activityByDay);
+    }
+    
+    function createModeChart(canvasElement, modeData) {
+        if (!canvasElement) return;
+        const ctx = canvasElement.getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Texto ✍️', 'Voz 🎤'],
+                datasets: [{
+                    label: 'Modo de Prática',
+                    data: [modeData.text || 0, modeData.voice || 0],
+                    backgroundColor: ['#ca8a04', '#a16207'],
+                    borderColor: [ '#FFFFFF' ],
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { boxWidth: 12 } 
+                    } 
+                } 
+            }
+        });
+    }
+
+    function createCategoryChart(canvasElement, categoryData) {
+        if (!canvasElement) return;
+        const ctx = canvasElement.getContext('2d');
+
+        const sortedCategories = Object.entries(categoryData).sort(([,a],[,b]) => b-a);
+        const labels = sortedCategories.map(entry => entry[0]);
+        const data = sortedCategories.map(entry => entry[1]);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Missões Concluídas',
+                    data: data,
+                    backgroundColor: '#a16207',
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                indexAxis: 'y', 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false } 
+                }, 
+                scales: { 
+                    x: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1 } 
+                    } 
+                } 
+            }
+        });
+    }
+
+    function createActivityCalendar(container, activityData) {
+        if (!container) return;
+        
+        const weeksToShow = window.innerWidth < 768 ? 13 : 26;
+        const today = new Date();
+        const endDate = new Date(today);
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - ( (weeksToShow * 7) - (today.getDay() + 1) ) );
+        
+        let daysHtml = '';
+        for (let i = 0; i < weeksToShow * 7; i++) {
+            const currentDay = new Date(startDate);
+            currentDay.setDate(startDate.getDate() + i);
+            
+            if (currentDay > endDate) {
+                daysHtml += `<div class="day-square future"></div>`;
+                continue;
+            }
+
+            const dateString = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
+            const count = activityData[dateString] || 0;
+
+            let level = 0;
+            if (count > 0 && count <= 2) level = 1;
+            else if (count > 2 && count <= 4) level = 2;
+            else if (count > 4) level = 3;
+
+            daysHtml += `<div class="day-square level-${level}" title="${dateString}: ${count} missões"></div>`;
+        }
+        
+        container.innerHTML = `
+            <div class="calendar-labels">
+                <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+            </div>
+            <div class="calendar-grid" style="grid-template-columns: repeat(${weeksToShow}, 1fr);">
+                ${daysHtml}
+            </div>
+        `;
+    }
+
     // --- FUNÇÕES UTILITÁRIAS ---
     function updateActiveNavIcon(activeBtnId) {
         [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => {
@@ -1163,39 +1399,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); }
 
 
-    // ===== NOVO: LÓGICA DE INICIALIZAÇÃO COM SPLASH SCREEN =====
+    // --- LÓGICA DE INICIALIZAÇÃO COM SPLASH SCREEN ---
 
-    const GIF_DURATION = 3900; // IMPORTANTE: Ajuste para a duração do seu GIF em milissegundos
-    const TITLE_DURATION = 2000; // Duração do fade-in/fade-out do título
-    const TRANSITION_DURATION = 500; // Duração do fade entre splash e app
+    const GIF_DURATION = 3900;
+    const TITLE_DURATION = 2000; 
+    const TRANSITION_DURATION = 500;
 
     const delay = ms => new Promise(res => setTimeout(res, ms));
 
     async function handleAppOpening() {
         if (sessionStorage.getItem('hasVisited')) {
-            // Se já visitou nesta sessão, pular splash screen
             splashScreen.style.display = 'none';
             appContainer.classList.add('visible');
             initializeApp();
         } else {
-            // Primeira visita na sessão, mostrar splash screen
             sessionStorage.setItem('hasVisited', 'true');
-            initializeApp(); // Inicia o app em segundo plano
+            initializeApp();
 
             await delay(GIF_DURATION);
 
-            // Transição do GIF para o Título
             splashGif.classList.add('hidden');
             splashTitle.classList.add('visible');
 
             await delay(TITLE_DURATION);
 
-            // Transição da Splash para o App
             splashScreen.classList.add('hidden');
             appContainer.classList.add('visible');
 
             await delay(TRANSITION_DURATION);
-            splashScreen.style.display = 'none'; // Remove da árvore de renderização
+            splashScreen.style.display = 'none';
         }
     }
 
