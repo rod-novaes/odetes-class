@@ -467,3 +467,129 @@ html, body {
     .summary-value { font-size: 1.5rem; }
     .chart-card { height: 250px; } /* Altura menor para telas pequenas */
 }
+
+/* ======================================================= */
+/* ===== ESTILOS PARA A GALERIA DE CONQUISTAS (NOVO) ===== */
+/* ======================================================= */
+
+#badges-section {
+    margin-top: 24px;
+}
+
+#badges-section h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.badges-gallery-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.badge-category-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.badge-card {
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s ease;
+}
+
+.badge-card.locked {
+    background-color: #f9fafb; /* Um cinza ainda mais claro que o fundo */
+}
+
+.badge-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.badge-card.locked .badge-icon {
+    filter: grayscale(100%);
+    opacity: 0.5;
+}
+
+.badge-card.unlocked.complete {
+    /* NOVO: Adiciona o cursor de "mãozinha" para indicar que é clicável */
+    cursor: pointer;
+}
+
+.badge-card.unlocked:hover, .badge-card.unlocked.complete:hover {
+    /* MODIFICADO: Aplica o efeito de hover a todos os emblemas desbloqueados,
+       sejam eles completos ou com barra de progresso. */
+    transform: translateY(-3px);
+    border-color: var(--color-accent);
+    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1);
+}
+
+.badge-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.badge-info h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.badge-info p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.badge-card.locked .badge-info h5,
+.badge-card.locked .badge-info p {
+    opacity: 0.6;
+}
+
+/* Estilos da Barra de Progresso */
+.badge-progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: var(--color-neutral);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.badge-progress-bar div {
+    height: 100%;
+    width: 0%; /* A largura será definida inline via JS */
+    background-color: var(--color-accent);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.badge-progress-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    align-self: flex-end;
+}

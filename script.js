@@ -79,6 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let mediaRecorder; 
     let audioChunks = []; 
+    
+    let badgeNotificationQueue = [];
+    let isBadgeNotificationVisible = false;
+
+    // Variável para controlar o timeout de exibição de mensagens
+    let messageDisplayTimeoutId = null; 
 
     // --- Funções de Inicialização da API de Voz ---
     function initializeSpeechAPI() {
@@ -265,6 +271,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
+
+        const badgeCard = e.target.closest('.badge-card.unlocked.complete');
+        if (badgeCard) {
+            const badgeId = badgeCard.dataset.badgeId;
+            const tierLevel = badgeCard.dataset.tierLevel;
+
+            if (badgeId && tierLevel && BADGES[badgeId]) {
+                const quote = BADGES[badgeId]?.tiers.find(t => t.level === tierLevel)?.quote;
+                if (quote) {
+                    showQuoteNotification(quote);
+                }
+            }
+            return;
+        }
+
         const viewTarget = e.target.closest('.history-item-view');
         if (viewTarget) {
             showHistoryModal(viewTarget.dataset.index);
@@ -311,11 +332,16 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
         
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
+
+        scoreIndicator.classList.remove('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
 
         renderHomePageContent();
+        
+        // CORREÇÃO: Reseta a posição de rolagem
+        mainContentArea.scrollTop = 0;
     }
     function renderCustomScenarioPage() {
         updateActiveNavIcon('nav-custom-btn');
@@ -324,8 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
 
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
+
+        scoreIndicator.classList.remove('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
         
         const customScenarioContainer = document.createElement('div');
@@ -349,8 +377,10 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.remove('nav-hidden');
         
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
+        
+        scoreIndicator.classList.remove('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
         
         const historyContainer = document.createElement('div');
@@ -369,8 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateActiveNavIcon(null);
         bottomNavBar.classList.add('nav-hidden');
         
-        scoreIndicator.classList.add('score-indicator-hidden');
+        exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.remove('exit-chat-btn-hidden');
+
+        scoreIndicator.classList.add('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
     }
 
@@ -435,7 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
             const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
-            setTimeout(() => { removeTypingIndicator(); displayMessage(aiResponse, 'ai'); setUserTurnState(true); }, TYPING_SIMULATION_DELAY);
+            
+            // CORREÇÃO: Captura o ID do timeout
+            messageDisplayTimeoutId = setTimeout(() => { 
+                removeTypingIndicator(); 
+                displayMessage(aiResponse, 'ai'); 
+                setUserTurnState(true); 
+            }, TYPING_SIMULATION_DELAY);
+
         } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setUserTurnState(true); }
     }
 
@@ -454,6 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleExitChat() {
+        // CORREÇÃO: Limpa qualquer timeout pendente para evitar "avatar fantasma"
+        if (messageDisplayTimeoutId) {
+            clearTimeout(messageDisplayTimeoutId);
+            messageDisplayTimeoutId = null;
+        }
+
+        // A checagem de `isConversationActive` previne o `confirm` após a conclusão da missão
         if (isConversationActive) {
             if (!confirm('Tem certeza de que deseja sair? O progresso deste diálogo não será salvo.')) {
                 return;
@@ -543,13 +589,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleAIResponse(text) {
         if (currentInteractionMode === 'voice') {
-            await speakText(text);
+            // A função speakText já retorna uma Promise, então podemos esperar por ela
+            return speakText(text);
         } else {
-            setTimeout(() => {
-                removeTypingIndicator();
-                displayMessage(text, 'ai');
-                setUserTurnState(true);
-            }, TYPING_SIMULATION_DELAY);
+            return new Promise(resolve => {
+                // CORREÇÃO: Captura o ID do timeout
+                messageDisplayTimeoutId = setTimeout(() => {
+                    removeTypingIndicator();
+                    displayMessage(text, 'ai');
+                    setUserTurnState(true);
+                    resolve();
+                }, TYPING_SIMULATION_DELAY);
+            });
         }
     }
     
@@ -576,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setUserTurnState(isUserTurn) {
-        if (!isConversationActive) return;
+        if (!isConversationActive && !document.querySelector('.completion-container')) return;
 
         textInput.disabled = !isUserTurn;
         sendBtn.disabled = !isUserTurn;
@@ -597,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
         text = text.replace(/[*_#]/g, '').replace(/<eng>|<\/eng>/g, '');
         if (!text || text.trim() === '') {
             setUserTurnState(true);
-            return;
+            return Promise.resolve();
         }
         displayMessage(text, 'ai');
         removeTypingIndicator();
@@ -722,12 +773,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aiResponse.includes("[Scenario Complete]")) {
                 const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
                 
-                const pointsEarned = await finalizeConversation(); 
-
                 if (cleanResponse) { 
                     conversationHistory.push({ role: 'assistant', content: cleanResponse });
                     await handleAIResponse(cleanResponse); 
                 }
+                
+                const pointsEarned = await finalizeConversation(); 
                 
                 displayCompletionScreen(pointsEarned);
 
@@ -810,6 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showRewardNotification(message) {
         if (!rewardNotification || !rewardText || !rewardImage) return;
 
+        rewardImage.style.display = 'block';
         rewardText.textContent = message;
         const originalSrc = rewardImage.src;
         rewardImage.src = '';
@@ -820,6 +872,22 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             rewardNotification.classList.remove('visible');
         }, 4000); 
+    }
+
+    function showQuoteNotification(message) {
+        if (!rewardNotification || !rewardText || !rewardImage) return;
+
+        rewardImage.style.display = 'none'; 
+        rewardText.innerHTML = message;
+        
+        rewardNotification.classList.add('visible');
+
+        setTimeout(() => {
+            rewardNotification.classList.remove('visible');
+            setTimeout(() => {
+                rewardImage.style.display = 'block';
+            }, 500);
+        }, 4000);
     }
 
     async function finalizeConversation() {
@@ -850,6 +918,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lastCompletionDate === yesterdayStr) {
                 currentStreak++;
             } else {
+                if (currentStreak >= 7) {
+                    const userStats = JSON.parse(localStorage.getItem('userStats') || '{}');
+                    userStats.phoenix_eligible = true;
+                    localStorage.setItem('userStats', JSON.stringify(userStats));
+                }
                 currentStreak = 1;
             }
             
@@ -889,6 +962,15 @@ document.addEventListener('DOMContentLoaded', () => {
             categoryName: currentScenario.categoryName
         });
         localStorage.setItem('conversationHistory', JSON.stringify(history));
+
+        const newMissionData = {
+            categoryName: currentScenario.categoryName,
+            interactionMode: currentInteractionMode,
+            timestamp: new Date().getTime(),
+            scenarioName: currentScenario.details['en-US'].name
+        };
+        await checkAndAwardBadges(newMissionData, true);
+        processBadgeNotificationQueue();
         
         return totalPointsToAdd;
     }
@@ -897,29 +979,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const completionContainer = document.createElement('div');
         completionContainer.className = 'completion-container';
 
-        let completionMessage = "🎉 Parabéns! Você completou o cenário.";
+        let completionMessage = `🎉 Parabéns!<br><strong>Seu progresso foi salvo.</strong>`;
         if (pointsEarned > 0) {
             const plural = pointsEarned === 1 ? 'ponto' : 'pontos';
-            completionMessage = `🎉 Parabéns! Você completou o cenário e ganhou <strong>${pointsEarned}</strong> ${plural}.`;
+            completionMessage += ` Você ganhou <strong>${pointsEarned}</strong> ${plural}.`;
         }
         
         completionContainer.innerHTML = `<div class="message system-message"><p>${completionMessage}</p></div>`;
         
         const actionsContainer = document.createElement('div');
         actionsContainer.className = 'completion-actions';
-        actionsContainer.innerHTML = `<button id="feedback-btn">Ver Feedback</button><button id="next-challenge-btn">Próximo Desafio</button>`;
+        actionsContainer.innerHTML = `
+            <button id="feedback-btn">Ver Feedback</button>
+            <button id="next-challenge-btn">Próxima Missão</button>
+            <button id="finish-btn" class="completion-finish-btn">Concluir</button>
+        `;
         
         actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
         actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', startNextChallenge);
+        actionsContainer.querySelector('#finish-btn').addEventListener('click', handleExitChat);
         
         completionContainer.appendChild(actionsContainer);
         mainContentArea.appendChild(completionContainer);
         scrollToBottom();
 
         if (exitChatBtn) {
-            exitChatBtn.textContent = 'Voltar ao Início';
+            exitChatBtn.textContent = 'Concluir';
         }
     }
+
     function startNextChallenge() { 
         const allScenarios = Object.entries(SCENARIOS).flatMap(([category, scenarios]) => 
             Object.values(scenarios).map(s => ({ ...s, categoryName: category }))
@@ -936,7 +1024,38 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Você praticou todos os cenários disponíveis!"); 
         } 
     }
-    async function handleGetFeedback() { feedbackModal.classList.remove('modal-hidden'); feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; translateBtn.classList.add('translate-btn-hidden'); try { const apiKey = getGoogleApiKey(); if (!apiKey) throw new Error("Chave de API do Google não encontrada."); const settings = { language: languageSelect.value, proficiency: proficiencySelect.value }; originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode); const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; if (history.length > 0 && !history[0].feedback) { history[0].feedback = originalFeedback; localStorage.setItem('conversationHistory', JSON.stringify(history)); } displayFormattedFeedback(originalFeedback); translateBtn.classList.remove('translate-btn-hidden'); isTranslated = false; translatedFeedback = ''; translateBtn.textContent = 'Traduzir para Português'; } catch (error) { feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; } }
+    async function handleGetFeedback() { 
+        feedbackModal.classList.remove('modal-hidden'); 
+        feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>'; 
+        translateBtn.classList.add('translate-btn-hidden'); 
+        try { 
+            const apiKey = getGoogleApiKey(); 
+            if (!apiKey) throw new Error("Chave de API do Google não encontrada."); 
+            const settings = { language: languageSelect.value, proficiency: proficiencySelect.value }; 
+            originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode); 
+            const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; 
+            if (history.length > 0 && !history[0].feedback) { 
+                history[0].feedback = originalFeedback; 
+                localStorage.setItem('conversationHistory', JSON.stringify(history)); 
+            } 
+            displayFormattedFeedback(originalFeedback); 
+            translateBtn.classList.remove('translate-btn-hidden'); 
+            isTranslated = false; 
+            translatedFeedback = ''; 
+            translateBtn.textContent = 'Traduzir para Português';
+
+            const userStats = JSON.parse(localStorage.getItem('userStats') || '{}');
+            userStats.feedbackViewed = (userStats.feedbackViewed || 0) + 1;
+            if (originalFeedback.toLowerCase().includes("no corrections needed")) {
+                userStats.flawlessMissions = (userStats.flawlessMissions || 0) + 1;
+            }
+            localStorage.setItem('userStats', JSON.stringify(userStats));
+            await checkAndAwardBadges(null, true);
+            processBadgeNotificationQueue();
+        } catch (error) { 
+            feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`; 
+        } 
+    }
     
     async function handleTranslateFeedback() { 
         translateBtn.disabled = true; 
@@ -947,6 +1066,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { 
             feedbackContent.innerHTML = '<p>Traduzindo, por favor, aguarde...</p>'; 
             try { 
+                const translateCount = parseInt(localStorage.getItem('translateCount') || '0', 10) + 1;
+                localStorage.setItem('translateCount', translateCount);
+
                 if (!translatedFeedback) { 
                     const apiKey = getGoogleApiKey(); 
                     if (!apiKey) throw new Error("Chave de API do Google não encontrada."); 
@@ -965,6 +1087,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayFormattedFeedback(translatedFeedback); 
                 isTranslated = true; 
                 translateBtn.textContent = 'Mostrar Original (English)'; 
+                
+                await checkAndAwardBadges(null, true);
+                processBadgeNotificationQueue();
             } catch (error) { 
                 feedbackContent.innerHTML = `<p>Erro ao traduzir: ${error.message}</p>`; 
             } 
@@ -1001,10 +1126,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateFullscreenIcon() {
         if (isFullscreen()) {
-            fullscreenBtn.innerHTML = '<span>↘↙</span>'; // Ícone de recolher
+            fullscreenBtn.innerHTML = '<span>↘↙</span>';
             fullscreenBtn.title = "Sair da Tela Cheia";
         } else {
-            fullscreenBtn.innerHTML = '<span>⛶</span>'; // Ícone de expandir
+            fullscreenBtn.innerHTML = '<span>⛶</span>';
             fullscreenBtn.title = "Alternar Tela Cheia";
         }
     }
@@ -1025,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { text: 0, voice: 0 });
 
         const categoryCount = validHistory.reduce((acc, item) => {
-            const category = item.categoryName === 'custom' ? 'Personalizado ✨' : item.categoryName;
+            const category = item.categoryName === 'custom' ? '✨ Cenários Personalizados' : item.categoryName;
             acc[category] = (acc[category] || 0) + 1;
             return acc;
         }, {});
@@ -1107,6 +1232,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- O calendário será gerado aqui -->
                 </div>
             </section>
+
+            <section class="jornada-section" id="badges-section">
+                <h3>Minhas Conquistas</h3>
+                <div class="badges-gallery-container">
+                    <!-- A galeria de emblemas será gerada aqui -->
+                </div>
+            </section>
         `;
 
         mainContentArea.appendChild(container);
@@ -1114,6 +1246,8 @@ document.addEventListener('DOMContentLoaded', () => {
         createModeChart(document.getElementById('modeChart'), performanceData.modeCount);
         createCategoryChart(document.getElementById('categoryChart'), performanceData.categoryCount);
         createActivityCalendar(document.getElementById('calendar-container'), performanceData.activityByDay);
+        
+        renderBadgesGallery(container.querySelector('.badges-gallery-container'));
     }
     
     function createModeChart(canvasElement, modeData) {
@@ -1220,6 +1354,300 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
+
+    // =======================================================
+    // --- LÓGICA COMPLETA DO SISTEMA DE EMBLEMAS ---
+    // =======================================================
+
+    function getUserStats() {
+        const defaultStats = {
+            totalMissions: 0,
+            missionsByMode: { text: 0, voice: 0 },
+            missionsByCategory: {},
+            uniqueCategories: new Set(),
+            streak: 0,
+            feedbackViewed: 0,
+            flawlessMissions: 0,
+            phoenixEligible: false,
+        };
+        const storedStats = JSON.parse(localStorage.getItem('userStats') || '{}');
+        if (storedStats.uniqueCategories) {
+            storedStats.uniqueCategories = new Set(storedStats.uniqueCategories);
+        }
+        return { ...defaultStats, ...storedStats };
+    }
+
+    function syncUserProgressAndCheckBadges() {
+        const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+        const stats = {
+            totalMissions: history.length,
+            missionsByMode: { text: 0, voice: 0 },
+            missionsByCategory: {},
+            uniqueCategories: new Set(),
+            streak: parseInt(localStorage.getItem('currentStreak') || '0', 10),
+            feedbackViewed: parseInt(localStorage.getItem('feedbackViewedCount') || '0', 10),
+            flawlessMissions: parseInt(localStorage.getItem('flawlessCount') || '0', 10),
+            translateCount: parseInt(localStorage.getItem('translateCount') || '0', 10),
+        };
+
+        history.forEach(item => {
+            if (item.interactionMode) {
+                stats.missionsByMode[item.interactionMode] = (stats.missionsByMode[item.interactionMode] || 0) + 1;
+            }
+            if (item.categoryName) {
+                const categoryKey = item.categoryName === 'custom' ? '✨ Cenários Personalizados' : item.categoryName;
+                stats.missionsByCategory[categoryKey] = (stats.missionsByCategory[categoryKey] || 0) + 1;
+                stats.uniqueCategories.add(categoryKey);
+            }
+        });
+        
+        const savableStats = { ...stats, uniqueCategories: [...stats.uniqueCategories] };
+        localStorage.setItem('userStats', JSON.stringify(savableStats));
+
+        checkAndAwardBadges(null, false);
+    }
+    
+    async function checkAndAwardBadges(newMissionData = null, triggerNotification = false) {
+        if (typeof BADGES === 'undefined') {
+            console.error("Arquivo badges.js não foi carregado.");
+            return;
+        }
+
+        let userStats = getUserStats();
+        let userBadges = JSON.parse(localStorage.getItem('userBadges') || '{}');
+        
+        if (newMissionData) {
+            userStats.totalMissions += 1;
+            userStats.missionsByMode[newMissionData.interactionMode] += 1;
+            const categoryKey = newMissionData.categoryName === 'custom' ? '✨ Cenários Personalizados' : newMissionData.categoryName;
+            userStats.missionsByCategory[categoryKey] = (userStats.missionsByCategory[categoryKey] || 0) + 1;
+            userStats.uniqueCategories.add(categoryKey);
+            
+            const now = new Date();
+            if (now.getHours() >= 0 && now.getHours() < 4) {
+                userStats.night_owl_mission = true;
+            }
+            if(newMissionData.scenarioName.includes("Asking for a discount")) {
+                userStats.negotiator_mission = true;
+            }
+            if(userStats.phoenix_eligible) {
+                userStats.phoenix_achieved = true;
+                userStats.phoenix_eligible = false;
+            }
+        }
+        
+        const savableStats = { ...userStats, uniqueCategories: [...userStats.uniqueCategories] };
+        localStorage.setItem('userStats', JSON.stringify(savableStats));
+
+        const getBadgeProgress = (badgeId) => userBadges[badgeId] || { unlocked_tier: null };
+        const awardBadge = (badgeId, tier) => {
+            userBadges[badgeId] = {
+                unlocked_tier: tier.level,
+                date: new Date().toISOString()
+            };
+            if (triggerNotification) {
+                badgeNotificationQueue.push(tier);
+            }
+        };
+
+        for (const badgeId in BADGES) {
+            const badge = BADGES[badgeId];
+            const currentProgress = getBadgeProgress(badgeId);
+            
+            for (const tier of badge.tiers) {
+                if (badge.tiers.findIndex(t => t.level === currentProgress.unlocked_tier) >= badge.tiers.findIndex(t => t.level === tier.level)) {
+                    continue;
+                }
+                
+                let conditionMet = false;
+                switch (badgeId) {
+                    case "onboarding_first_mission": if (userStats.totalMissions >= tier.goal) conditionMet = true; break;
+                    case "onboarding_first_voice": if (userStats.missionsByMode.voice >= tier.goal) conditionMet = true; break;
+                    case "onboarding_first_custom": if ((userStats.missionsByCategory['✨ Cenários Personalizados'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "onboarding_first_feedback": if (userStats.feedbackViewed >= tier.goal) conditionMet = true; break;
+                    
+                    case "consistency_streak": if (userStats.streak >= tier.goal) conditionMet = true; break;
+                    case "consistency_total_missions": if (userStats.totalMissions >= tier.goal) conditionMet = true; break;
+                    
+                    case "mastery_interaction_mode":
+                        if (tier.level === 'voice' && userStats.missionsByMode.voice >= tier.goal) conditionMet = true;
+                        if (tier.level === 'text' && userStats.missionsByMode.text >= tier.goal) conditionMet = true;
+                        break;
+                    case "mastery_category_variety": if (userStats.uniqueCategories.size >= tier.goal) conditionMet = true; break;
+                    case "mastery_flawless": if (userStats.flawlessMissions >= tier.goal) conditionMet = true; break;
+
+                    case "category_restaurants": if ((userStats.missionsByCategory['🍔 Restaurantes e Cafés'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_travel": if ((userStats.missionsByCategory['✈️ Viagens e Transporte'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_shopping": if ((userStats.missionsByCategory['🛒 Compras'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_social": if ((userStats.missionsByCategory['🤝 Situações Sociais'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_professional": if ((userStats.missionsByCategory['💼 Profissional'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_studies": if ((userStats.missionsByCategory['🎓 Estudos'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_health": if ((userStats.missionsByCategory['❤️ Saúde e Bem-estar'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_services": if ((userStats.missionsByCategory['🏠 Moradia e Serviços'] || 0) >= tier.goal) conditionMet = true; break;
+                    case "category_custom": if ((userStats.missionsByCategory['✨ Cenários Personalizados'] || 0) >= tier.goal) conditionMet = true; break;
+
+                    case "secret_night_owl": if (userStats.night_owl_mission) conditionMet = true; break;
+                    case "secret_phoenix": if (userStats.phoenix_achieved) conditionMet = true; break;
+                    case "secret_negotiator": if (userStats.negotiator_mission) conditionMet = true; break;
+                    case "secret_curious": if (parseInt(localStorage.getItem('translateCount') || '0', 10) >= tier.goal) conditionMet = true; break;
+                }
+
+                if (conditionMet) {
+                    awardBadge(badgeId, tier);
+                }
+            }
+        }
+        localStorage.setItem('userBadges', JSON.stringify(userBadges));
+    }
+    
+    function processBadgeNotificationQueue() {
+        if (isBadgeNotificationVisible || badgeNotificationQueue.length === 0) {
+            return;
+        }
+        isBadgeNotificationVisible = true;
+        const badgeTier = badgeNotificationQueue.shift();
+        
+        rewardImage.src = 'assets/animacoes/odete-celebrating.gif';
+        rewardText.innerHTML = `Conquista Desbloqueada!<br><strong>${badgeTier.icon} ${badgeTier.name}</strong>`;
+        
+        rewardNotification.classList.add('visible');
+
+        setTimeout(() => {
+            rewardNotification.classList.remove('visible');
+            isBadgeNotificationVisible = false;
+            setTimeout(processBadgeNotificationQueue, 500);
+        }, 4000); 
+    }
+
+    function renderBadgesGallery(container) {
+        if (!container || typeof BADGES === 'undefined') return;
+    
+        const userBadges = JSON.parse(localStorage.getItem('userBadges') || '{}');
+        const userStats = getUserStats();
+    
+        const badgesByCategory = {};
+        for (const badgeId in BADGES) {
+            const badge = BADGES[badgeId];
+            if (!badgesByCategory[badge.category]) {
+                badgesByCategory[badge.category] = [];
+            }
+            badgesByCategory[badge.category].push({ ...badge, id: badgeId });
+        }
+    
+        container.innerHTML = '';
+    
+        for (const categoryName in badgesByCategory) {
+            const categoryWrapper = document.createElement('div');
+            categoryWrapper.className = 'badge-category';
+            const categoryTitle = document.createElement('h4');
+            categoryTitle.className = 'badge-category-title';
+            categoryTitle.textContent = categoryName;
+            categoryWrapper.appendChild(categoryTitle);
+    
+            const badgesGrid = document.createElement('div');
+            badgesGrid.className = 'badges-grid';
+    
+            if (categoryName === "Conquistas Secretas") {
+                const secretBadges = badgesByCategory[categoryName];
+                const unlockedSecrets = secretBadges.filter(b => userBadges[b.id]);
+    
+                if (unlockedSecrets.length === 0) {
+                    const placeholderCard = document.createElement('div');
+                    placeholderCard.className = 'badge-card locked';
+                    placeholderCard.innerHTML = `
+                        <div class="badge-icon">?</div>
+                        <div class="badge-info">
+                            <h5>Conquista Secreta</h5>
+                            <p>Continue praticando para descobrir e desbloquear recompensas raras!</p>
+                        </div>
+                    `;
+                    badgesGrid.appendChild(placeholderCard);
+                    categoryWrapper.appendChild(badgesGrid);
+                    container.appendChild(categoryWrapper);
+                    continue;
+                }
+            }
+    
+            for (const badge of badgesByCategory[categoryName]) {
+                if (badge.secret && !userBadges[badge.id]) {
+                    continue;
+                }
+    
+                const userProgress = userBadges[badge.id] || { unlocked_tier: null };
+                const unlockedTierIndex = badge.tiers.findIndex(t => t.level === userProgress.unlocked_tier);
+    
+                for (let i = 0; i <= unlockedTierIndex; i++) {
+                    const tier = badge.tiers[i];
+                    const badgeCard = document.createElement('div');
+                    badgeCard.className = 'badge-card unlocked complete';
+                    
+                    badgeCard.dataset.badgeId = badge.id;
+                    badgeCard.dataset.tierLevel = tier.level;
+    
+                    badgeCard.innerHTML = `
+                        <div class="badge-icon">${tier.icon}</div>
+                        <div class="badge-info">
+                            <h5>${tier.name}</h5>
+                            <p>${tier.description}</p>
+                        </div>
+                    `;
+                    badgesGrid.appendChild(badgeCard);
+                }
+    
+                const nextTierIndex = unlockedTierIndex + 1;
+                if (nextTierIndex < badge.tiers.length) {
+                    const nextTier = badge.tiers[nextTierIndex];
+                    const prevTier = unlockedTierIndex >= 0 ? badge.tiers[unlockedTierIndex] : null;
+    
+                    let currentProgressValue = null;
+                    switch (badge.id) {
+                        case "consistency_total_missions": currentProgressValue = userStats.totalMissions; break;
+                        case "category_restaurants": currentProgressValue = userStats.missionsByCategory['🍔 Restaurantes e Cafés'] || 0; break;
+                        case "category_travel": currentProgressValue = userStats.missionsByCategory['✈️ Viagens e Transporte'] || 0; break;
+                        case "category_shopping": currentProgressValue = userStats.missionsByCategory['🛒 Compras'] || 0; break;
+                        case "category_social": currentProgressValue = userStats.missionsByCategory['🤝 Situações Sociais'] || 0; break;
+                        case "category_professional": currentProgressValue = userStats.missionsByCategory['💼 Profissional'] || 0; break;
+                        case "category_studies": currentProgressValue = userStats.missionsByCategory['🎓 Estudos'] || 0; break;
+                        case "category_health": currentProgressValue = userStats.missionsByCategory['❤️ Saúde e Bem-estar'] || 0; break;
+                        case "category_services": currentProgressValue = userStats.missionsByCategory['🏠 Moradia e Serviços'] || 0; break;
+                        case "category_custom": currentProgressValue = userStats.missionsByCategory['✨ Cenários Personalizados'] || 0; break;
+                        case "consistency_streak": currentProgressValue = userStats.streak; break;
+                    }
+    
+                    let progressBar = '';
+                    if (currentProgressValue !== null) {
+                        const prevTierGoal = prevTier ? prevTier.goal : 0;
+                        const progress = Math.max(0, currentProgressValue - prevTierGoal);
+                        const goal = nextTier.goal - prevTierGoal;
+                        const percentage = goal > 0 ? Math.min(100, (progress / goal) * 100) : 0;
+                        
+                        progressBar = `
+                            <div class="badge-progress-bar">
+                                <div style="width: ${percentage}%;"></div>
+                            </div>
+                            <small class="badge-progress-text">${currentProgressValue}/${nextTier.goal}</small>
+                        `;
+                    }
+    
+                    const badgeCard = document.createElement('div');
+                    badgeCard.className = 'badge-card locked';
+                    badgeCard.innerHTML = `
+                        <div class="badge-icon">${nextTier.icon}</div>
+                        <div class="badge-info">
+                            <h5>${nextTier.name}</h5>
+                            <p>${nextTier.description}</p>
+                            ${progressBar}
+                        </div>
+                    `;
+                    badgesGrid.appendChild(badgeCard);
+                }
+            }
+    
+            categoryWrapper.appendChild(badgesGrid);
+            container.appendChild(categoryWrapper);
+        }
+    }
+
 
     // --- FUNÇÕES UTILITÁRIAS ---
     function updateActiveNavIcon(activeBtnId) {
@@ -1390,6 +1818,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!getGoogleApiKey() || !getElevenLabsApiKey()) { 
             openApiKeyModal(true); 
         } else { 
+            syncUserProgressAndCheckBadges();
             renderHomePage(); 
         } 
         initializeSpeechAPI(); 
