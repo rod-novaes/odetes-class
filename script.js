@@ -38,31 +38,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const startVoiceMissionBtn = document.getElementById('start-voice-mission-btn');
     const practiceAgainBtn = document.getElementById('practice-again-btn');
     
-    // Mapeamento do cabeçalho global e seus componentes
     const contextBar = document.getElementById('context-bar');
     const langIndicatorBtn = document.getElementById('lang-indicator-btn');
     const proficiencyIndicatorBtn = document.getElementById('proficiency-indicator-btn');
     const exitChatBtn = document.getElementById('exit-chat-btn');
-    const scoreIndicator = document.getElementById('score-indicator');
+    // O antigo 'scoreIndicator' agora será o 'heartsIndicator'
+    const heartsIndicator = document.getElementById('score-indicator');
     const headerBackBtn = document.getElementById('header-back-btn');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
 
-    // Mapeamento de Elementos da Notificação de Recompensa
     const rewardNotification = document.getElementById('reward-notification');
     const rewardText = document.getElementById('reward-text');
     const rewardImage = document.getElementById('reward-image');
 
-    // Mapeamento dos Elementos da Splash Screen
     const splashScreen = document.getElementById('splash-screen');
     const splashGif = document.getElementById('splash-gif');
     const splashTitle = document.getElementById('splash-title');
     const appContainer = document.getElementById('app-container');
 
-
     // --- Variáveis de Estado e Constantes ---
     const AVATAR_AI_URL = 'https://cdn.icon-icons.com/icons2/1371/PNG/512/robot02_90810.png';
     const AVATAR_USER_URL = 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png';
-    const TYPING_SIMULATION_DELAY = 500;
+    const TYPING_SIMULATION_DELAY = 1000;
 
     let conversationHistory = [];
     let currentScenario = null;
@@ -71,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTranslated = false;
     
     let currentInteractionMode = null;
-    // ESTADOS ATUALIZADOS: IDLE, AI_SPEAKING, AWAITING_USER_INPUT, USER_LISTENING, PROCESSING
     let conversationState = 'IDLE';
     let isConversationActive = false; 
     const synthesis = window.speechSynthesis;
@@ -84,19 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let badgeNotificationQueue = [];
     let isBadgeNotificationVisible = false;
 
-    let messageDisplayTimeoutId = null; 
+    let messageDisplayTimeoutId = null;
+
+    // --- Novas Variáveis do Sistema de Corações ---
+    const MAX_HEARTS = 10;
+    const RECHARGE_TIME_MS = 60 * 60 * 1000; // 1 hora
+    let userHearts = MAX_HEARTS;
+    let nextHeartTimestamp = 0;
+    let heartRechargeInterval = null;
 
     // --- Funções de Inicialização da API de Voz ---
     function initializeSpeechAPI() {
         function populateVoiceList() {
-            if (synthesis.getVoices().length > 0) {
-                voices = synthesis.getVoices();
-            }
+            if (synthesis.getVoices().length > 0) { voices = synthesis.getVoices(); }
         }
         populateVoiceList();
-        if (synthesis.onvoiceschanged !== undefined) {
-            synthesis.onvoiceschanged = populateVoiceList;
-        }
+        if (synthesis.onvoiceschanged !== undefined) { synthesis.onvoiceschanged = populateVoiceList; }
     }
 
     // --- Funções de Gerenciamento da API Key ---
@@ -139,19 +138,130 @@ document.addEventListener('DOMContentLoaded', () => {
         proficiencyIndicatorBtn.innerHTML = profMap[currentProf] || '★★★';
     }
 
-    // --- Funções do Sistema de Pontuação ---
-    function getScore() {
-        return parseInt(localStorage.getItem('userScore') || '0', 10);
+    // --- Funções do Sistema de Moedas ---
+    function getCoins() {
+        return parseInt(localStorage.getItem('userCoins') || '0', 10);
     }
 
-    function saveScore(newScore) {
-        localStorage.setItem('userScore', newScore);
+    function saveCoins(newAmount) {
+        localStorage.setItem('userCoins', newAmount);
     }
     
-    function updateScoreDisplay() {
-        scoreIndicator.innerHTML = `🦉 ${getScore()}`;
+    // --- Funções do Sistema de Corações (NOVO) ---
+    function initializeHeartSystem() {
+        let heartData = JSON.parse(localStorage.getItem('heartData') || '{}');
+        const now = Date.now();
+
+        if (!heartData.hearts && !heartData.nextHeartTimestamp) {
+            // Primeiro uso do sistema
+            userHearts = MAX_HEARTS;
+            nextHeartTimestamp = 0; // Não está recarregando
+        } else {
+            userHearts = heartData.hearts;
+            nextHeartTimestamp = heartData.nextHeartTimestamp;
+            
+            // Calcula recarga offline
+            if (userHearts < MAX_HEARTS && nextHeartTimestamp > 0 && now >= nextHeartTimestamp) {
+                const timePassed = now - nextHeartTimestamp;
+                const heartsRecharged = Math.floor(timePassed / RECHARGE_TIME_MS) + 1;
+                userHearts = Math.min(MAX_HEARTS, userHearts + heartsRecharged);
+            }
+        }
+        
+        if (userHearts < MAX_HEARTS) {
+            if (nextHeartTimestamp === 0 || now >= nextHeartTimestamp) {
+                nextHeartTimestamp = now + RECHARGE_TIME_MS;
+            }
+        } else {
+            nextHeartTimestamp = 0; // Para a recarga se estiver cheio
+        }
+
+        saveHeartData();
+        updateHeartsDisplay();
+        startHeartRechargeTimer();
     }
 
+    function saveHeartData() {
+        localStorage.setItem('heartData', JSON.stringify({ hearts: userHearts, nextHeartTimestamp: nextHeartTimestamp }));
+    }
+
+    function startHeartRechargeTimer() {
+        if (heartRechargeInterval) clearInterval(heartRechargeInterval);
+        
+        heartRechargeInterval = setInterval(() => {
+            if (userHearts >= MAX_HEARTS) {
+                nextHeartTimestamp = 0;
+                updateHeartsDisplay();
+                clearInterval(heartRechargeInterval);
+                return;
+            }
+
+            const now = Date.now();
+            if (nextHeartTimestamp === 0) {
+                 nextHeartTimestamp = now + RECHARGE_TIME_MS;
+            }
+
+            if (now >= nextHeartTimestamp) {
+                userHearts++;
+                nextHeartTimestamp = (userHearts < MAX_HEARTS) ? now + RECHARGE_TIME_MS : 0;
+                updateHeartsDisplay();
+                saveHeartData();
+            }
+        }, 1000);
+    }
+
+    function spendHeart() {
+        if (userHearts > 0) {
+            userHearts--;
+            if (userHearts < MAX_HEARTS && nextHeartTimestamp === 0) {
+                nextHeartTimestamp = Date.now() + RECHARGE_TIME_MS;
+                startHeartRechargeTimer();
+            }
+            saveHeartData();
+            updateHeartsDisplay();
+            return true;
+        }
+        return false;
+    }
+    
+    function updateHeartsDisplay() {
+        heartsIndicator.innerHTML = `❤️ ${userHearts}`;
+        heartsIndicator.classList.remove('score-indicator-hidden');
+    }
+
+    function showNoHeartsModal() {
+        // Remove qualquer modal existente para evitar duplicatas
+        const existingModal = document.getElementById('no-hearts-modal');
+        if (existingModal) existingModal.remove();
+
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'no-hearts-modal';
+        modalOverlay.className = 'modal-overlay';
+        
+        modalOverlay.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Energia Esgotada!</h2>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body" style="text-align: center;">
+                    <p>Puxa! Parece que sua energia acabou por agora. ❤️</p>
+                    <p>Descanse um pouco e seus corações recarregarão com o tempo. Um novo coração é adicionado a cada hora!</p>
+                    <br>
+                    <div class="completion-actions" style="gap: 16px;">
+                        <button id="go-to-store-btn" disabled>Ir para a Loja</button>
+                        <button id="no-hearts-ok-btn" class="primary-btn">Entendido</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalOverlay);
+
+        const closeModal = () => modalOverlay.remove();
+        modalOverlay.querySelector('.modal-close').addEventListener('click', closeModal);
+        modalOverlay.querySelector('#no-hearts-ok-btn').addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+    }
 
     // --- Funções de Histórico ---
     function populateHistoryList(listElement) { const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; listElement.innerHTML = ''; if (history.length === 0) { listElement.innerHTML = '<li><small>Nenhum diálogo no histórico.</small></li>'; return; } history.forEach((item, index) => { const li = document.createElement('li'); li.className = 'history-item'; const viewButton = document.createElement('div'); viewButton.className = 'history-item-view'; viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; viewButton.dataset.index = index; const deleteButton = document.createElement('button'); deleteButton.className = 'history-item-delete'; deleteButton.innerHTML = '&times;'; deleteButton.title = 'Excluir este item'; deleteButton.dataset.index = index; li.appendChild(viewButton); li.appendChild(deleteButton); listElement.appendChild(li); }); }
@@ -172,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     langIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
     proficiencyIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
     
-    scoreIndicator.addEventListener('click', renderJornadaPage);
+    heartsIndicator.addEventListener('click', renderJornadaPage);
 
     fullscreenBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
@@ -313,12 +423,22 @@ document.addEventListener('DOMContentLoaded', () => {
     practiceAgainBtn.addEventListener('click', handlePracticeAgain);
 
     startTextMissionBtn.addEventListener('click', () => {
+        if (userHearts < 1) {
+            showNoHeartsModal();
+            return;
+        }
+        spendHeart();
         currentInteractionMode = 'text';
         missionModal.classList.add('modal-hidden');
         initiateChat();
     });
 
     startVoiceMissionBtn.addEventListener('click', () => {
+        if (userHearts < 1) {
+            showNoHeartsModal();
+            return;
+        }
+        spendHeart();
         currentInteractionMode = 'voice';
         missionModal.classList.add('modal-hidden');
         initiateVoiceChat();
@@ -335,15 +455,13 @@ document.addEventListener('DOMContentLoaded', () => {
         exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
 
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        updateHeartsDisplay(); // Mostra os corações em vez das moedas
         headerBackBtn.classList.add('back-btn-hidden');
 
         renderHomePageContent();
         
         mainContentArea.scrollTop = 0;
     }
-    // Esta é a nova versão da função para substituir a antiga
-
     function renderCustomScenarioPage() {
         updateActiveNavIcon('nav-custom-btn');
         mainContentArea.innerHTML = '';
@@ -354,22 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
         exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
 
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        updateHeartsDisplay();
         headerBackBtn.classList.add('back-btn-hidden');
         
-        // === INÍCIO DA MODIFICAÇÃO ===
-        // 1. Captura o nome do idioma selecionado a partir do texto da opção no dropdown.
         const selectedLanguageName = languageSelect.options[languageSelect.selectedIndex].text;
-        // === FIM DA MODIFICAÇÃO ===
 
         const customScenarioContainer = document.createElement('div');
         customScenarioContainer.className = 'custom-scenario-container';
         customScenarioContainer.innerHTML = `
             <h2>Cenário Personalizado</h2>
-            
-            <!-- A frase agora usa a variável para ser dinâmica -->
-            <p>Descreva uma situação ou objetivo que você gostaria de praticar em ${selectedLanguageName}. Comece com um verbo de ação.</p>
-            
+            <p>Descreva uma situação ou objetivo que você gostaria de praticar em ${selectedLanguageName}.</p>
             <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Pedir o reembolso de um produto com defeito em uma loja de eletrônicos..."></textarea>
             <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
             <button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>
@@ -389,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         
-        scoreIndicator.classList.remove('score-indicator-hidden');
+        updateHeartsDisplay();
         headerBackBtn.classList.add('back-btn-hidden');
         
         const historyContainer = document.createElement('div');
@@ -411,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exitChatBtn.textContent = 'Sair';
         exitChatBtn.classList.remove('exit-chat-btn-hidden');
 
-        scoreIndicator.classList.add('score-indicator-hidden');
+        heartsIndicator.classList.add('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
     }
 
@@ -428,19 +540,19 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const currentLevel = proficiencySelect.value;
-        const textPoints = calculateMissionPoints(currentLevel, 'text');
-        const voicePoints = calculateMissionPoints(currentLevel, 'voice');
+        const coinsEarnedText = calculateMissionCoins(currentLevel, 'text');
+        const coinsEarnedVoice = calculateMissionCoins(currentLevel, 'voice');
 
-        const textPlural = textPoints === 1 ? 'pt' : 'pts';
-        const voicePlural = voicePoints === 1 ? 'pt' : 'pts';
+        const textPlural = coinsEarnedText === 1 ? 'moeda' : 'moedas';
+        const voicePlural = coinsEarnedVoice === 1 ? 'moeda' : 'moedas';
 
         startTextMissionBtn.innerHTML = `
             <span>Por Texto</span>
-            <span class="mission-points-badge badge-text">+${textPoints} ${textPlural}</span>
+            <span class="mission-points-badge badge-text">+${coinsEarnedText} ${textPlural} 🪙</span>
         `;
         startVoiceMissionBtn.innerHTML = `
             <span>Por Voz</span>
-            <span class="mission-points-badge badge-voice">+${voicePoints} ${voicePlural}</span>
+            <span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>
         `;
 
         missionGoalText.textContent = scenario['pt-BR'].goal;
@@ -533,14 +645,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function handlePracticeAgain() {
         if (!currentScenario) return; 
 
+        if (userHearts < 1) {
+            showNoHeartsModal();
+            return;
+        }
+        spendHeart();
+
         feedbackModal.classList.add('modal-hidden');
 
         setTimeout(() => {
-            startNewConversation(currentScenario.details, currentScenario.categoryName);
+            // Re-inicia o chat com o modo de interação anterior
+            if (currentInteractionMode === 'voice') {
+                initiateVoiceChat();
+            } else {
+                initiateChat();
+            }
         }, 300);
     }
 
-    // --- LÓGICA DE VOZ HÍBRIDA (ATUALIZADA) ---
+    // --- LÓGICA DE VOZ HÍBRIDA ---
 
     function setupVoiceUI() {
         chatInputArea.classList.remove('chat-input-hidden');
@@ -586,7 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
             synthesis.cancel();
         }
 
-        // LÓGICA ATUALIZADA: Inicia ou para a gravação
         if (conversationState === 'AWAITING_USER_INPUT') {
             startRecording();
         } else if (conversationState === 'USER_LISTENING' && mediaRecorder) {
@@ -617,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     
-    // --- LÓGICA DE ESTADO DA INTERFACE (ATUALIZADA) ---
+    // --- LÓGICA DE ESTADO DA INTERFACE ---
 
     function setProcessingState(isProcessing) {
         if (isProcessing) {
@@ -633,8 +755,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setUserTurnState(isUserTurn) {
-        // CORREÇÃO: A função só deve ser interrompida se a conversa não estiver ativa E for para ATIVAR o turno do usuário.
-        // Ela DEVE SEMPRE rodar se for para DESATIVAR (isUserTurn === false).
         if (!isConversationActive && isUserTurn) return;
 
         if (isUserTurn) {
@@ -743,7 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Microphone access denied or error:', error);
             alert("Não foi possível acessar o microfone. Verifique as permissões do seu navegador.");
-            setUserTurnState(true); // Retorna ao estado 'pronto'
+            setUserTurnState(true);
         }
     }
 
@@ -778,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function processUserMessage(messageText) {
         displayMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', content: messageText });
-        setProcessingState(true); // Garante que a interface entre em estado de processamento
+        setProcessingState(true);
 
         try {
             const apiKey = getGoogleApiKey();
@@ -794,9 +914,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     await handleAIResponse(cleanResponse); 
                 }
                 
-                const pointsEarned = await finalizeConversation(); 
+                const coinsEarned = await finalizeConversation(); 
                 
-                displayCompletionScreen(pointsEarned);
+                displayCompletionScreen(coinsEarned);
 
             } else {
                 conversationHistory.push({ role: 'assistant', content: aiResponse });
@@ -828,7 +948,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateMicButtonState(state) {
-        // LÓGICA ATUALIZADA: Adiciona o estado 'ready'
         micBtn.classList.remove('mic-ready', 'mic-listening', 'mic-processing');
         switch (state) {
             case 'ready':
@@ -846,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 micBtn.innerHTML = '•••'; 
                 micBtn.title = "Processando...";
                 break;
-            default: // disabled
+            default: // 'disabled' ou 'idle'
                 micBtn.innerHTML = '🎤'; 
                 micBtn.title = "Aguarde sua vez";
                 break;
@@ -855,13 +974,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LÓGICA DE FINALIZAÇÃO E FEEDBACK ---
 
-    function calculateMissionPoints(level, mode) {
-        const pointsMap = {
+    function calculateMissionCoins(level, mode) {
+        const coinsMap = {
             basic: { text: 1, voice: 2 },
             intermediate: { text: 2, voice: 4 },
             advanced: { text: 4, voice: 8 }
         };
-        return pointsMap[level]?.[mode] || 0;
+        return coinsMap[level]?.[mode] || 0;
     }
 
     function calculateStreakBonus(streak) {
@@ -878,6 +997,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    function triggerCoinAnimation() {
+        const container = document.body;
+        for (let i = 0; i < 15; i++) {
+            const coin = document.createElement('div');
+            coin.className = 'coin-animation';
+            coin.textContent = '🪙';
+            coin.style.left = `${Math.random() * 100}vw`;
+            coin.style.animationDelay = `${Math.random() * 1}s`;
+            container.appendChild(coin);
+            setTimeout(() => coin.remove(), 2000);
+        }
     }
 
     function showRewardNotification(message) {
@@ -918,16 +1050,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setProcessingState(false);
         setUserTurnState(false);
         
-        let totalPointsToAdd = 0;
+        let totalCoinsToAdd = 0;
         
-        const missionPoints = calculateMissionPoints(proficiencySelect.value, currentInteractionMode);
-        totalPointsToAdd += missionPoints;
+        const missionCoins = calculateMissionCoins(proficiencySelect.value, currentInteractionMode);
+        totalCoinsToAdd += missionCoins;
 
         const todayStr = getTodayDateString();
         const lastCompletionDate = localStorage.getItem('lastCompletionDate');
         let currentStreak = parseInt(localStorage.getItem('currentStreak') || '0', 10);
         let bestStreak = parseInt(localStorage.getItem('bestStreak') || '0', 10);
-        let bonusPoints = 0;
+        let bonusCoins = 0;
 
         if (lastCompletionDate !== todayStr) {
             const yesterday = new Date();
@@ -946,10 +1078,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentStreak = 1;
             }
             
-            bonusPoints = calculateStreakBonus(currentStreak);
-            if (bonusPoints > 0) {
-                totalPointsToAdd += bonusPoints;
-                setTimeout(() => showRewardNotification(`🔥 Sequência de ${currentStreak} dias! +${bonusPoints} pontos!`), 500);
+            bonusCoins = calculateStreakBonus(currentStreak);
+            if (bonusCoins > 0) {
+                totalCoinsToAdd += bonusCoins;
+                setTimeout(() => showRewardNotification(`🔥 Sequência de ${currentStreak} dias! +${bonusCoins} moedas!`), 500);
             }
 
             localStorage.setItem('lastCompletionDate', todayStr);
@@ -961,10 +1093,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('bestStreak', bestStreak);
         }
         
-        const currentScore = getScore();
-        saveScore(currentScore + totalPointsToAdd);
-        updateScoreDisplay();
-
+        const currentCoins = getCoins();
+        saveCoins(currentCoins + totalCoinsToAdd);
+        
         const apiKey = getGoogleApiKey();
         let finalScenarioName = currentScenario.details['en-US'].name;
         if (finalScenarioName === "Custom Scenario" || finalScenarioName === "Cenário Personalizado") {
@@ -992,20 +1123,32 @@ document.addEventListener('DOMContentLoaded', () => {
         await checkAndAwardBadges(newMissionData, true);
         processBadgeNotificationQueue();
         
-        return totalPointsToAdd;
+        return { missionCoins, bonusCoins, totalCoins: totalCoinsToAdd, newBalance: getCoins() };
     }
 
-    function displayCompletionScreen(pointsEarned) {
+    function displayCompletionScreen(rewards) {
+        triggerCoinAnimation();
+        
         const completionContainer = document.createElement('div');
         completionContainer.className = 'completion-container';
 
-        let completionMessage = `🎉 Parabéns!<br><strong>Seu progresso foi salvo.</strong>`;
-        if (pointsEarned > 0) {
-            const plural = pointsEarned === 1 ? 'ponto' : 'pontos';
-            completionMessage += ` Você ganhou <strong>${pointsEarned}</strong> ${plural}.`;
+        let rewardsHtml = `+ <strong>${rewards.missionCoins} 🪙 Moedas</strong> (missão)`;
+        if (rewards.bonusCoins > 0) {
+            rewardsHtml += `<br>+ <strong>${rewards.bonusCoins} 🪙 Moedas</strong> (bônus de sequência 🔥)`;
         }
+
+        const completionMessage = `
+            🎉 Parabéns!<br><strong>Seu progresso foi salvo.</strong>
+            <hr style="margin: 12px 0; border-color: rgba(0,0,0,0.1);">
+            <div style="text-align: left; display: inline-block;">
+                <p style="margin: 0;">Você ganhou:</p>
+                <p style="margin: 0;">${rewardsHtml}</p>
+            </div>
+            <hr style="margin: 12px 0; border-color: rgba(0,0,0,0.1);">
+            Seu novo saldo: <strong>🪙 ${rewards.newBalance} Moedas</strong>
+        `;
         
-        completionContainer.innerHTML = `<div class="message system-message"><p>${completionMessage}</p></div>`;
+        completionContainer.innerHTML = `<div class="message system-message" style="text-align: center;">${completionMessage}</div>`;
         
         const actionsContainer = document.createElement('div');
         actionsContainer.className = 'completion-actions';
@@ -1016,7 +1159,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
-        actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', startNextChallenge);
+        actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', () => {
+             if (userHearts < 1) { showNoHeartsModal(); } else { startNextChallenge(); }
+        });
         actionsContainer.querySelector('#finish-btn').addEventListener('click', handleExitChat);
         
         completionContainer.appendChild(actionsContainer);
@@ -1029,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startNextChallenge() { 
+        spendHeart();
         const allScenarios = Object.entries(SCENARIOS).flatMap(([category, scenarios]) => 
             Object.values(scenarios).map(s => ({ ...s, categoryName: category }))
         );
@@ -1128,22 +1274,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayFormattedFeedback(text) { feedbackContent.innerHTML = formatFeedbackText(text); }
 
     // --- Funções de Tela Cheia ---
-    function isFullscreen() {
-        return !!document.fullscreenElement;
-    }
-
+    function isFullscreen() { return !!document.fullscreenElement; }
     function toggleFullscreen() {
         if (!isFullscreen()) {
             document.documentElement.requestFullscreen().catch(err => {
                 alert(`Não foi possível entrar em modo de tela cheia: ${err.message}`);
             });
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
+            if (document.exitFullscreen) { document.exitFullscreen(); }
         }
     }
-
     function updateFullscreenIcon() {
         if (isFullscreen()) {
             fullscreenBtn.innerHTML = '<span>↘↙</span>';
@@ -1192,12 +1332,12 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInputArea.classList.add('chat-input-hidden');
         bottomNavBar.classList.add('nav-hidden');
 
-        scoreIndicator.classList.add('score-indicator-hidden');
+        heartsIndicator.classList.add('score-indicator-hidden');
         exitChatBtn.classList.add('exit-chat-btn-hidden');
         headerBackBtn.classList.remove('back-btn-hidden');
 
         const performanceData = getPerformanceData();
-        const totalPoints = getScore();
+        const totalCoins = getCoins();
         const currentStreak = localStorage.getItem('currentStreak') || 0;
         const bestStreak = localStorage.getItem('bestStreak') || currentStreak;
 
@@ -1211,9 +1351,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <section class="jornada-section stats-grid-section">
                 <div class="summary-card">
-                    <div class="summary-icon-wrapper theme-points"><span class="summary-icon">🦉</span></div>
-                    <span class="summary-value">${totalPoints}</span>
-                    <span class="summary-label">Pontos Totais</span>
+                    <div class="summary-icon-wrapper theme-points"><span class="summary-icon">🪙</span></div>
+                    <span class="summary-value">${totalCoins}</span>
+                    <span class="summary-label">Moedas Totais</span>
                 </div>
                  <div class="summary-card">
                     <div class="summary-icon-wrapper theme-missions"><span class="summary-icon">✅</span></div>
@@ -1248,16 +1388,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <section class="jornada-section">
                 <h3>Calendário de Atividades</h3>
-                <div class="stat-card calendar-card" id="calendar-container">
-                    <!-- O calendário será gerado aqui -->
-                </div>
+                <div class="stat-card calendar-card" id="calendar-container"></div>
             </section>
 
             <section class="jornada-section" id="badges-section">
                 <h3>Minhas Conquistas</h3>
-                <div class="badges-gallery-container">
-                    <!-- A galeria de emblemas será gerada aqui -->
-                </div>
+                <div class="badges-gallery-container"></div>
             </section>
         `;
 
@@ -1274,73 +1410,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!canvasElement) return;
         const ctx = canvasElement.getContext('2d');
         new Chart(ctx, {
-            type: 'doughnut',
-            data: {
+            type: 'doughnut', data: {
                 labels: ['Texto ✍️', 'Voz 🎤'],
                 datasets: [{
-                    label: 'Modo de Prática',
-                    data: [modeData.text || 0, modeData.voice || 0],
-                    backgroundColor: ['#ca8a04', '#a16207'],
-                    borderColor: [ '#FFFFFF' ],
-                    borderWidth: 2,
-                    hoverOffset: 4
+                    label: 'Modo de Prática', data: [modeData.text || 0, modeData.voice || 0],
+                    backgroundColor: ['#ca8a04', '#a16207'], borderColor: [ '#FFFFFF' ], borderWidth: 2, hoverOffset: 4
                 }]
             },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { 
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { boxWidth: 12 } 
-                    } 
-                } 
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
         });
     }
 
     function createCategoryChart(canvasElement, categoryData) {
         if (!canvasElement) return;
         const ctx = canvasElement.getContext('2d');
-
         const sortedCategories = Object.entries(categoryData).sort(([,a],[,b]) => b-a);
         const labels = sortedCategories.map(entry => entry[0]);
         const data = sortedCategories.map(entry => entry[1]);
-
         new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Missões Concluídas',
-                    data: data,
-                    backgroundColor: '#a16207',
-                    borderRadius: 4
-                }]
-            },
-            options: { 
-                indexAxis: 'y', 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { 
-                    legend: { display: false } 
-                }, 
-                scales: { 
-                    x: { 
-                        beginAtZero: true, 
-                        ticks: { stepSize: 1 } 
-                    } 
-                } 
-            }
+            type: 'bar', data: { labels: labels, datasets: [{
+                    label: 'Missões Concluídas', data: data, backgroundColor: '#a16207', borderRadius: 4
+                }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
         });
     }
 
     function createActivityCalendar(container, activityData) {
         if (!container) return;
-        
         const weeksToShow = window.innerWidth < 768 ? 13 : 26;
         const today = new Date();
-        const endDate = new Date(today);
         const startDate = new Date(today);
         startDate.setDate(today.getDate() - ((weeksToShow - 1) * 7 + today.getDay()));
         
@@ -1348,154 +1446,56 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < weeksToShow * 7; i++) {
             const currentDay = new Date(startDate);
             currentDay.setDate(startDate.getDate() + i);
-            
-            if (currentDay > endDate) {
-                daysHtml += `<div class="day-square future"></div>`;
-                continue;
-            }
-
+            if (currentDay > today) { daysHtml += `<div class="day-square future"></div>`; continue; }
             const dateString = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
             const count = activityData[dateString] || 0;
-
             let level = 0;
-            if (count > 0 && count <= 2) level = 1;
-            else if (count > 2 && count <= 4) level = 2;
-            else if (count > 4) level = 3;
-
+            if (count > 0 && count <= 2) level = 1; else if (count > 2 && count <= 4) level = 2; else if (count > 4) level = 3;
             daysHtml += `<div class="day-square level-${level}" title="${dateString}: ${count} missões"></div>`;
         }
-        
-        container.innerHTML = `
-            <div class="calendar-labels">
-                <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-            </div>
-            <div class="calendar-grid" style="grid-template-columns: repeat(${weeksToShow}, 1fr);">
-                ${daysHtml}
-            </div>
-        `;
+        container.innerHTML = `<div class="calendar-labels"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div><div class="calendar-grid" style="grid-template-columns: repeat(${weeksToShow}, 1fr);">${daysHtml}</div>`;
     }
 
-    // =======================================================
-    // --- LÓGICA COMPLETA DO SISTEMA DE EMBLEMAS ---
-    // =======================================================
-
+    // --- LÓGICA DO SISTEMA DE EMBLEMAS ---
     function getUserStats() {
-        const defaultStats = {
-            totalMissions: 0,
-            missionsByMode: { text: 0, voice: 0 },
-            missionsByCategory: {},
-            uniqueCategories: new Set(),
-            streak: 0,
-            feedbackViewed: 0,
-            flawlessMissions: 0,
-            phoenixEligible: false,
-        };
+        const defaultStats = { totalMissions: 0, missionsByMode: { text: 0, voice: 0 }, missionsByCategory: {}, uniqueCategories: new Set(), streak: 0, feedbackViewed: 0, flawlessMissions: 0, phoenixEligible: false, };
         const storedStats = JSON.parse(localStorage.getItem('userStats') || '{}');
-        if (storedStats.uniqueCategories) {
-            storedStats.uniqueCategories = new Set(storedStats.uniqueCategories);
-        }
+        if (storedStats.uniqueCategories) { storedStats.uniqueCategories = new Set(storedStats.uniqueCategories); }
         return { ...defaultStats, ...storedStats };
     }
-
     function syncUserProgressAndCheckBadges() {
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
-        const stats = {
-            totalMissions: history.length,
-            missionsByMode: { text: 0, voice: 0 },
-            missionsByCategory: {},
-            uniqueCategories: new Set(),
-            streak: parseInt(localStorage.getItem('currentStreak') || '0', 10),
-            feedbackViewed: parseInt(localStorage.getItem('feedbackViewedCount') || '0', 10),
-            flawlessMissions: parseInt(localStorage.getItem('flawlessCount') || '0', 10),
-            translateCount: parseInt(localStorage.getItem('translateCount') || '0', 10),
-        };
-
-        history.forEach(item => {
-            if (item.interactionMode) {
-                stats.missionsByMode[item.interactionMode] = (stats.missionsByMode[item.interactionMode] || 0) + 1;
-            }
-            if (item.categoryName) {
-                const categoryKey = item.categoryName === 'custom' ? '✨ Cenários Personalizados' : item.categoryName;
-                stats.missionsByCategory[categoryKey] = (stats.missionsByCategory[categoryKey] || 0) + 1;
-                stats.uniqueCategories.add(categoryKey);
-            }
-        });
-        
+        const stats = { totalMissions: history.length, missionsByMode: { text: 0, voice: 0 }, missionsByCategory: {}, uniqueCategories: new Set(), streak: parseInt(localStorage.getItem('currentStreak') || '0', 10), feedbackViewed: parseInt(localStorage.getItem('feedbackViewedCount') || '0', 10), flawlessMissions: parseInt(localStorage.getItem('flawlessCount') || '0', 10), translateCount: parseInt(localStorage.getItem('translateCount') || '0', 10), };
+        history.forEach(item => { if (item.interactionMode) { stats.missionsByMode[item.interactionMode] = (stats.missionsByMode[item.interactionMode] || 0) + 1; } if (item.categoryName) { const categoryKey = item.categoryName === 'custom' ? '✨ Cenários Personalizados' : item.categoryName; stats.missionsByCategory[categoryKey] = (stats.missionsByCategory[categoryKey] || 0) + 1; stats.uniqueCategories.add(categoryKey); } });
         const savableStats = { ...stats, uniqueCategories: [...stats.uniqueCategories] };
         localStorage.setItem('userStats', JSON.stringify(savableStats));
-
         checkAndAwardBadges(null, false);
     }
-    
     async function checkAndAwardBadges(newMissionData = null, triggerNotification = false) {
-        if (typeof BADGES === 'undefined') {
-            console.error("Arquivo badges.js não foi carregado.");
-            return;
-        }
-
+        if (typeof BADGES === 'undefined') { console.error("Arquivo badges.js não foi carregado."); return; }
         let userStats = getUserStats();
         let userBadges = JSON.parse(localStorage.getItem('userBadges') || '{}');
-        
         if (newMissionData) {
-            userStats.totalMissions += 1;
-            userStats.missionsByMode[newMissionData.interactionMode] += 1;
-            const categoryKey = newMissionData.categoryName === 'custom' ? '✨ Cenários Personalizados' : newMissionData.categoryName;
-            userStats.missionsByCategory[categoryKey] = (userStats.missionsByCategory[categoryKey] || 0) + 1;
-            userStats.uniqueCategories.add(categoryKey);
-            
-            const now = new Date();
-            if (now.getHours() >= 0 && now.getHours() < 4) {
-                userStats.night_owl_mission = true;
-            }
-            if(newMissionData.scenarioName.includes("Asking for a discount")) {
-                userStats.negotiator_mission = true;
-            }
-            if(userStats.phoenix_eligible) {
-                userStats.phoenix_achieved = true;
-                userStats.phoenix_eligible = false;
-            }
+            userStats.totalMissions++; userStats.missionsByMode[newMissionData.interactionMode]++; const categoryKey = newMissionData.categoryName === 'custom' ? '✨ Cenários Personalizados' : newMissionData.categoryName; userStats.missionsByCategory[categoryKey] = (userStats.missionsByCategory[categoryKey] || 0) + 1; userStats.uniqueCategories.add(categoryKey);
+            const now = new Date(); if (now.getHours() >= 0 && now.getHours() < 4) { userStats.night_owl_mission = true; } if (newMissionData.scenarioName.includes("Asking for a discount")) { userStats.negotiator_mission = true; } if (userStats.phoenix_eligible) { userStats.phoenix_achieved = true; userStats.phoenix_eligible = false; }
         }
-        
-        const savableStats = { ...userStats, uniqueCategories: [...userStats.uniqueCategories] };
-        localStorage.setItem('userStats', JSON.stringify(savableStats));
-
-        const getBadgeProgress = (badgeId) => userBadges[badgeId] || { unlocked_tier: null };
-        const awardBadge = (badgeId, tier) => {
-            userBadges[badgeId] = {
-                unlocked_tier: tier.level,
-                date: new Date().toISOString()
-            };
-            if (triggerNotification) {
-                badgeNotificationQueue.push(tier);
-            }
-        };
-
+        localStorage.setItem('userStats', JSON.stringify({ ...userStats, uniqueCategories: [...userStats.uniqueCategories] }));
+        const awardBadge = (badgeId, tier) => { userBadges[badgeId] = { unlocked_tier: tier.level, date: new Date().toISOString() }; if (triggerNotification) { badgeNotificationQueue.push(tier); } };
         for (const badgeId in BADGES) {
-            const badge = BADGES[badgeId];
-            const currentProgress = getBadgeProgress(badgeId);
-            
+            const badge = BADGES[badgeId]; const currentProgress = userBadges[badgeId] || { unlocked_tier: null };
             for (const tier of badge.tiers) {
-                if (badge.tiers.findIndex(t => t.level === currentProgress.unlocked_tier) >= badge.tiers.findIndex(t => t.level === tier.level)) {
-                    continue;
-                }
-                
+                if (badge.tiers.findIndex(t => t.level === currentProgress.unlocked_tier) >= badge.tiers.findIndex(t => t.level === tier.level)) continue;
                 let conditionMet = false;
                 switch (badgeId) {
                     case "onboarding_first_mission": if (userStats.totalMissions >= tier.goal) conditionMet = true; break;
                     case "onboarding_first_voice": if (userStats.missionsByMode.voice >= tier.goal) conditionMet = true; break;
                     case "onboarding_first_custom": if ((userStats.missionsByCategory['✨ Cenários Personalizados'] || 0) >= tier.goal) conditionMet = true; break;
                     case "onboarding_first_feedback": if (userStats.feedbackViewed >= tier.goal) conditionMet = true; break;
-                    
                     case "consistency_streak": if (userStats.streak >= tier.goal) conditionMet = true; break;
                     case "consistency_total_missions": if (userStats.totalMissions >= tier.goal) conditionMet = true; break;
-                    
-                    case "mastery_interaction_mode":
-                        if (tier.level === 'voice' && userStats.missionsByMode.voice >= tier.goal) conditionMet = true;
-                        if (tier.level === 'text' && userStats.missionsByMode.text >= tier.goal) conditionMet = true;
-                        break;
+                    case "mastery_interaction_mode": if (tier.level === 'voice' && userStats.missionsByMode.voice >= tier.goal) conditionMet = true; if (tier.level === 'text' && userStats.missionsByMode.text >= tier.goal) conditionMet = true; break;
                     case "mastery_category_variety": if (userStats.uniqueCategories.size >= tier.goal) conditionMet = true; break;
                     case "mastery_flawless": if (userStats.flawlessMissions >= tier.goal) conditionMet = true; break;
-
                     case "category_restaurants": if ((userStats.missionsByCategory['🍔 Restaurantes e Cafés'] || 0) >= tier.goal) conditionMet = true; break;
                     case "category_travel": if ((userStats.missionsByCategory['✈️ Viagens e Transporte'] || 0) >= tier.goal) conditionMet = true; break;
                     case "category_shopping": if ((userStats.missionsByCategory['🛒 Compras'] || 0) >= tier.goal) conditionMet = true; break;
@@ -1505,120 +1505,56 @@ document.addEventListener('DOMContentLoaded', () => {
                     case "category_health": if ((userStats.missionsByCategory['❤️ Saúde e Bem-estar'] || 0) >= tier.goal) conditionMet = true; break;
                     case "category_services": if ((userStats.missionsByCategory['🏠 Moradia e Serviços'] || 0) >= tier.goal) conditionMet = true; break;
                     case "category_custom": if ((userStats.missionsByCategory['✨ Cenários Personalizados'] || 0) >= tier.goal) conditionMet = true; break;
-
                     case "secret_night_owl": if (userStats.night_owl_mission) conditionMet = true; break;
                     case "secret_phoenix": if (userStats.phoenix_achieved) conditionMet = true; break;
                     case "secret_negotiator": if (userStats.negotiator_mission) conditionMet = true; break;
                     case "secret_curious": if (parseInt(localStorage.getItem('translateCount') || '0', 10) >= tier.goal) conditionMet = true; break;
                 }
-
-                if (conditionMet) {
-                    awardBadge(badgeId, tier);
-                }
+                if (conditionMet) awardBadge(badgeId, tier);
             }
         }
         localStorage.setItem('userBadges', JSON.stringify(userBadges));
     }
-    
     function processBadgeNotificationQueue() {
-        if (isBadgeNotificationVisible || badgeNotificationQueue.length === 0) {
-            return;
-        }
+        if (isBadgeNotificationVisible || badgeNotificationQueue.length === 0) return;
         isBadgeNotificationVisible = true;
         const badgeTier = badgeNotificationQueue.shift();
-        
         rewardImage.src = 'assets/animacoes/odete-celebrating.gif';
         rewardText.innerHTML = `Conquista Desbloqueada!<br><strong>${badgeTier.icon} ${badgeTier.name}</strong>`;
-        
         rewardNotification.classList.add('visible');
-
-        setTimeout(() => {
-            rewardNotification.classList.remove('visible');
-            isBadgeNotificationVisible = false;
-            setTimeout(processBadgeNotificationQueue, 500);
-        }, 4000); 
+        setTimeout(() => { rewardNotification.classList.remove('visible'); isBadgeNotificationVisible = false; setTimeout(processBadgeNotificationQueue, 500); }, 4000); 
     }
-
     function renderBadgesGallery(container) {
         if (!container || typeof BADGES === 'undefined') return;
-    
         const userBadges = JSON.parse(localStorage.getItem('userBadges') || '{}');
         const userStats = getUserStats();
-    
         const badgesByCategory = {};
-        for (const badgeId in BADGES) {
-            const badge = BADGES[badgeId];
-            if (!badgesByCategory[badge.category]) {
-                badgesByCategory[badge.category] = [];
-            }
-            badgesByCategory[badge.category].push({ ...badge, id: badgeId });
-        }
-    
+        for (const badgeId in BADGES) { const badge = BADGES[badgeId]; if (!badgesByCategory[badge.category]) { badgesByCategory[badge.category] = []; } badgesByCategory[badge.category].push({ ...badge, id: badgeId }); }
         container.innerHTML = '';
-    
         for (const categoryName in badgesByCategory) {
-            const categoryWrapper = document.createElement('div');
-            categoryWrapper.className = 'badge-category';
-            const categoryTitle = document.createElement('h4');
-            categoryTitle.className = 'badge-category-title';
-            categoryTitle.textContent = categoryName;
-            categoryWrapper.appendChild(categoryTitle);
-    
-            const badgesGrid = document.createElement('div');
-            badgesGrid.className = 'badges-grid';
-    
+            const categoryWrapper = document.createElement('div'); categoryWrapper.className = 'badge-category';
+            const categoryTitle = document.createElement('h4'); categoryTitle.className = 'badge-category-title'; categoryTitle.textContent = categoryName; categoryWrapper.appendChild(categoryTitle);
+            const badgesGrid = document.createElement('div'); badgesGrid.className = 'badges-grid';
             if (categoryName === "Conquistas Secretas") {
-                const secretBadges = badgesByCategory[categoryName];
-                const unlockedSecrets = secretBadges.filter(b => userBadges[b.id]);
-    
+                const secretBadges = badgesByCategory[categoryName]; const unlockedSecrets = secretBadges.filter(b => userBadges[b.id]);
                 if (unlockedSecrets.length === 0) {
-                    const placeholderCard = document.createElement('div');
-                    placeholderCard.className = 'badge-card locked';
-                    placeholderCard.innerHTML = `
-                        <div class="badge-icon">?</div>
-                        <div class="badge-info">
-                            <h5>Conquista Secreta</h5>
-                            <p>Continue praticando para descobrir e desbloquear recompensas raras!</p>
-                        </div>
-                    `;
-                    badgesGrid.appendChild(placeholderCard);
-                    categoryWrapper.appendChild(badgesGrid);
-                    container.appendChild(categoryWrapper);
-                    continue;
+                    const placeholderCard = document.createElement('div'); placeholderCard.className = 'badge-card locked';
+                    placeholderCard.innerHTML = `<div class="badge-icon">?</div><div class="badge-info"><h5>Conquista Secreta</h5><p>Continue praticando para descobrir e desbloquear recompensas raras!</p></div>`;
+                    badgesGrid.appendChild(placeholderCard); categoryWrapper.appendChild(badgesGrid); container.appendChild(categoryWrapper); continue;
                 }
             }
-    
             for (const badge of badgesByCategory[categoryName]) {
-                if (badge.secret && !userBadges[badge.id]) {
-                    continue;
-                }
-    
-                const userProgress = userBadges[badge.id] || { unlocked_tier: null };
-                const unlockedTierIndex = badge.tiers.findIndex(t => t.level === userProgress.unlocked_tier);
-    
+                if (badge.secret && !userBadges[badge.id]) continue;
+                const userProgress = userBadges[badge.id] || { unlocked_tier: null }; const unlockedTierIndex = badge.tiers.findIndex(t => t.level === userProgress.unlocked_tier);
                 for (let i = 0; i <= unlockedTierIndex; i++) {
-                    const tier = badge.tiers[i];
-                    const badgeCard = document.createElement('div');
-                    badgeCard.className = 'badge-card unlocked complete';
-                    
-                    badgeCard.dataset.badgeId = badge.id;
-                    badgeCard.dataset.tierLevel = tier.level;
-    
-                    badgeCard.innerHTML = `
-                        <div class="badge-icon">${tier.icon}</div>
-                        <div class="badge-info">
-                            <h5>${tier.name}</h5>
-                            <p>${tier.description}</p>
-                        </div>
-                    `;
+                    const tier = badge.tiers[i]; const badgeCard = document.createElement('div'); badgeCard.className = 'badge-card unlocked complete';
+                    badgeCard.dataset.badgeId = badge.id; badgeCard.dataset.tierLevel = tier.level;
+                    badgeCard.innerHTML = `<div class="badge-icon">${tier.icon}</div><div class="badge-info"><h5>${tier.name}</h5><p>${tier.description}</p></div>`;
                     badgesGrid.appendChild(badgeCard);
                 }
-    
                 const nextTierIndex = unlockedTierIndex + 1;
                 if (nextTierIndex < badge.tiers.length) {
-                    const nextTier = badge.tiers[nextTierIndex];
-                    const prevTier = unlockedTierIndex >= 0 ? badge.tiers[unlockedTierIndex] : null;
-    
+                    const nextTier = badge.tiers[nextTierIndex]; const prevTier = unlockedTierIndex >= 0 ? badge.tiers[unlockedTierIndex] : null;
                     let currentProgressValue = null;
                     switch (badge.id) {
                         case "consistency_total_missions": currentProgressValue = userStats.totalMissions; break;
@@ -1633,198 +1569,65 @@ document.addEventListener('DOMContentLoaded', () => {
                         case "category_custom": currentProgressValue = userStats.missionsByCategory['✨ Cenários Personalizados'] || 0; break;
                         case "consistency_streak": currentProgressValue = userStats.streak; break;
                     }
-    
                     let progressBar = '';
                     if (currentProgressValue !== null) {
-                        const prevTierGoal = prevTier ? prevTier.goal : 0;
-                        const progress = Math.max(0, currentProgressValue - prevTierGoal);
-                        const goal = nextTier.goal - prevTierGoal;
+                        const prevTierGoal = prevTier ? prevTier.goal : 0; const progress = Math.max(0, currentProgressValue - prevTierGoal); const goal = nextTier.goal - prevTierGoal;
                         const percentage = goal > 0 ? Math.min(100, (progress / goal) * 100) : 0;
-                        
-                        progressBar = `
-                            <div class="badge-progress-bar">
-                                <div style="width: ${percentage}%;"></div>
-                            </div>
-                            <small class="badge-progress-text">${currentProgressValue}/${nextTier.goal}</small>
-                        `;
+                        progressBar = `<div class="badge-progress-bar"><div style="width: ${percentage}%;"></div></div><small class="badge-progress-text">${currentProgressValue}/${nextTier.goal}</small>`;
                     }
-    
-                    const badgeCard = document.createElement('div');
-                    badgeCard.className = 'badge-card locked';
-                    badgeCard.innerHTML = `
-                        <div class="badge-icon">${nextTier.icon}</div>
-                        <div class="badge-info">
-                            <h5>${nextTier.name}</h5>
-                            <p>${nextTier.description}</p>
-                            ${progressBar}
-                        </div>
-                    `;
+                    const badgeCard = document.createElement('div'); badgeCard.className = 'badge-card locked';
+                    badgeCard.innerHTML = `<div class="badge-icon">${nextTier.icon}</div><div class="badge-info"><h5>${nextTier.name}</h5><p>${nextTier.description}</p>${progressBar}</div>`;
                     badgesGrid.appendChild(badgeCard);
                 }
             }
-    
-            categoryWrapper.appendChild(badgesGrid);
-            container.appendChild(categoryWrapper);
+            categoryWrapper.appendChild(badgesGrid); container.appendChild(categoryWrapper);
         }
     }
 
-
     // --- FUNÇÕES UTILITÁRIAS ---
-    function updateActiveNavIcon(activeBtnId) {
-        [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => {
-            if (btn.id === activeBtnId) {
-                btn.classList.add('active-nav-icon');
-            } else {
-                btn.classList.remove('active-nav-icon');
-            }
-        });
-    }
-    
+    function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navHistoryBtn, navSettingsBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
     function renderHomePageContent() {
         mainContentArea.innerHTML = '';
-
-        const title = document.createElement('h1');
-        title.className = 'main-page-title';
-        title.textContent = "Missões da Odete";
-        mainContentArea.appendChild(title);
-
-        const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) =>
-            Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({
-                ...scenarioData,
-                categoryName: categoryName,
-                scenarioName: scenarioName
-            }))
-        ).filter(Boolean);
-
-        const suggestionSection = document.createElement('section');
-        suggestionSection.className = 'suggestion-section';
-        suggestionSection.innerHTML = `
-            <div class="suggestion-card">
-                <div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão">
-                    <img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar">
-                    <h3 id="suggestion-title"></h3>
-                </div>
-                <button id="start-suggestion-btn" class="primary-btn">
-                    Começar Missão
-                </button>
-            </div>
-        `;
+        const title = document.createElement('h1'); title.className = 'main-page-title'; title.textContent = "Missões da Odete"; mainContentArea.appendChild(title);
+        const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) => Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({ ...scenarioData, categoryName: categoryName, scenarioName: scenarioName }))).filter(Boolean);
+        const suggestionSection = document.createElement('section'); suggestionSection.className = 'suggestion-section';
+        suggestionSection.innerHTML = `<div class="suggestion-card"><div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão"><img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar"><h3 id="suggestion-title"></h3></div><button id="start-suggestion-btn" class="primary-btn">Começar Missão</button></div>`;
         mainContentArea.appendChild(suggestionSection);
-
         const renderNewSuggestion = () => {
-            const categoryImageMap = {
-                "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg',
-                "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg',
-                "🛒 Compras": 'assets/avatar-compras.jpg',
-                "🤝 Situações Sociais": 'assets/avatar-social.jpg',
-                "💼 Profissional": 'assets/avatar-profissional.jpg',
-                "🎓 Estudos": 'assets/avatar-estudos.jpg',
-                "❤️ Saúde e Bem-estar": 'assets/avatar-saude.jpg',
-                "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg'
-            };
-
+            const categoryImageMap = { "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg', "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg', "🛒 Compras": 'assets/avatar-compras.jpg', "🤝 Situações Sociais": 'assets/avatar-social.jpg', "💼 Profissional": 'assets/avatar-profissional.jpg', "🎓 Estudos": 'assets/avatar-estudos.jpg', "❤️ Saúde e Bem-estar": 'assets/avatar-saude.jpg', "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg' };
             const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
-            
-            const suggestionTitleEl = document.getElementById('suggestion-title');
-            const startSuggestionBtn = document.getElementById('start-suggestion-btn');
-            const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
-
+            const suggestionTitleEl = document.getElementById('suggestion-title'); const startSuggestionBtn = document.getElementById('start-suggestion-btn'); const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
             if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
-                suggestionTitleEl.textContent = suggestedScenario.scenarioName;
-                startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName;
-                startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
-
-                const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg';
-                suggestionAvatarEl.src = imagePath;
-
-                if (suggestedScenario.image) {
-                    suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario['en-US'].name}`;
-                } else {
-                    const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim();
-                    suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`;
-                }
+                suggestionTitleEl.textContent = suggestedScenario.scenarioName; startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName; startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
+                const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg'; suggestionAvatarEl.src = imagePath;
+                if (suggestedScenario.image) { suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario['en-US'].name}`; } else { const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`; }
             }
         };
-
         renderNewSuggestion();
-
         document.getElementById('new-suggestion-trigger').addEventListener('click', renderNewSuggestion);
-
-        const panelContainer = document.createElement('div');
-        panelContainer.className = 'scenario-panel';
+        const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel';
         Object.keys(SCENARIOS).forEach(categoryName => {
-            const categorySection = document.createElement('section');
-            categorySection.className = 'panel-category-section';
-
-            const categoryTitle = document.createElement('h2');
-            categoryTitle.className = 'panel-category-title';
-            categoryTitle.innerHTML = `
-                <span class="category-title-text">${categoryName}</span>
-                <span class="category-toggle-icon">▸</span>
-            `;
-            categorySection.appendChild(categoryTitle);
-
-            const collapsibleContent = document.createElement('div');
-            collapsibleContent.className = 'collapsible-content';
-
-            const cardsContainer = document.createElement('div');
-            cardsContainer.className = 'scenario-cards-container';
+            const categorySection = document.createElement('section'); categorySection.className = 'panel-category-section';
+            const categoryTitle = document.createElement('h2'); categoryTitle.className = 'panel-category-title'; categoryTitle.innerHTML = `<span class="category-title-text">${categoryName}</span><span class="category-toggle-icon">▸</span>`; categorySection.appendChild(categoryTitle);
+            const collapsibleContent = document.createElement('div'); collapsibleContent.className = 'collapsible-content';
+            const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container';
             const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
-            scenariosToShow.forEach(scenarioName => {
-                const card = document.createElement('button');
-                card.className = 'scenario-card';
-                card.textContent = scenarioName;
-                card.dataset.categoryName = categoryName;
-                card.dataset.scenarioName = scenarioName;
-                cardsContainer.appendChild(card);
-            });
-
-            const viewAllButton = document.createElement('button');
-            viewAllButton.className = 'view-all-btn';
-            viewAllButton.textContent = 'Ver todos →';
-            viewAllButton.dataset.categoryName = categoryName;
-
-            collapsibleContent.appendChild(cardsContainer);
-            collapsibleContent.appendChild(viewAllButton);
-            
-            categorySection.appendChild(collapsibleContent);
-            panelContainer.appendChild(categorySection);
+            scenariosToShow.forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); });
+            const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName;
+            collapsibleContent.appendChild(cardsContainer); collapsibleContent.appendChild(viewAllButton);
+            categorySection.appendChild(collapsibleContent); panelContainer.appendChild(categorySection);
         });
         mainContentArea.appendChild(panelContainer);
     }
-    
     function renderCategoryPage(categoryName) {
-        scoreIndicator.classList.add('score-indicator-hidden');
-        exitChatBtn.classList.add('exit-chat-btn-hidden');
-        headerBackBtn.classList.remove('back-btn-hidden');
-        
-        mainContentArea.innerHTML = ''; 
-        mainContentArea.className = 'main-content-area category-page'; 
-        
-        const categoryContainer = document.createElement('div'); 
-        categoryContainer.className = 'category-page-container'; 
-        
-        const header = document.createElement('div'); 
-        header.className = 'category-page-header'; 
-        const title = document.createElement('h2'); 
-        title.textContent = categoryName; 
-        header.appendChild(title); 
-        
-        const cardsContainer = document.createElement('div'); 
-        cardsContainer.className = 'scenario-cards-container full-view'; 
-        Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { 
-            const card = document.createElement('button'); 
-            card.className = 'scenario-card'; 
-            card.textContent = scenarioName; 
-            card.dataset.categoryName = categoryName; 
-            card.dataset.scenarioName = scenarioName; 
-            cardsContainer.appendChild(card); 
-        }); 
-        
-        categoryContainer.appendChild(header); 
-        categoryContainer.appendChild(cardsContainer); 
-        mainContentArea.appendChild(categoryContainer);
-        
+        heartsIndicator.classList.add('score-indicator-hidden'); exitChatBtn.classList.add('exit-chat-btn-hidden'); headerBackBtn.classList.remove('back-btn-hidden');
+        mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area category-page'; 
+        const categoryContainer = document.createElement('div'); categoryContainer.className = 'category-page-container'; 
+        const header = document.createElement('div'); header.className = 'category-page-header'; 
+        const title = document.createElement('h2'); title.textContent = categoryName; header.appendChild(title); 
+        const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container full-view'; 
+        Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); }); 
+        categoryContainer.appendChild(header); categoryContainer.appendChild(cardsContainer); mainContentArea.appendChild(categoryContainer);
         mainContentArea.scrollTop = 0;
     }
 
@@ -1834,7 +1637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeApp() { 
         loadSettings();
         updateHeaderIndicators();
-        updateScoreDisplay();
+        initializeHeartSystem();
         if (!getGoogleApiKey() || !getElevenLabsApiKey()) { 
             openApiKeyModal(true); 
         } else { 
@@ -1847,13 +1650,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayMessage(text, sender) { if (sender === 'ai') { removeTypingIndicator(); } if (sender === 'system') { const systemEl = document.createElement('div'); systemEl.className = 'message system-message'; systemEl.innerHTML = `<p>${text}</p>`; mainContentArea.appendChild(systemEl); } else { const wrapper = document.createElement('div'); wrapper.className = 'message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message'; messageBubble.innerHTML = `<p>${text}</p>`; if (sender === 'user') { wrapper.classList.add('user-message-wrapper'); avatar.src = AVATAR_USER_URL; avatar.alt = 'User Avatar'; messageBubble.classList.add('user-message'); } else { wrapper.classList.add('ai-message-wrapper'); avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; messageBubble.classList.add('ai-message'); } wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); } scrollToBottom(); }
     function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); }
 
-
     // --- LÓGICA DE INICIALIZAÇÃO COM SPLASH SCREEN ---
-
     const GIF_DURATION = 3900;
     const TITLE_DURATION = 2000; 
     const TRANSITION_DURATION = 500;
-
     const delay = ms => new Promise(res => setTimeout(res, ms));
 
     async function handleAppOpening() {
@@ -1864,17 +1664,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             sessionStorage.setItem('hasVisited', 'true');
             initializeApp();
-
             await delay(GIF_DURATION);
-
             splashGif.classList.add('hidden');
             splashTitle.classList.add('visible');
-
             await delay(TITLE_DURATION);
-
             splashScreen.classList.add('hidden');
             appContainer.classList.add('visible');
-
             await delay(TRANSITION_DURATION);
             splashScreen.style.display = 'none';
         }

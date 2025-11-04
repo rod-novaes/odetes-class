@@ -114,12 +114,10 @@ html, body {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Garante que o botão da bandeira tenha a cor branca */
 #lang-indicator-btn {
     color: var(--text-inverted);
 }
 
-/* Regra específica para o botão de estrelas para garantir a cor dourada */
 #proficiency-indicator-btn {
     color: #FBBF24; /* Dourado */
 }
@@ -264,12 +262,12 @@ html, body {
 
 /* ===== TELA DE CONCLUSÃO E BOTÕES DE AÇÃO ===== */
 .completion-container { text-align: center; margin-top: 16px; }
-.completion-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
+.completion-actions { display: flex; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
 .completion-actions button { border: none; font-weight: 600; font-size: 0.95rem; padding: 12px 24px; border-radius: 25px; cursor: pointer; transition: all 0.2s ease; }
 #feedback-btn { background-color: var(--color-accent); color: var(--text-inverted); box-shadow: 0 4px 15px rgba(161, 98, 7, 0.2); }
 #feedback-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(161, 98, 7, 0.3); background-color: var(--color-accent-hover); }
-#next-challenge-btn { background-color: var(--color-neutral); color: var(--text-primary); }
-#next-challenge-btn:hover { background-color: var(--color-neutral-hover); }
+#next-challenge-btn, .completion-finish-btn { background-color: var(--color-neutral); color: var(--text-primary); }
+#next-challenge-btn:hover, .completion-finish-btn:hover { background-color: var(--color-neutral-hover); }
 
 /* ===== PÁGINA INICIAL (HOME) ===== */
 .main-page-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 24px; text-align: center; }
@@ -336,6 +334,10 @@ html, body {
 #mission-image-container img { display: block; margin: 0 auto; max-width: 150px; height: auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
 #api-key-modal button { width: 100%; background-color: var(--color-accent); color: var(--text-inverted); border: none; font-weight: 600; font-size: 1rem; padding: 14px; border-radius: 10px; cursor: pointer; transition: background-color 0.2s ease; }
 #api-key-modal button:hover { background-color: var(--color-accent-hover); }
+/* No Hearts Modal */
+#go-to-store-btn { background-color: var(--color-neutral); color: var(--text-primary); }
+#go-to-store-btn:hover { background-color: var(--color-neutral-hover); }
+#go-to-store-btn:disabled { background-color: #f0f0f0; color: #a0a0a0; cursor: not-allowed; }
 
 /* Feedback Modal */
 #translate-btn { background-color: transparent; border: 1px solid var(--color-accent); color: var(--color-accent); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.2s ease; }
@@ -410,43 +412,20 @@ html, body {
 .jornada-section { width: 100%; }
 .jornada-section h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); padding-bottom: 8px; border-bottom: 2px solid var(--border-color); }
 
-/* Novo Layout de Grid 2x2 para Estatísticas */
-.stats-grid-section {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
-.summary-card {
-    background-color: var(--bg-container);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
+.stats-grid-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.summary-card { background-color: var(--bg-container); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .summary-icon-wrapper { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .summary-icon { font-size: 1.6rem; }
-/* Temas de cores para os ícones */
-.summary-icon-wrapper.theme-points { background-color: var(--color-accent); color: white; }
+.summary-icon-wrapper.theme-points { background-color: #f59e0b; color: white; } /* Moeda */
 .summary-icon-wrapper.theme-missions { background-color: #3b82f6; color: white; } /* Azul */
 .summary-icon-wrapper.theme-streak { background-color: #f97316; color: white; } /* Laranja */
-.summary-icon-wrapper.theme-best-streak { background-color: #f59e0b; color: white; } /* Amarelo/Dourado */
+.summary-icon-wrapper.theme-best-streak { background-color: #8b5cf6; color: white; } /* Roxo */
 .summary-value { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
 .summary-label { font-size: 0.8rem; color: var(--text-secondary); }
 
-/* Estilos dos Contêineres de Gráfico */
 .stat-card { background-color: var(--bg-container); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.chart-card {
-    position: relative;
-    padding: 16px;
-    height: 300px; /* Altura fixa para impedir o crescimento */
-}
+.chart-card { position: relative; padding: 16px; height: 300px; }
 
-/* Calendário de Atividades */
 .calendar-card { display: flex; gap: 10px; padding: 20px 16px; }
 .calendar-labels { display: flex; flex-direction: column; justify-content: space-around; font-size: 0.7rem; color: var(--text-secondary); padding: 2px 0; }
 .calendar-labels span { flex: 1; text-align: center; }
@@ -454,160 +433,44 @@ html, body {
 .day-square { width: 100%; aspect-ratio: 1 / 1; background-color: var(--color-neutral); border-radius: 3px; }
 .day-square.future { background-color: transparent; }
 .day-square.level-0 { background-color: #EBEDF0; }
-.day-square.level-1 { background-color: #fde047; } /* Amarelo 300 */
-.day-square.level-2 { background-color: #ca8a04; } /* Ocre 600 */
-.day-square.level-3 { background-color: #854d0e; } /* Ocre 800 */
+.day-square.level-1 { background-color: #fde047; }
+.day-square.level-2 { background-color: #ca8a04; }
+.day-square.level-3 { background-color: #854d0e; }
 
-/* Responsividade da Página de Jornada */
 @media (max-width: 480px) {
     .jornada-header h2 { font-size: 1.5rem; }
     .jornada-section h3 { font-size: 1.1rem; }
     .stats-grid-section { gap: 12px; }
     .summary-card { padding: 12px; }
     .summary-value { font-size: 1.5rem; }
-    .chart-card { height: 250px; } /* Altura menor para telas pequenas */
+    .chart-card { height: 250px; }
 }
 
 /* ======================================================= */
-/* ===== ESTILOS PARA A GALERIA DE CONQUISTAS (NOVO) ===== */
+/* ===== NOVOS ESTILOS (SISTEMA DE ENERGIA E RECOMPENSAS) ===== */
 /* ======================================================= */
 
-#badges-section {
-    margin-top: 24px;
+/* Animação de Moedas */
+@keyframes coin-rise {
+    0% { transform: translateY(0) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-200px) scale(0.5) rotate(360deg); opacity: 0; }
 }
 
-#badges-section h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-primary);
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--border-color);
+.coin-animation {
+    position: fixed;
+    bottom: 80px; /* Posição inicial, perto da área de input */
+    font-size: 1.8rem;
+    pointer-events: none;
+    z-index: 9999;
+    animation: coin-rise 1.5s ease-out forwards;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.badges-gallery-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.badge-category-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-}
-
-.badges-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-}
-
-.badge-card {
-    background-color: var(--bg-container);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    transition: all 0.2s ease;
-}
-
-.badge-card.locked {
-    background-color: #f9fafb; /* Um cinza ainda mais claro que o fundo */
-}
-
-.badge-icon {
-    font-size: 2.5rem;
-    flex-shrink: 0;
-    transition: transform 0.3s ease;
-}
-
-.badge-card.locked .badge-icon {
-    filter: grayscale(100%);
-    opacity: 0.5;
-}
-
-.badge-card.unlocked.complete {
-    /* NOVO: Adiciona o cursor de "mãozinha" para indicar que é clicável */
-    cursor: pointer;
-}
-
-.badge-card.unlocked:hover, .badge-card.unlocked.complete:hover {
-    /* MODIFICADO: Aplica o efeito de hover a todos os emblemas desbloqueados,
-       sejam eles completos ou com barra de progresso. */
-    transform: translateY(-3px);
-    border-color: var(--color-accent);
-    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1);
-}
-
-.badge-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
-.badge-info h5 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.badge-info p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.badge-card.locked .badge-info h5,
-.badge-card.locked .badge-info p {
-    opacity: 0.6;
-}
-
-/* Estilos da Barra de Progresso */
-.badge-progress-bar {
-    width: 100%;
-    height: 6px;
-    background-color: var(--color-neutral);
-    border-radius: 3px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.badge-progress-bar div {
-    height: 100%;
-    width: 0%; /* A largura será definida inline via JS */
-    background-color: var(--color-accent);
-    border-radius: 3px;
-    transition: width 0.5s ease;
-}
-
-.badge-progress-text {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-    align-self: flex-end;
-}
-
-/* ======================================================= */
-/* ===== NOVO: ESTADOS DO MICROFONE (MODO PRONTIDÃO) ===== */
-/* ======================================================= */
-
+/* Animação para o Microfone "Pronto" */
 @keyframes mic-ready-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(161, 98, 7, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(161, 98, 7, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(161, 98, 7, 0);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(161, 98, 7, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(161, 98, 7, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(161, 98, 7, 0); }
 }
 
 #mic-btn.mic-ready {
@@ -615,3 +478,32 @@ html, body {
   background-color: rgba(161, 98, 7, 0.1);
   animation: mic-ready-pulse 1.5s infinite;
 }
+
+/* ======================================================= */
+/* ===== ESTILOS PARA A GALERIA DE CONQUISTAS (EMBLEMAS) ===== */
+/* ======================================================= */
+
+#badges-section { margin-top: 24px; }
+#badges-section h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); padding-bottom: 8px; border-bottom: 2px solid var(--border-color); }
+
+.badges-gallery-container { display: flex; flex-direction: column; gap: 24px; }
+.badge-category-title { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+.badge-card { background-color: var(--bg-container); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 16px; transition: all 0.2s ease; }
+.badge-card.locked { background-color: #f9fafb; }
+
+.badge-icon { font-size: 2.5rem; flex-shrink: 0; transition: transform 0.3s ease; }
+.badge-card.locked .badge-icon { filter: grayscale(100%); opacity: 0.5; }
+
+.badge-card.unlocked.complete { cursor: pointer; }
+.badge-card.unlocked:hover, .badge-card.unlocked.complete:hover { transform: translateY(-3px); border-color: var(--color-accent); box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1); }
+
+.badge-info { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.badge-info h5 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+.badge-info p { font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.4; }
+.badge-card.locked .badge-info h5, .badge-card.locked .badge-info p { opacity: 0.6; }
+
+.badge-progress-bar { width: 100%; height: 6px; background-color: var(--color-neutral); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.badge-progress-bar div { height: 100%; width: 0%; background-color: var(--color-accent); border-radius: 3px; transition: width 0.5s ease; }
+.badge-progress-text { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; align-self: flex-end; }
