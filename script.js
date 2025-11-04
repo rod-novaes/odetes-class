@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Variáveis de Estado e Constantes ---
     const AVATAR_AI_URL = 'https://cdn.icon-icons.com/icons2/1371/PNG/512/robot02_90810.png';
     const AVATAR_USER_URL = 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png';
-    const TYPING_SIMULATION_DELAY = 1000;
+    const TYPING_SIMULATION_DELAY = 500;
 
     let conversationHistory = [];
     let currentScenario = null;
@@ -342,6 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         mainContentArea.scrollTop = 0;
     }
+    // Esta é a nova versão da função para substituir a antiga
+
     function renderCustomScenarioPage() {
         updateActiveNavIcon('nav-custom-btn');
         mainContentArea.innerHTML = '';
@@ -355,11 +357,19 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreIndicator.classList.remove('score-indicator-hidden');
         headerBackBtn.classList.add('back-btn-hidden');
         
+        // === INÍCIO DA MODIFICAÇÃO ===
+        // 1. Captura o nome do idioma selecionado a partir do texto da opção no dropdown.
+        const selectedLanguageName = languageSelect.options[languageSelect.selectedIndex].text;
+        // === FIM DA MODIFICAÇÃO ===
+
         const customScenarioContainer = document.createElement('div');
         customScenarioContainer.className = 'custom-scenario-container';
         customScenarioContainer.innerHTML = `
             <h2>Cenário Personalizado</h2>
-            <p>Descreva uma situação ou objetivo que você gostaria de praticar em inglês.</p>
+            
+            <!-- A frase agora usa a variável para ser dinâmica -->
+            <p>Descreva uma situação ou objetivo que você gostaria de praticar em ${selectedLanguageName}. Comece com um verbo de ação.</p>
+            
             <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Pedir o reembolso de um produto com defeito em uma loja de eletrônicos..."></textarea>
             <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
             <button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>
