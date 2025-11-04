@@ -1322,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         const endDate = new Date(today);
         const startDate = new Date(today);
-        startDate.setDate(today.getDate() - ( (weeksToShow * 7) - (today.getDay() + 1) ) );
+        startDate.setDate(today.getDate() - ((weeksToShow - 1) * 7 + today.getDay()));
         
         let daysHtml = '';
         for (let i = 0; i < weeksToShow * 7; i++) {
