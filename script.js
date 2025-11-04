@@ -70,8 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let translatedFeedback = '';
     let isTranslated = false;
     
-    let currentInteractionMode = null; // 'text' ou 'voice'
-    let conversationState = 'IDLE';    // 'IDLE', 'AI_SPEAKING', 'USER_LISTENING', 'PROCESSING'
+    let currentInteractionMode = null;
+    // ESTADOS ATUALIZADOS: IDLE, AI_SPEAKING, AWAITING_USER_INPUT, USER_LISTENING, PROCESSING
+    let conversationState = 'IDLE';
     let isConversationActive = false; 
     const synthesis = window.speechSynthesis;
     let voices = [];
@@ -83,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let badgeNotificationQueue = [];
     let isBadgeNotificationVisible = false;
 
-    // Variável para controlar o timeout de exibição de mensagens
     let messageDisplayTimeoutId = null; 
 
     // --- Funções de Inicialização da API de Voz ---
@@ -340,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderHomePageContent();
         
-        // CORREÇÃO: Reseta a posição de rolagem
         mainContentArea.scrollTop = 0;
     }
     function renderCustomScenarioPage() {
@@ -468,7 +467,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             
-            // CORREÇÃO: Captura o ID do timeout
             messageDisplayTimeoutId = setTimeout(() => { 
                 removeTypingIndicator(); 
                 displayMessage(aiResponse, 'ai'); 
@@ -493,13 +491,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleExitChat() {
-        // CORREÇÃO: Limpa qualquer timeout pendente para evitar "avatar fantasma"
         if (messageDisplayTimeoutId) {
             clearTimeout(messageDisplayTimeoutId);
             messageDisplayTimeoutId = null;
         }
 
-        // A checagem de `isConversationActive` previne o `confirm` após a conclusão da missão
         if (isConversationActive) {
             if (!confirm('Tem certeza de que deseja sair? O progresso deste diálogo não será salvo.')) {
                 return;
@@ -534,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    // --- LÓGICA DE VOZ HÍBRIDA ---
+    // --- LÓGICA DE VOZ HÍBRIDA (ATUALIZADA) ---
 
     function setupVoiceUI() {
         chatInputArea.classList.remove('chat-input-hidden');
@@ -580,20 +576,19 @@ document.addEventListener('DOMContentLoaded', () => {
             synthesis.cancel();
         }
 
-        if (conversationState === 'USER_LISTENING' && mediaRecorder) {
+        // LÓGICA ATUALIZADA: Inicia ou para a gravação
+        if (conversationState === 'AWAITING_USER_INPUT') {
+            startRecording();
+        } else if (conversationState === 'USER_LISTENING' && mediaRecorder) {
             mediaRecorder.stop();
-            updateMicButtonState('processing');
-            conversationState = 'PROCESSING';
         }
     }
     
     async function handleAIResponse(text) {
         if (currentInteractionMode === 'voice') {
-            // A função speakText já retorna uma Promise, então podemos esperar por ela
             return speakText(text);
         } else {
             return new Promise(resolve => {
-                // CORREÇÃO: Captura o ID do timeout
                 messageDisplayTimeoutId = setTimeout(() => {
                     removeTypingIndicator();
                     displayMessage(text, 'ai');
@@ -612,10 +607,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
     
-    // --- LÓGICA DE ESTADO DA INTERFACE ---
+    // --- LÓGICA DE ESTADO DA INTERFACE (ATUALIZADA) ---
 
     function setProcessingState(isProcessing) {
         if (isProcessing) {
+            conversationState = 'PROCESSING';
             showTypingIndicator();
             textInput.disabled = true;
             sendBtn.disabled = true;
@@ -627,18 +623,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setUserTurnState(isUserTurn) {
-        if (!isConversationActive && !document.querySelector('.completion-container')) return;
+        // CORREÇÃO: A função só deve ser interrompida se a conversa não estiver ativa E for para ATIVAR o turno do usuário.
+        // Ela DEVE SEMPRE rodar se for para DESATIVAR (isUserTurn === false).
+        if (!isConversationActive && isUserTurn) return;
 
-        textInput.disabled = !isUserTurn;
-        sendBtn.disabled = !isUserTurn;
-        micBtn.disabled = !isUserTurn;
-        
         if (isUserTurn) {
-            updateMicButtonState('default');
+            textInput.disabled = false;
+            sendBtn.disabled = false;
+            micBtn.disabled = false;
             textInput.focus();
+            
             if (currentInteractionMode === 'voice') {
-                startRecording();
+                conversationState = 'AWAITING_USER_INPUT';
+                updateMicButtonState('ready');
             }
+        } else {
+            textInput.disabled = true;
+            sendBtn.disabled = true;
+            micBtn.disabled = true;
+            updateMicButtonState('disabled');
         }
     }
 
@@ -650,6 +653,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setUserTurnState(true);
             return Promise.resolve();
         }
+        conversationState = 'AI_SPEAKING';
+        updateMicButtonState('disabled');
         displayMessage(text, 'ai');
         removeTypingIndicator();
 
@@ -664,14 +669,14 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAudioPlayer = new Audio(audioUrl);
 
             return new Promise((resolve) => {
-                currentAudioPlayer.onplay = () => { conversationState = 'AI_SPEAKING'; };
+                currentAudioPlayer.onplay = () => {};
                 currentAudioPlayer.onended = () => {
                     URL.revokeObjectURL(audioUrl);
                     setUserTurnState(true);
                     resolve();
                 };
-                currentAudioPlayer.onerror = () => {
-                    console.error('Audio playback error');
+                currentAudioPlayer.onerror = (e) => {
+                    console.error('Audio playback error:', e);
                     URL.revokeObjectURL(audioUrl);
                     setUserTurnState(true);
                     resolve();
@@ -693,13 +698,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const bestVoice = findBestEnglishVoice();
             if (bestVoice) utterance.voice = bestVoice;
 
-            utterance.onstart = () => { conversationState = 'AI_SPEAKING'; };
+            utterance.onstart = () => {};
             utterance.onend = () => {
                 setUserTurnState(true);
                 resolve();
             };
-            utterance.onerror = () => {
-                console.error('SpeechSynthesis error');
+            utterance.onerror = (e) => {
+                console.error('SpeechSynthesis error:', e);
                 setUserTurnState(true);
                 resolve();
             };
@@ -708,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startRecording() {
-        if (conversationState === 'USER_LISTENING') return;
+        if (conversationState !== 'AWAITING_USER_INPUT') return;
         
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -728,13 +733,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Microphone access denied or error:', error);
             alert("Não foi possível acessar o microfone. Verifique as permissões do seu navegador.");
-            setUserTurnState(false);
-            updateMicButtonState('default');
+            setUserTurnState(true); // Retorna ao estado 'pronto'
         }
     }
 
     async function handleRecordingStop() {
-        setProcessingState(true);
+        conversationState = 'PROCESSING';
+        updateMicButtonState('processing');
         
         const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
 
@@ -763,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function processUserMessage(messageText) {
         displayMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', content: messageText });
+        setProcessingState(true); // Garante que a interface entre em estado de processamento
 
         try {
             const apiKey = getGoogleApiKey();
@@ -812,19 +818,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateMicButtonState(state) {
-        micBtn.classList.remove('mic-listening', 'mic-processing');
+        // LÓGICA ATUALIZADA: Adiciona o estado 'ready'
+        micBtn.classList.remove('mic-ready', 'mic-listening', 'mic-processing');
         switch (state) {
+            case 'ready':
+                micBtn.classList.add('mic-ready');
+                micBtn.innerHTML = '🎤'; 
+                micBtn.title = "Clique para falar";
+                break;
             case 'listening':
                 micBtn.classList.add('mic-listening');
                 micBtn.innerHTML = '⏹️'; 
-                micBtn.title = "Falando... Clique para enviar";
+                micBtn.title = "Falando... Clique para parar";
                 break;
             case 'processing':
                 micBtn.classList.add('mic-processing');
-                micBtn.innerHTML = '🎤'; 
+                micBtn.innerHTML = '•••'; 
                 micBtn.title = "Processando...";
                 break;
-            default: // idle
+            default: // disabled
                 micBtn.innerHTML = '🎤'; 
                 micBtn.title = "Aguarde sua vez";
                 break;
@@ -891,12 +903,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function finalizeConversation() {
-        isConversationActive = false; 
+        isConversationActive = false;
+        conversationState = 'IDLE';
         setProcessingState(false);
-        textInput.disabled = true;
-        sendBtn.disabled = true;
-        micBtn.disabled = true;
-        updateMicButtonState('default');
+        setUserTurnState(false);
         
         let totalPointsToAdd = 0;
         

@@ -593,3 +593,25 @@ html, body {
     font-weight: 500;
     align-self: flex-end;
 }
+
+/* ======================================================= */
+/* ===== NOVO: ESTADOS DO MICROFONE (MODO PRONTIDÃO) ===== */
+/* ======================================================= */
+
+@keyframes mic-ready-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(161, 98, 7, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(161, 98, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(161, 98, 7, 0);
+  }
+}
+
+#mic-btn.mic-ready {
+  color: var(--color-accent);
+  background-color: rgba(161, 98, 7, 0.1);
+  animation: mic-ready-pulse 1.5s infinite;
+}
