@@ -407,6 +407,7 @@ async function initiateChat() {
     isConversationActive = true;
     currentInteractionMode = 'text';
     renderChatInterface();
+    chatInputArea.classList.remove('voice-mode-active');
     micBtn.style.display = 'none';
     textInput.style.display = 'block';
     sendBtn.style.display = 'flex';
@@ -512,7 +513,8 @@ async function initiateVoiceChat() {
     isConversationActive = true;
     currentInteractionMode = 'voice';
     renderChatInterface();
-    setupVoiceUI();
+    chatInputArea.classList.add('voice-mode-active');
+    micBtn.style.display = 'flex';
     conversationHistory = [];
     const scenarioInEnglish = currentScenario.details['en-US'];
     displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
@@ -692,6 +694,11 @@ async function startRecording() {
         mediaRecorder.start();
         conversationState = 'USER_LISTENING';
         updateMicButtonState('listening');
+        const statusIndicator = document.createElement('span');
+        statusIndicator.id = 'voice-status-indicator'; 
+        statusIndicator.className = 'voice-status-indicator';
+        statusIndicator.textContent = '-- Gravando... --';
+        chatInputArea.insertBefore(statusIndicator, micBtn); // Insere o texto antes do microfone
 
     } catch (error) {
         console.error('Microphone access denied or error:', error);
@@ -703,6 +710,11 @@ async function startRecording() {
 async function handleRecordingStop() {
     conversationState = 'PROCESSING';
     updateMicButtonState('processing');
+    
+    const statusIndicator = document.getElementById('voice-status-indicator');
+    if (statusIndicator) {
+        statusIndicator.remove();
+    }
 
     const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
 

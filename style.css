@@ -643,3 +643,34 @@ html, body {
         width: 100%;
     }
 }
+
+/* ======================================================= */
+/* ===== ESTILOS PARA A INTERFACE DE VOZ (NOVO) ===== */
+/* ======================================================= */
+
+/* Quando o modo de voz está ativo... */
+.chat-input-area.voice-mode-active {
+    justify-content: flex-end; /* Alinha o conteúdo (o microfone) à direita */
+}
+
+/* Oculta o input de texto e o botão de enviar */
+.chat-input-area.voice-mode-active #text-input,
+.chat-input-area.voice-mode-active #send-btn {
+    display: none;
+}
+
+/* Move o botão do microfone para a direita */
+.chat-input-area.voice-mode-active #mic-btn {
+    margin-left: auto; /* Truque de flexbox para empurrar para a direita */
+}
+
+/* Estilo para o novo indicador de texto "Gravando..." */
+.voice-status-indicator {
+    flex-grow: 1; /* Permite que o texto ocupe o espaço vazio */
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+    align-self: center; /* Centraliza verticalmente */
+    user-select: none; /* Impede que o texto seja selecionado */
+}
