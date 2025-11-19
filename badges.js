@@ -70,7 +70,7 @@ const BADGES = {
         tiers: [{
             level: "bronze",
             goal: 3,
-            name: "Foguete de Fogo",
+            name: "Foguetinho",
             description: "Mantenha uma sequência de 3 dias de prática.",
             icon: "🔥",
             quote: "Três dias seguidos! Você pegou fogo, hein? Cuidado pra não queimar a largada!"
@@ -190,7 +190,7 @@ const BADGES = {
             name: "Especialista Gourmet",
             description: "Complete 10 missões na categoria 'Restaurantes e Cafés'.",
             icon: "🍽️",
-            quote: "Dez missões! Você já pode até reclamar do ponto da carne em inglês. Chique demais!"
+            quote: "Dez missões! Você já pode até reclamar do ponto da carne em outra língua. Chique demais!"
         }]
     },
     "category_travel": {
@@ -237,7 +237,7 @@ const BADGES = {
         tiers: [{
             level: "bronze",
             goal: 5,
-            name: "Fazendo Amigos",
+            name: "Amigão",
             description: "Complete 5 missões na categoria 'Situações Sociais'.",
             icon: "👋",
             quote: "Quebrou o gelo, elogiou, convidou... Você já é a alma da festa (ou pelo menos do ponto de ônibus)!"
@@ -259,7 +259,7 @@ const BADGES = {
             name: "Jovem Talento",
             description: "Complete 5 missões na categoria 'Profissional'.",
             icon: "📈",
-            quote: "Seu inglês profissional está decolando. Logo, logo vai estar pedindo aumento!"
+            quote: "Sua fluência profissional está decolando. Logo, logo vai estar pedindo aumento!"
         }, {
             level: "gold",
             goal: 10,
@@ -294,7 +294,7 @@ const BADGES = {
         tiers: [{
             level: "bronze",
             goal: 5,
-            name: "Primeiros Socorros",
+            name: "Farmacinha Ambulante",
             description: "Complete 5 missões na categoria 'Saúde e Bem-estar'.",
             icon: "🩹",
             quote: "Já sabe descrever uma dor de cabeça e comprar um remédio. É o básico que salva!"

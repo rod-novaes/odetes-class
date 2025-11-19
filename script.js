@@ -1,40 +1,29 @@
-// CÓLOGO ATUALIZADO E CORRIGIDO PARA script.js
-
 // =================================================================
 //  1. MAPEAMENTO DE ELEMENTOS DO DOM (ESCOPO GLOBAL)
 // =================================================================
-// MODIFICAÇÃO: Movido para o escopo global para que as funções globais possam acessá-los.
 const mainContentArea = document.getElementById('main-content-area');
 const textInput = document.getElementById('text-input');
 const sendBtn = document.getElementById('send-btn');
 const chatInputArea = document.querySelector('.chat-input-area');
-const proficiencySelect = document.getElementById('proficiency-select');
-const languageSelect = document.getElementById('language-select');
 const bottomNavBar = document.getElementById('bottom-nav-bar');
 const navHomeBtn = document.getElementById('nav-home-btn');
 const navCustomBtn = document.getElementById('nav-custom-btn');
 const navStoreBtn = document.getElementById('nav-store-btn');
 const navHistoryBtn = document.getElementById('nav-history-btn');
-const navSettingsBtn = document.getElementById('nav-settings-btn');
+const navGuideBtn = document.getElementById('nav-guide-btn');
 const feedbackModal = document.getElementById('feedback-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const feedbackContent = document.getElementById('feedback-content');
 const translateBtn = document.getElementById('translate-btn');
-const apiKeyModal = document.getElementById('api-key-modal');
-const modalGoogleApiKeyInput = document.getElementById('modal-google-api-key-input');
-const modalElevenLabsApiKeyInput = document.getElementById('modal-elevenlabs-api-key-input');
-const saveApiKeyBtn = document.getElementById('save-api-key-btn');
-const changeApiKeyBtn = document.getElementById('change-api-key-btn');
 const historyModal = document.getElementById('history-modal');
 const historyModalTitle = document.getElementById('history-modal-title');
 const historyModalContent = document.getElementById('history-modal-content');
 const historyModalCloseBtn = document.getElementById('history-modal-close-btn');
+const historyPracticeAgainBtn = document.getElementById('history-practice-again-btn');
 const missionModal = document.getElementById('mission-modal');
 const missionGoalText = document.getElementById('mission-goal-text');
 const missionModalCloseBtn = document.getElementById('mission-modal-close-btn');
 const missionImageContainer = document.getElementById('mission-image-container');
-const settingsModal = document.getElementById('settings-modal');
-const settingsModalCloseBtn = document.getElementById('settings-modal-close-btn');
 const micBtn = document.getElementById('mic-btn');
 const startTextMissionBtn = document.getElementById('start-text-mission-btn');
 const startVoiceMissionBtn = document.getElementById('start-voice-mission-btn');
@@ -57,9 +46,14 @@ const appContainer = document.getElementById('app-container');
 // =================================================================
 //  2. VARIÁVEIS DE ESTADO E CONSTANTES GLOBAIS
 // =================================================================
-const AVATAR_AI_URL = 'https://cdn.icon-icons.com/icons2/1371/PNG/512/robot02_90810.png';
+const AVATAR_FEMALE_URL = 'assets/avatar-odete2.png';
+const AVATAR_MALE_URL = 'assets/avatar-luciano.png';
+function getAIAvatar() {
+    const gender = localStorage.getItem('voiceGender') || 'female';
+    return gender === 'male' ? AVATAR_MALE_URL : AVATAR_FEMALE_URL;
+}
 const AVATAR_USER_URL = 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png';
-const TYPING_SIMULATION_DELAY = 1000;
+const TYPING_SIMULATION_DELAY = 500;
 let conversationHistory = [];
 let currentScenario = null;
 let originalFeedback = '';
@@ -70,7 +64,7 @@ let conversationState = 'IDLE'; // IDLE, AI_SPEAKING, AWAITING_USER_INPUT, USER_
 let isConversationActive = false;
 const synthesis = window.speechSynthesis;
 let voices = [];
-let currentAudioPlayer = null; // Para áudio da ElevenLabs
+let currentAudioPlayer = null; // Para áudio da ElevenLabs/Google
 let mediaRecorder;
 let audioChunks = [];
 let badgeNotificationQueue = [];
@@ -81,16 +75,15 @@ let messageDisplayTimeoutId = null;
 //  3. SISTEMA DE GAMIFICAÇÃO: ENERGIA (CORAÇÕES)
 // =================================================================
 const MAX_HEARTS = 10;
-const RECHARGE_TIME_MS = 60 * 60 * 1000; // 1 hora
+const RECHARGE_TIME_MS = 6 * 60 * 60 * 1000; // 6 horas
 let userHearts = MAX_HEARTS;
 let nextHeartTimestamp = 0;
 let heartRechargeInterval = null;
 
 // =================================================================
-//  MODIFICAÇÃO: TODAS AS FUNÇÕES FORAM MOVIDAS PARA O ESCOPO GLOBAL
+//  4. FUNÇÕES DE INICIALIZAÇÃO E UTILITÁRIOS GLOBAIS
 // =================================================================
 
-// --- Funções de Inicialização da API de Voz (Nativa do Navegador) ---
 function initializeSpeechAPI() {
     function populateVoiceList() {
         if (synthesis.getVoices().length > 0) { voices = synthesis.getVoices(); }
@@ -100,38 +93,26 @@ function initializeSpeechAPI() {
 }
 
 // =================================================================
-//  4. GERENCIAMENTO DE CHAVES DE API
+//  5. GERENCIAMENTO DE CONFIGURAÇÕES E CABEÇALHO
 // =================================================================
-const getGoogleApiKey = () => localStorage.getItem('googleApiKey');
-const getElevenLabsApiKey = () => localStorage.getItem('elevenLabsApiKey');
-function openApiKeyModal(isPersistent = false) { if (isPersistent) { apiKeyModal.classList.add('modal-persistent'); } else { apiKeyModal.classList.remove('modal-persistent'); } apiKeyModal.classList.remove('modal-hidden'); }
-const closeApiKeyModal = () => apiKeyModal.classList.add('modal-hidden');
-function saveApiKey() {
-    const googleKey = modalGoogleApiKeyInput.value.trim();
-    const elevenLabsKey = modalElevenLabsApiKeyInput.value.trim();
-    if (googleKey && elevenLabsKey) {
-        localStorage.setItem('googleApiKey', googleKey);
-        localStorage.setItem('elevenLabsApiKey', elevenLabsKey);
-        closeApiKeyModal();
-        initializeApp();
-    } else {
-        alert("Por favor, insira as duas chaves de API para continuar.");
+function setDefaultSettings() {
+    if (!localStorage.getItem('language')) {
+        localStorage.setItem('language', 'en-US');
+    }
+    if (!localStorage.getItem('proficiency')) {
+        localStorage.setItem('proficiency', 'intermediate');
+    }
+    if (!localStorage.getItem('voiceGender')) {
+        localStorage.setItem('voiceGender', 'female'); // Padrão feminino
     }
 }
 
-// =================================================================
-//  5. GERENCIAMENTO DE CONFIGURAÇÕES E CABEÇALHO
-// =================================================================
-function loadSettings() {
-    const savedLanguage = localStorage.getItem('language');
-    const savedProficiency = localStorage.getItem('proficiency');
-    if (savedLanguage) languageSelect.value = savedLanguage;
-    if (savedProficiency) proficiencySelect.value = savedProficiency;
-}
-
 function updateHeaderIndicators() {
-    const langMap = { "en-US": "🇺🇸" };
-    const currentLang = languageSelect.value;
+    const langMap = { 
+        "en-US": "🇺🇸", 
+        "es-MX": "🇲🇽" 
+    };
+    const currentLang = localStorage.getItem('language') || 'en-US';
     langIndicatorBtn.innerHTML = langMap[currentLang] || '🌐';
 
     const profMap = {
@@ -139,7 +120,7 @@ function updateHeaderIndicators() {
         intermediate: '★★<span class="star-off">★</span>',
         advanced: '★★★'
     };
-    const currentProf = proficiencySelect.value;
+    const currentProf = localStorage.getItem('proficiency') || 'intermediate';
     proficiencyIndicatorBtn.innerHTML = profMap[currentProf] || '★★★';
 }
 
@@ -229,6 +210,16 @@ function spendHeart() {
     return false;
 }
 
+function addHearts(amount) {
+    userHearts = Math.min(MAX_HEARTS, userHearts + amount);
+    if (userHearts >= MAX_HEARTS) {
+        nextHeartTimestamp = 0; 
+    }
+    saveHeartData();
+    updateHeartsDisplay();
+    startHeartRechargeTimer(); 
+}
+
 function updateHeartsDisplay() {
     heartsIndicator.innerHTML = `❤️ ${userHearts}`;
     heartsIndicator.classList.remove('score-indicator-hidden');
@@ -237,6 +228,10 @@ function updateHeartsDisplay() {
 function showNoHeartsModal() {
     const existingModal = document.getElementById('no-hearts-modal');
     if (existingModal) existingModal.remove();
+
+    const userCoins = getCoins();
+    const rechargeCost = 40;
+    const canAfford = userCoins >= rechargeCost;
 
     const modalOverlay = document.createElement('div');
     modalOverlay.id = 'no-hearts-modal';
@@ -249,12 +244,15 @@ function showNoHeartsModal() {
                 <span class="modal-close">&times;</span>
             </div>
             <div class="modal-body" style="text-align: center;">
-                <p>Puxa! Parece que sua energia acabou por agora. ❤️</p>
-                <p>Descanse um pouco e seus corações recarregarão com o tempo. Um novo coração é adicionado a cada hora!</p>
+                <p>Puxa! Parece que sua energia acabou por agora.</p>
+                <p>Seus corações recarregam automaticamente com o tempo (1 ❤️ a cada 6 horas).</p>
                 <br>
-                <div class="completion-actions" style="gap: 16px;">
-                    <button id="go-to-store-btn" disabled>Ir para a Loja</button>
-                    <button id="no-hearts-ok-btn" class="primary-btn">Entendido</button>
+                <p>Não quer esperar? Recarregue agora mesmo na loja!</p>
+                <div class="completion-actions" style="gap: 16px; margin-top: 16px;">
+                    <button id="no-hearts-ok-btn" class="completion-finish-btn">Entendido</button>
+                    <button id="recharge-hearts-btn" class="primary-btn" ${!canAfford ? 'disabled title="Moedas insuficientes"' : ''}>
+                        Recarregar com ${rechargeCost} 🪙
+                    </button>
                 </div>
             </div>
         </div>
@@ -264,14 +262,135 @@ function showNoHeartsModal() {
     const closeModal = () => modalOverlay.remove();
     modalOverlay.querySelector('.modal-close').addEventListener('click', closeModal);
     modalOverlay.querySelector('#no-hearts-ok-btn').addEventListener('click', closeModal);
+    
+    const rechargeBtn = modalOverlay.querySelector('#recharge-hearts-btn');
+    if (rechargeBtn && !rechargeBtn.disabled) {
+        rechargeBtn.addEventListener('click', () => {
+            closeModal();
+            renderStorePage();
+        });
+    }
+
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 }
+
 
 // =================================================================
 //  7. GERENCIAMENTO DE HISTÓRICO DE CONVERSAS
 // =================================================================
-function populateHistoryList(listElement) { const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; listElement.innerHTML = ''; if (history.length === 0) { listElement.innerHTML = '<li><small>Nenhum diálogo no histórico.</small></li>'; return; } history.forEach((item, index) => { const li = document.createElement('li'); li.className = 'history-item'; const viewButton = document.createElement('div'); viewButton.className = 'history-item-view'; viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; viewButton.dataset.index = index; const deleteButton = document.createElement('button'); deleteButton.className = 'history-item-delete'; deleteButton.innerHTML = '&times;'; deleteButton.title = 'Excluir este item'; deleteButton.dataset.index = index; li.appendChild(viewButton); li.appendChild(deleteButton); listElement.appendChild(li); }); }
-function showHistoryModal(index) { const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; const item = history[index]; if (!item) return; historyModalTitle.textContent = item.scenarioName; historyModalContent.innerHTML = ''; item.transcript.forEach(msg => { const el = document.createElement('div'); el.classList.add('message', `${msg.role}-message`); const p = document.createElement('p'); p.textContent = msg.content; el.appendChild(p); historyModalContent.appendChild(el); }); if (item.feedback) { const separator = document.createElement('hr'); separator.className = 'history-feedback-separator'; const feedbackTitle = document.createElement('h3'); feedbackTitle.className = 'history-feedback-title'; feedbackTitle.textContent = 'Análise de Desempenho Salva'; const feedbackContainer = document.createElement('div'); feedbackContainer.className = 'history-feedback-content'; feedbackContainer.innerHTML = formatFeedbackText(item.feedback); historyModalContent.appendChild(separator); historyModalContent.appendChild(feedbackTitle); historyModalContent.appendChild(feedbackContainer); } historyModal.classList.remove('modal-hidden'); }
+function populateHistoryList(listElement) { 
+    const history = JSON.parse(localStorage.getItem('conversationHistory')) || []; 
+    listElement.innerHTML = ''; 
+    if (history.length === 0) { 
+        listElement.innerHTML = '<li><small>Nenhum diálogo no histórico.</small></li>'; 
+        return; 
+    } 
+    history.forEach((item, index) => { 
+        const li = document.createElement('li'); 
+        li.className = 'history-item'; 
+        const viewButton = document.createElement('div'); 
+        viewButton.className = 'history-item-view'; 
+        // Exibe o nome do cenário na língua em que foi praticado, ou o fallback em inglês
+        viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; 
+        viewButton.dataset.index = index; 
+        const deleteButton = document.createElement('button'); 
+        deleteButton.className = 'history-item-delete'; 
+        deleteButton.innerHTML = '&times;'; 
+        deleteButton.title = 'Excluir este item'; 
+        deleteButton.dataset.index = index; 
+        li.appendChild(viewButton); 
+        li.appendChild(deleteButton); 
+        listElement.appendChild(li); 
+    }); 
+}
+
+function showHistoryModal(index) {
+    const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+    const item = history[index];
+    if (!item) return;
+
+    let scenarioToPractice;
+
+    if (item.categoryName === 'custom') {
+        scenarioToPractice = {
+            "pt-BR": { goal: item.scenarioGoal },
+            "en-US": { name: item.scenarioName, goal: item.scenarioGoal },
+            "es-MX": { name: item.scenarioName, goal: item.scenarioGoal } // Adiciona fallback
+        };
+    } else {
+        // Tenta encontrar pelo ID do cenário (chave em PT-BR), que é mais seguro
+        if (item.scenarioId && SCENARIOS[item.categoryName] && SCENARIOS[item.categoryName][item.scenarioId]) {
+             scenarioToPractice = SCENARIOS[item.categoryName][item.scenarioId];
+        } 
+        // Fallback para sistemas antigos (pelo nome em inglês)
+        else {
+            const categoryScenarios = SCENARIOS[item.categoryName];
+            let originalScenarioKey = null;
+            if (categoryScenarios) {
+                originalScenarioKey = Object.keys(categoryScenarios).find(key => 
+                    categoryScenarios[key]['en-US'].name === item.scenarioName
+                );
+            }
+            if (originalScenarioKey) {
+                scenarioToPractice = SCENARIOS[item.categoryName][originalScenarioKey];
+            }
+        }
+    }
+
+    const practiceBtn = document.getElementById('history-practice-again-btn');
+
+    if (scenarioToPractice && practiceBtn) {
+        practiceBtn.style.display = 'block';
+
+        const newBtn = practiceBtn.cloneNode(true);
+        practiceBtn.parentNode.replaceChild(newBtn, practiceBtn);
+        
+        newBtn.addEventListener('click', () => {
+            if (userHearts < 1) {
+                showNoHeartsModal();
+                return;
+            }
+            historyModal.classList.add('modal-hidden');
+            // Usa o scenarioId se disponível, senão tenta recuperar do nome
+            const scenarioId = item.scenarioId || Object.keys(SCENARIOS[item.categoryName] || {}).find(k => SCENARIOS[item.categoryName][k]['en-US'].name === item.scenarioName);
+            
+            setTimeout(() => {
+                startNewConversation(scenarioToPractice, item.categoryName, scenarioId);
+            }, 300);
+        });
+
+    } else if (practiceBtn) {
+        practiceBtn.style.display = 'none';
+    }
+    
+    historyModalTitle.textContent = item.scenarioName;
+    historyModalContent.innerHTML = '';
+    item.transcript.forEach(msg => {
+        const el = document.createElement('div');
+        el.classList.add('message', `${msg.role}-message`);
+        const p = document.createElement('p');
+        p.textContent = msg.content;
+        el.appendChild(p);
+        historyModalContent.appendChild(el);
+    });
+
+    if (item.feedback) {
+        const separator = document.createElement('hr');
+        separator.className = 'history-feedback-separator';
+        const feedbackTitle = document.createElement('h3');
+        feedbackTitle.className = 'history-feedback-title';
+        feedbackTitle.textContent = 'Your Feedback';
+        const feedbackContainer = document.createElement('div');
+        feedbackContainer.className = 'history-feedback-content';
+        feedbackContainer.innerHTML = formatFeedbackText(item.feedback);
+        historyModalContent.appendChild(separator);
+        historyModalContent.appendChild(feedbackTitle);
+        historyModalContent.appendChild(feedbackContainer);
+    }
+
+    historyModal.classList.remove('modal-hidden');
+}
+
 function deleteHistoryItem(index) { if (!confirm('Tem certeza de que deseja excluir este diálogo do seu histórico?')) { return; } let history = JSON.parse(localStorage.getItem('conversationHistory')) || []; history.splice(index, 1); localStorage.setItem('conversationHistory', JSON.stringify(history)); renderHistoryPage(); }
 
 // =================================================================
@@ -294,6 +413,7 @@ function renderHomePage() {
 
     mainContentArea.scrollTop = 0;
 }
+
 function renderCustomScenarioPage() {
     updateActiveNavIcon('nav-custom-btn');
     mainContentArea.innerHTML = '';
@@ -307,19 +427,31 @@ function renderCustomScenarioPage() {
     updateHeartsDisplay();
     headerBackBtn.classList.add('back-btn-hidden');
 
-    const selectedLanguageName = languageSelect.options[languageSelect.selectedIndex].text;
+    // Exibe o nome do idioma atual para o usuário
+    const langMap = { "en-US": "inglês", "es-MX": "espanhol" };
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const selectedLanguageName = langMap[currentLang] || "inglês";
 
     const customScenarioContainer = document.createElement('div');
     customScenarioContainer.className = 'custom-scenario-container';
     customScenarioContainer.innerHTML = `
         <h2>Cenário Personalizado</h2>
-        <p>Descreva uma situação ou objetivo que você gostaria de praticar em ${selectedLanguageName}.</p>
-        <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Pedir o reembolso de um produto com defeito em uma loja de eletrônicos..."></textarea>
+        <p>Descreva uma situação ou objetivo que você gostaria de praticar em <strong>${selectedLanguageName}</strong>.</p>
+        
+        <div class="custom-charge-info">
+            <p>
+                <span style="font-size: 1.2rem;">✨</span> Cenários personalizados custam <span class="custom-charge-hearts">2 Corações ❤️❤️</span>.
+                Eles exigem um esforço extra da IA!
+            </p>
+        </div>
+        
+        <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Convidar a pessoa que amo para sair, correndo o risco de sofer uma rejeição."></textarea>
         <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
         <button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>
     `;
     mainContentArea.appendChild(customScenarioContainer);
 }
+
 function showCustomScenarioError(message) { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = message; feedbackArea.style.display = 'block'; } }
 function clearCustomScenarioError() { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = ''; feedbackArea.style.display = 'none'; } }
 
@@ -345,6 +477,7 @@ function renderHistoryPage() {
     historyContainer.appendChild(list);
     mainContentArea.appendChild(historyContainer);
 }
+
 function renderChatInterface() {
     mainContentArea.innerHTML = '';
     mainContentArea.className = 'main-content-area chat-window';
@@ -359,21 +492,280 @@ function renderChatInterface() {
     headerBackBtn.classList.add('back-btn-hidden');
 }
 
+function renderSettingsPage() {
+    updateActiveNavIcon(null); 
+    mainContentArea.innerHTML = '';
+    mainContentArea.className = 'main-content-area settings-page';
+    chatInputArea.classList.add('chat-input-hidden');
+    bottomNavBar.classList.remove('nav-hidden');
+    heartsIndicator.classList.add('score-indicator-hidden');
+    exitChatBtn.classList.add('exit-chat-btn-hidden');
+    headerBackBtn.classList.remove('back-btn-hidden');
+
+    const settingsContainer = document.createElement('div');
+    settingsContainer.className = 'settings-page-container';
+    settingsContainer.innerHTML = `
+        <section class="settings-section">
+            <h2>Idioma da Prática</h2>
+            <div class="language-options-container">
+                <div class="option-card language-card" data-value="en-US"><span>🇺🇸</span> English</div>
+                <div class="option-card language-card" data-value="es-MX"><span>🇲🇽</span> Español</div>
+            </div>
+        </section>
+        <section class="settings-section">
+            <h2>Nível de Dificuldade</h2>
+            <div class="proficiency-grid">
+                <div class="option-card proficiency-card" data-value="basic">
+                    <div class="proficiency-info">
+                        <h5>Básico</h5>
+                        <p>Frases curtas</p>
+                    </div>
+                    <div class="proficiency-stars">
+                        ★<span class="star-off">★★</span>
+                    </div>
+                </div>
+                <div class="option-card proficiency-card" data-value="intermediate">
+                    <div class="proficiency-info">
+                        <h5>Intermediário</h5>
+                        <p>Conversa direta</p>
+                    </div>
+                    <div class="proficiency-stars">
+                        ★★<span class="star-off">★</span>
+                    </div>
+                </div>
+                <div class="option-card proficiency-card" data-value="advanced">
+                    <div class="proficiency-info">
+                        <h5>Avançado</h5>
+                        <p>Conversa natural</p>
+                    </div>
+                    <div class="proficiency-stars">
+                        ★★★
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="settings-section">
+            <h2>Voz da IA</h2>
+            <div class="language-options-container">
+                <div class="option-card voice-card" data-value="female">
+                    <img src="assets/avatar-odete2.png" alt="Odete" class="settings-avatar">
+                    Feminina
+                </div>
+                <div class="option-card voice-card" data-value="male">
+                    <img src="assets/avatar-luciano.png" alt="Luciano" class="settings-avatar">
+                    Masculina
+                </div>
+            </div>
+        </section>
+    `;
+    mainContentArea.appendChild(settingsContainer);
+
+    const savedLanguage = localStorage.getItem('language') || 'en-US';
+    const savedProficiency = localStorage.getItem('proficiency') || 'intermediate';
+
+    const activeLangCard = document.querySelector(`.option-card[data-value="${savedLanguage}"]`);
+    if (activeLangCard) {
+        activeLangCard.classList.add('active');
+    }
+
+    const activeProfCard = document.querySelector(`.option-card[data-value="${savedProficiency}"]`);
+    if (activeProfCard) {
+        activeProfCard.classList.add('active');
+    }
+
+    const savedVoice = localStorage.getItem('voiceGender') || 'female';
+    const activeVoiceCard = document.querySelector(`.option-card[data-value="${savedVoice}"]`);
+    if (activeVoiceCard) {
+        activeVoiceCard.classList.add('active');
+    }
+}
+
+function renderGuidePage() {
+    updateActiveNavIcon('nav-guide-btn');
+    mainContentArea.innerHTML = '';
+    mainContentArea.className = 'main-content-area guide-page';
+    chatInputArea.classList.add('chat-input-hidden');
+    bottomNavBar.classList.remove('nav-hidden');
+    heartsIndicator.classList.add('score-indicator-hidden');
+    exitChatBtn.classList.add('exit-chat-btn-hidden');
+    headerBackBtn.classList.add('back-btn-hidden');
+
+    const languageMap = { 'en-US': 'inglês', 'es-MX': 'espanhol' };
+    const currentLanguageName = languageMap[localStorage.getItem('language') || 'en-US'];
+
+    const guideContainer = document.createElement('div');
+    guideContainer.className = 'guide-carousel-container';
+    guideContainer.innerHTML = `
+        <div class="guide-carousel-wrapper">
+            <div class="guide-carousel-slides">
+                <!-- Slide 1: Sua Guia -->
+                <div class="guide-carousel-card" data-icon="👋">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div>    
+                    <h2>Seus Guias</h2>
+                    <div class="guide-content">
+                        <p>Olá! Somos <strong>Luciano e Odete</strong>, seus guias pessoais nesta jornada.</p>
+                        <p>Vamos ajudar você a destravar seu <strong>${currentLanguageName}</strong> em diálogos realistas <strong>conduzidos por IA</strong>.</p>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Suas Missões -->
+                <div class="guide-carousel-card" data-icon="🎯">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete-apontando.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div> 
+                    <h2>Suas Missões</h2>
+                    <div class="guide-content">
+                        <p>Cada diálogo tem um objetivo realista, seja pedir um café, fazer uma apresentação ou chamar alguém pra sair.</p>
+                        <p>Você pode cumprir suas missões por voz 🎤 ou texto ✍️.</p>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Idioma e Nível -->
+                <div class="guide-carousel-card" data-icon="⭐">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete-estrelas.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div> 
+                    <h2>Idioma e Nível</h2>
+                    <div class="guide-content">
+                        <p>Você está no controle! A qualquer momento, clique nas estrelas no topo da tela para ajustar o idioma e o nível de dificuldade.</p>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Corações -->
+                <div class="guide-carousel-card" data-icon="❤️">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete-coracao.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div> 
+                    <h2>Corações</h2>
+                    <div class="guide-content">
+                        <p>Os corações são sua <strong>energia</strong>. Missões custam <strong>1 ❤️</strong> (normais) ou <strong>2 ❤️</strong> (personalizadas).</p>
+                        <p>Eles recarregam com o tempo. Se acabar, espere ou visite a 🛍️ <strong>Loja</strong>.</p>
+                    </div>
+                </div>
+                
+                <!-- Slide 5: Moedas -->
+                <div class="guide-carousel-card" data-icon="🪙">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete-moedas.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div> 
+                    <h2>Moedas</h2>
+                    <div class="guide-content">
+                        <p>Você ganha moedas ao completar missões. Dica: missões por voz 🎤 rendem <strong>o dobro de moedas!</strong></p>
+                        <p>Use-as na 🛍️ <strong>Loja</strong> para comprar corações e novos cenários</p>
+                    </div>
+                </div>
+
+                <!-- Slide 6: Ações -->
+                <div class="guide-carousel-card" data-icon="🚀">
+                    <div class="guide-header">
+                        <img src="assets/luciano-e-odete-apontando-para-baixo.png" alt="Odete, sua guia" class="guide-avatar">
+                    </div> 
+                    <h2>Vamos começar?</h2>
+                    <div class="guide-content">
+                        <div class="completion-actions guide-actions">
+                            <button id="guide-start-mission-btn" class="primary-btn">Começar Primeira Missão</button>
+                            <button id="guide-go-to-settings-btn" class="completion-finish-btn">Ajustar Idioma ⭐</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="guide-carousel-dots">
+        </div>
+    `;
+
+    mainContentArea.appendChild(guideContainer);
+    mainContentArea.scrollTop = 0;
+
+    setupGuideCarousel();
+}
+
+function setupGuideCarousel() {
+    const slidesContainer = document.querySelector('.guide-carousel-slides');
+    const cards = document.querySelectorAll('.guide-carousel-card');
+    const dotsContainer = document.querySelector('.guide-carousel-dots');
+
+    if (!slidesContainer || cards.length === 0 || !dotsContainer) return;
+
+    let currentSlideIndex = 0;
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    cards.forEach((_, index) => {
+        const dot = document.createElement('span');
+        dot.classList.add('guide-dot');
+        dot.dataset.index = index;
+        if (index === 0) {
+            dot.classList.add('active');
+        }
+        dotsContainer.appendChild(dot);
+    });
+    const dots = document.querySelectorAll('.guide-dot');
+
+    function updateCarouselState(newIndex) {
+        if (newIndex < 0 || newIndex >= cards.length) return;
+
+        currentSlideIndex = newIndex;
+
+        slidesContainer.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
+
+        dots.forEach(dot => {
+            dot.classList.toggle('active', parseInt(dot.dataset.index) === currentSlideIndex);
+        });
+    }
+    
+    dotsContainer.addEventListener('click', (e) => {
+        const targetDot = e.target.closest('.guide-dot');
+        if (targetDot) {
+            const index = parseInt(targetDot.dataset.index);
+            updateCarouselState(index);
+        }
+    });
+
+    slidesContainer.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    slidesContainer.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipeGesture();
+    });
+
+    function handleSwipeGesture() {
+        const swipeThreshold = 50;
+        const difference = touchStartX - touchEndX;
+
+        if (Math.abs(difference) < swipeThreshold) {
+            return;
+        }
+        
+        if (difference > 0) {
+            updateCarouselState(currentSlideIndex + 1);
+        } else {
+            updateCarouselState(currentSlideIndex - 1);
+        }
+    }
+}
+
 // =================================================================
 //  10. LÓGICA CENTRAL DA CONVERSA
 // =================================================================
-function startNewConversation(scenario, categoryName) {
-    if (!getGoogleApiKey() || !getElevenLabsApiKey()) {
-        openApiKeyModal(true);
-        return;
-    }
-
+/**
+ * Inicia uma nova conversa.
+ * @param {Object} scenario O objeto do cenário contendo todos os idiomas (pt-BR, en-US, es-MX).
+ * @param {string} categoryName O nome da categoria.
+ * @param {string} scenarioId O ID do cenário (geralmente a chave em PT-BR, ex: "Pedindo um desconto").
+ */
+function startNewConversation(scenario, categoryName, scenarioId) {
     currentScenario = {
         details: scenario,
-        categoryName: categoryName
+        categoryName: categoryName,
+        id: scenarioId
     };
 
-    const currentLevel = proficiencySelect.value;
+    const currentLevel = localStorage.getItem('proficiency') || 'intermediate';
     const coinsEarnedText = calculateMissionCoins(currentLevel, 'text');
     const coinsEarnedVoice = calculateMissionCoins(currentLevel, 'voice');
 
@@ -389,6 +781,7 @@ function startNewConversation(scenario, categoryName) {
         <span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>
     `;
 
+    // O objetivo mostrado ao usuário é sempre em PT-BR (instrução)
     missionGoalText.textContent = scenario['pt-BR'].goal;
 
     if (scenario && scenario.image) {
@@ -413,15 +806,18 @@ async function initiateChat() {
     sendBtn.style.display = 'flex';
 
     conversationHistory = [];
-    const scenarioInEnglish = currentScenario.details['en-US'];
-    displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
-    displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
+
+    // Seleciona os detalhes do cenário com base no idioma atual
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
+
+    displayMessage(`Scenario: ${scenarioDetails.name}`, 'system');
+    displayMessage(`🎯 Your Goal: ${scenarioDetails.goal}`, 'system');
     setProcessingState(true);
+
     try {
-        const apiKey = getGoogleApiKey();
-        if (!apiKey) throw new Error("Chave de API do Google não encontrada");
-        const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-        const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
+        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
+        const aiResponse = await getAIResponse(null, [], scenarioDetails, settings);
         conversationHistory.push({ role: 'assistant', content: aiResponse });
 
         messageDisplayTimeoutId = setTimeout(() => {
@@ -430,7 +826,12 @@ async function initiateChat() {
             setUserTurnState(true);
         }, TYPING_SIMULATION_DELAY);
 
-    } catch (error) { const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️."; displayMessage(userFriendlyError, 'ai'); setUserTurnState(true); }
+    } catch (error) {
+        console.error("Error initiating text chat:", error);
+        const userFriendlyError = `Erro de comunicação: ${error.message}.`;
+        displayMessage(userFriendlyError, 'ai');
+        setUserTurnState(true);
+    }
 }
 
 async function handleSendMessage() {
@@ -516,22 +917,25 @@ async function initiateVoiceChat() {
     chatInputArea.classList.add('voice-mode-active');
     micBtn.style.display = 'flex';
     conversationHistory = [];
-    const scenarioInEnglish = currentScenario.details['en-US'];
-    displayMessage(`Scenario: ${scenarioInEnglish.name}`, 'system');
-    displayMessage(`🎯 Your Goal: ${scenarioInEnglish.goal}`, 'system');
+
+    // Seleciona os detalhes do cenário com base no idioma atual
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
+
+    displayMessage(`Scenario: ${scenarioDetails.name}`, 'system');
+    displayMessage(`🎯 Your Goal: ${scenarioDetails.goal}`, 'system');
     setProcessingState(true);
+
     try {
-        const apiKey = getGoogleApiKey();
-        if (!apiKey) throw new Error("Chave de API do Google não encontrada");
-        const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-        const aiResponse = await getAIResponse(null, [], apiKey, scenarioInEnglish, settings);
+        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
+        const aiResponse = await getAIResponse(null, [], scenarioDetails, settings);
         conversationHistory.push({ role: 'assistant', content: aiResponse });
         await speakText(aiResponse);
     } catch (error) {
         console.error("Error initiating voice chat:", error);
-        const userFriendlyError = `Erro: ${error.message}. A sessão foi encerrada.`;
+        const userFriendlyError = `Erro de comunicação: ${error.message}.`;
         displayMessage(userFriendlyError, 'ai');
-        setProcessingState(false);
+        setUserTurnState(true);
     }
 }
 
@@ -580,6 +984,7 @@ function checkBrowserCompatibility() {
 // =================================================================
 function setProcessingState(isProcessing) {
     if (isProcessing) {
+        removeVoiceStatusIndicator();
         conversationState = 'PROCESSING';
         showTypingIndicator();
         textInput.disabled = true;
@@ -598,11 +1003,17 @@ function setUserTurnState(isUserTurn) {
         textInput.disabled = false;
         sendBtn.disabled = false;
         micBtn.disabled = false;
-        textInput.focus();
 
         if (currentInteractionMode === 'voice') {
             conversationState = 'AWAITING_USER_INPUT';
             updateMicButtonState('ready');
+            
+            removeVoiceStatusIndicator(); 
+            const statusIndicator = document.createElement('span');
+            statusIndicator.id = 'voice-status-indicator';
+            statusIndicator.className = 'voice-status-indicator';
+            statusIndicator.textContent = '-- Clique em 🎤 para falar --';
+            chatInputArea.insertBefore(statusIndicator, micBtn);
         }
     } else {
         textInput.disabled = true;
@@ -613,7 +1024,7 @@ function setUserTurnState(isUserTurn) {
 }
 
 async function speakText(text) {
-    text = text.replace(/[*_#]/g, '').replace(/<eng>|<\/eng>/g, '');
+    text = text.replace(/[*_#]/g, '').replace(/<lang>|<\/lang>/g, '');
     if (!text || text.trim() === '') {
         setUserTurnState(true);
         return Promise.resolve();
@@ -623,13 +1034,16 @@ async function speakText(text) {
     displayMessage(text, 'ai');
     removeTypingIndicator();
 
-    const elevenLabsApiKey = getElevenLabsApiKey();
-    if (!elevenLabsApiKey) {
-        return speakTextNative(text);
-    }
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const currentGender = localStorage.getItem('voiceGender') || 'female';
 
     try {
-        const audioBlob = await getAudioFromElevenLabs(text, elevenLabsApiKey);
+        // Tenta usar o servidor (Google Cloud TTS)
+        // Passamos o idioma para que a configuração correta seja usada
+        // Nota: Se configuration.js não estiver atualizado para aceitar o segundo argumento, 
+        // ele será ignorado e o backend fará fallback para en-US. 
+        // Nesse caso, o bloco catch (fallback nativo) é nossa rede de segurança.
+        const audioBlob = await getAudioFromServer(text, currentLang, currentGender); 
         const audioUrl = URL.createObjectURL(audioBlob);
         currentAudioPlayer = new Audio(audioUrl);
 
@@ -643,25 +1057,31 @@ async function speakText(text) {
             currentAudioPlayer.onerror = (e) => {
                 console.error('Audio playback error:', e);
                 URL.revokeObjectURL(audioUrl);
-                setUserTurnState(true);
-                resolve();
+                // Fallback para voz nativa
+                speakTextNative(text, currentLang).then(resolve);
             };
             currentAudioPlayer.play();
         });
 
     } catch (error) {
-        console.warn("ElevenLabs API failed, falling back to native TTS.", error);
-        showFallbackNotification();
-        return speakTextNative(text);
+        console.warn("Falha ao buscar áudio do servidor, usando TTS nativo.", error);
+        return speakTextNative(text, currentLang);
     }
 }
 
-function speakTextNative(text) {
+function speakTextNative(text, langCode) {
     return new Promise((resolve) => {
         synthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        const bestVoice = findBestEnglishVoice();
-        if (bestVoice) utterance.voice = bestVoice;
+        
+        // Seleciona a melhor voz nativa para o idioma
+        const bestVoice = findBestVoice(langCode);
+        if (bestVoice) {
+            utterance.voice = bestVoice;
+        } else {
+            // Fallback genérico de idioma se não encontrar voz específica
+            utterance.lang = langCode; 
+        }
 
         utterance.onstart = () => { };
         utterance.onend = () => {
@@ -677,8 +1097,33 @@ function speakTextNative(text) {
     });
 }
 
+function findBestVoice(langCode) {
+    if (voices.length === 0) voices = synthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    // Define o prefixo do idioma (ex: 'en', 'es')
+    const langPrefix = langCode.split('-')[0];
+
+    // Tenta encontrar vozes de alta qualidade (Google/Microsoft) para o idioma específico (ex: es-MX)
+    let bestVoice = voices.find(voice => voice.lang === langCode && (voice.name.includes('Google') || voice.name.includes('Microsoft')));
+    if (bestVoice) return bestVoice;
+
+    // Tenta encontrar qualquer voz para o idioma específico
+    bestVoice = voices.find(voice => voice.lang === langCode);
+    if (bestVoice) return bestVoice;
+
+    // Tenta encontrar vozes de alta qualidade para o grupo de idiomas (ex: es-ES para es-MX)
+    bestVoice = voices.find(voice => voice.lang.startsWith(langPrefix) && (voice.name.includes('Google') || voice.name.includes('Microsoft')));
+    if (bestVoice) return bestVoice;
+
+    // Qualquer voz do grupo de idiomas
+    return voices.find(voice => voice.lang.startsWith(langPrefix));
+}
+
 async function startRecording() {
     if (conversationState !== 'AWAITING_USER_INPUT') return;
+
+    removeVoiceStatusIndicator();
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -697,8 +1142,8 @@ async function startRecording() {
         const statusIndicator = document.createElement('span');
         statusIndicator.id = 'voice-status-indicator'; 
         statusIndicator.className = 'voice-status-indicator';
-        statusIndicator.textContent = '-- Gravando... --';
-        chatInputArea.insertBefore(statusIndicator, micBtn); // Insere o texto antes do microfone
+        statusIndicator.textContent = '-- Clique em ⏹️ quando terminar de falar --';
+        chatInputArea.insertBefore(statusIndicator, micBtn); 
 
     } catch (error) {
         console.error('Microphone access denied or error:', error);
@@ -719,10 +1164,7 @@ async function handleRecordingStop() {
     const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
 
     try {
-        const apiKey = getGoogleApiKey();
-        if (!apiKey) throw new Error("Chave de API do Google não encontrada.");
-
-        const transcript = await getTranscriptionFromAudio(audioBlob, apiKey);
+        const transcript = await getTranscriptionFromAudio(audioBlob);
 
         if (!transcript || transcript.trim() === '') {
             displayMessage("Não foi possível detectar fala. Tente novamente.", 'system');
@@ -734,9 +1176,16 @@ async function handleRecordingStop() {
 
     } catch (error) {
         console.error("Transcription or API error:", error);
-        const userFriendlyError = "Ocorreu um erro na transcrição de voz. Tente novamente ou use o modo texto.";
+        const userFriendlyError = "Ocorreu um erro na transcrição de voz. Verifique o console do servidor.";
         displayMessage(userFriendlyError, 'ai');
         setUserTurnState(true);
+    }
+}
+
+function removeVoiceStatusIndicator() {
+    const statusIndicator = document.getElementById('voice-status-indicator');
+    if (statusIndicator) {
+        statusIndicator.remove();
     }
 }
 
@@ -746,10 +1195,12 @@ async function processUserMessage(messageText) {
     setProcessingState(true);
 
     try {
-        const apiKey = getGoogleApiKey();
-        const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-        const scenarioInEnglish = currentScenario.details['en-US'];
-        const aiResponse = await getAIResponse(messageText, conversationHistory, apiKey, scenarioInEnglish, settings);
+        const currentLang = localStorage.getItem('language') || 'en-US';
+        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
+        // Garante que temos os detalhes do cenário no idioma correto
+        const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
+        
+        const aiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings);
 
         if (aiResponse.includes("[Scenario Complete]")) {
             const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
@@ -760,7 +1211,6 @@ async function processUserMessage(messageText) {
             }
 
             const coinsEarned = await finalizeConversation();
-
             displayCompletionScreen(coinsEarned);
 
         } else {
@@ -768,28 +1218,10 @@ async function processUserMessage(messageText) {
             await handleAIResponse(aiResponse);
         }
     } catch (error) {
-        const userFriendlyError = "Ocorreu um erro. Verifique sua conexão ou se sua Chave de API do Google está configurada corretamente em Configurações ⚙️.";
+        console.error("Erro no processamento da mensagem:", error);
+        const userFriendlyError = "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e se o servidor local está rodando no terminal.";
         await handleAIResponse(userFriendlyError);
     }
-}
-
-function showFallbackNotification() {
-    if (!sessionStorage.getItem('fallbackNotified')) {
-        alert("Seus créditos de voz premium da ElevenLabs podem ter acabado. O aplicativo continuará com a voz padrão do seu dispositivo. A qualidade da voz pode ser diferente.");
-        sessionStorage.setItem('fallbackNotified', 'true');
-    }
-}
-
-function findBestEnglishVoice() {
-    if (voices.length === 0) voices = synthesis.getVoices();
-    if (voices.length === 0) return null;
-    let bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google'));
-    if (bestVoice) return bestVoice;
-    bestVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft'));
-    if (bestVoice) return bestVoice;
-    bestVoice = voices.find(voice => voice.lang === 'en-US');
-    if (bestVoice) return bestVoice;
-    return voices.find(voice => voice.lang.startsWith('en-'));
 }
 
 function updateMicButtonState(state) {
@@ -898,7 +1330,7 @@ async function finalizeConversation() {
 
     let totalCoinsToAdd = 0;
 
-    const missionCoins = calculateMissionCoins(proficiencySelect.value, currentInteractionMode);
+    const missionCoins = calculateMissionCoins(localStorage.getItem('proficiency'), currentInteractionMode);
     totalCoinsToAdd += missionCoins;
 
     const todayStr = getTodayDateString();
@@ -942,16 +1374,24 @@ async function finalizeConversation() {
     const currentCoins = getCoins();
     saveCoins(currentCoins + totalCoinsToAdd);
 
-    const apiKey = getGoogleApiKey();
-    let finalScenarioName = currentScenario.details['en-US'].name;
-    if (finalScenarioName === "Custom Scenario" || finalScenarioName === "Cenário Personalizado") {
-        try { finalScenarioName = await getScenarioTitle(currentScenario.details['en-US'].goal, apiKey, languageSelect.value); } catch (error) { finalScenarioName = "Custom Scenario"; }
+    // Usa o idioma atual para salvar o nome do cenário corretamente no histórico
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    let finalScenarioName = currentScenario.details[currentLang].name;
+    
+    if (currentScenario.id === "Custom Scenario" || currentScenario.categoryName === "custom") {
+        try { 
+            finalScenarioName = await getScenarioTitle(currentScenario.details[currentLang].goal, currentLang); 
+        } catch (error) { 
+            finalScenarioName = "Custom Scenario"; 
+        }
     }
+    
     const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
 
     history.unshift({
         scenarioName: finalScenarioName,
-        scenarioGoal: currentScenario.details['en-US'].goal,
+        scenarioGoal: currentScenario.details[currentLang].goal,
+        scenarioId: currentScenario.id, // Salva o ID para referência futura segura
         timestamp: new Date().getTime(),
         transcript: conversationHistory,
         feedback: '',
@@ -964,7 +1404,8 @@ async function finalizeConversation() {
         categoryName: currentScenario.categoryName,
         interactionMode: currentInteractionMode,
         timestamp: new Date().getTime(),
-        scenarioName: currentScenario.details['en-US'].name
+        scenarioName: finalScenarioName,
+        scenarioId: currentScenario.id // Usado para validação de badges
     };
     await checkAndAwardBadges(newMissionData, true);
     processBadgeNotificationQueue();
@@ -973,6 +1414,7 @@ async function finalizeConversation() {
 }
 
 function displayCompletionScreen(rewards) {
+    chatInputArea.classList.add('chat-input-hidden');
     triggerCoinAnimation();
 
     const completionContainer = document.createElement('div');
@@ -1021,30 +1463,37 @@ function displayCompletionScreen(rewards) {
 
 function startNextChallenge() {
     spendHeart();
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    
+    // Reúne todos os cenários e adiciona o ID (chave PT-BR) a eles
     const allScenarios = Object.entries(SCENARIOS).flatMap(([category, scenarios]) =>
-        Object.values(scenarios).map(s => ({ ...s, categoryName: category }))
+        Object.entries(scenarios).map(([id, s]) => ({ ...s, categoryName: category, id: id }))
     );
-    const currentGoal = currentScenario.details['en-US'].goal;
-    const availableScenarios = allScenarios.filter(s => s['en-US'].goal !== currentGoal);
+    
+    const currentGoal = currentScenario.details[currentLang].goal;
+    // Filtra cenários diferentes do atual
+    const availableScenarios = allScenarios.filter(s => s[currentLang].goal !== currentGoal);
 
     if (availableScenarios.length > 0) {
         const randomIndex = Math.floor(Math.random() * availableScenarios.length);
         const nextScenario = availableScenarios[randomIndex];
-        startNewConversation(nextScenario, nextScenario.categoryName);
+        // Passa o ID (chave PT-BR) para startNewConversation
+        startNewConversation(nextScenario, nextScenario.categoryName, nextScenario.id);
     } else {
         renderHomePage();
         alert("Você praticou todos os cenários disponíveis!");
     }
 }
+
 async function handleGetFeedback() {
     feedbackModal.classList.remove('modal-hidden');
     feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>';
     translateBtn.classList.add('translate-btn-hidden');
     try {
-        const apiKey = getGoogleApiKey();
-        if (!apiKey) throw new Error("Chave de API do Google não encontrada.");
-        const settings = { language: languageSelect.value, proficiency: proficiencySelect.value };
-        originalFeedback = await getFeedbackForConversation(conversationHistory, apiKey, languageSelect.value, settings, currentInteractionMode);
+        const settings = { language: localStorage.getItem('language'), proficiency: localStorage.getItem('proficiency') };
+        
+        originalFeedback = await getFeedbackForConversation(conversationHistory, localStorage.getItem('language'), settings, currentInteractionMode);
+        
         const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
         if (history.length > 0 && !history[0].feedback) {
             history[0].feedback = originalFeedback;
@@ -1064,8 +1513,9 @@ async function handleGetFeedback() {
         localStorage.setItem('userStats', JSON.stringify(userStats));
         await checkAndAwardBadges(null, true);
         processBadgeNotificationQueue();
+
     } catch (error) {
-        feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}</p>`;
+        feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}. Verifique o console do servidor.</p>`;
     }
 }
 
@@ -1082,14 +1532,13 @@ async function handleTranslateFeedback() {
             localStorage.setItem('translateCount', translateCount);
 
             if (!translatedFeedback) {
-                const apiKey = getGoogleApiKey();
-                if (!apiKey) throw new Error("Chave de API do Google não encontrada.");
                 const protectedSnippets = [];
-                const textToTranslate = originalFeedback.replace(/<eng>(.*?)<\/eng>/g, (match, content) => {
+                // Regex atualizado para usar a tag <lang>
+                const textToTranslate = originalFeedback.replace(/<lang>(.*?)<\/lang>/g, (match, content) => {
                     protectedSnippets.push(content);
                     return `%%PROTECTED_${protectedSnippets.length - 1}%%`;
                 });
-                const translatedTextWithPlaceholders = await translateText(textToTranslate, apiKey, languageSelect.value);
+                const translatedTextWithPlaceholders = await translateText(textToTranslate, localStorage.getItem('language'));
                 let finalTranslatedText = translatedTextWithPlaceholders;
                 protectedSnippets.forEach((snippet, index) => {
                     finalTranslatedText = finalTranslatedText.replace(`%%PROTECTED_${index}%%`, snippet);
@@ -1098,7 +1547,7 @@ async function handleTranslateFeedback() {
             }
             displayFormattedFeedback(translatedFeedback);
             isTranslated = true;
-            translateBtn.textContent = 'Mostrar Original (English)';
+            translateBtn.textContent = 'Mostrar Original';
 
             await checkAndAwardBadges(null, true);
             processBadgeNotificationQueue();
@@ -1114,7 +1563,7 @@ function formatFeedbackText(text) {
         .replace(/^\*\s(.*?)$/gm, '<p class="feedback-item">$1</p>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>')
-        .replace(/<eng>|<\/eng>/g, '');
+        .replace(/<lang>|<\/lang>/g, '');
 }
 
 function displayFormattedFeedback(text) { feedbackContent.innerHTML = formatFeedbackText(text); }
@@ -1177,7 +1626,6 @@ function renderJornadaPage() {
     mainContentArea.innerHTML = '';
     mainContentArea.className = 'main-content-area performance-page';
     chatInputArea.classList.add('chat-input-hidden');
-    bottomNavBar.classList.add('nav-hidden');
 
     heartsIndicator.classList.add('score-indicator-hidden');
     exitChatBtn.classList.add('exit-chat-btn-hidden');
@@ -1197,23 +1645,19 @@ function renderJornadaPage() {
         </div>
 
         <section class="jornada-section stats-grid-section">
-            <div class="summary-card">
-                <div class="summary-icon-wrapper theme-points"><span class="summary-icon">🪙</span></div>
+            <div class="summary-card theme-points" data-icon="🪙">
                 <span class="summary-value">${totalCoins}</span>
                 <span class="summary-label">Moedas Totais</span>
             </div>
-             <div class="summary-card">
-                <div class="summary-icon-wrapper theme-missions"><span class="summary-icon">✅</span></div>
+            <div class="summary-card theme-missions" data-icon="✅">
                 <span class="summary-value">${performanceData.missionsCompleted}</span>
                 <span class="summary-label">Missões Concluídas</span>
             </div>
-            <div class="summary-card">
-                <div class="summary-icon-wrapper theme-streak"><span class="summary-icon">🔥</span></div>
+            <div class="summary-card theme-streak" data-icon="🔥">
                 <span class="summary-value">${currentStreak}</span>
                 <span class="summary-label">Sequência Atual</span>
             </div>
-            <div class="summary-card">
-                <div class="summary-icon-wrapper theme-best-streak"><span class="summary-icon">🏆</span></div>
+            <div class="summary-card theme-best-streak" data-icon="🏆">
                 <span class="summary-value">${bestStreak}</span>
                 <span class="summary-label">Melhor Sequência</span>
             </div>
@@ -1328,7 +1772,12 @@ async function checkAndAwardBadges(newMissionData = null, triggerNotification = 
     let userBadges = JSON.parse(localStorage.getItem('userBadges') || '{}');
     if (newMissionData) {
         userStats.totalMissions++; userStats.missionsByMode[newMissionData.interactionMode]++; const categoryKey = newMissionData.categoryName === 'custom' ? '✨ Cenários Personalizados' : newMissionData.categoryName; userStats.missionsByCategory[categoryKey] = (userStats.missionsByCategory[categoryKey] || 0) + 1; userStats.uniqueCategories.add(categoryKey);
-        const now = new Date(); if (now.getHours() >= 0 && now.getHours() < 4) { userStats.night_owl_mission = true; } if (newMissionData.scenarioName.includes("Asking for a discount")) { userStats.negotiator_mission = true; } if (userStats.phoenix_eligible) { userStats.phoenix_achieved = true; userStats.phoenix_eligible = false; }
+        const now = new Date(); if (now.getHours() >= 0 && now.getHours() < 4) { userStats.night_owl_mission = true; } 
+        
+        // Verificação atualizada para usar o ID (chave PT-BR), independente do idioma de prática
+        if (newMissionData.scenarioId === "Pedindo um desconto") { userStats.negotiator_mission = true; } 
+        
+        if (userStats.phoenix_eligible) { userStats.phoenix_achieved = true; userStats.phoenix_eligible = false; }
     }
     localStorage.setItem('userStats', JSON.stringify({ ...userStats, uniqueCategories: [...userStats.uniqueCategories] }));
     const awardBadge = (badgeId, tier) => { userBadges[badgeId] = { unlocked_tier: tier.level, date: new Date().toISOString() }; if (triggerNotification) { badgeNotificationQueue.push(tier); } };
@@ -1438,24 +1887,61 @@ function renderBadgesGallery(container) {
 // =================================================================
 //  17. FUNÇÕES UTILITÁRIAS
 // =================================================================
-function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navStoreBtn, navHistoryBtn, navSettingsBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
+function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
+
 function renderHomePageContent() {
     mainContentArea.innerHTML = '';
     const title = document.createElement('h1'); title.className = 'main-page-title'; title.textContent = "Missões da Odete"; mainContentArea.appendChild(title);
-    const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) => Object.entries(scenarios).map(([scenarioName, scenarioData]) => ({ ...scenarioData, categoryName: categoryName, scenarioName: scenarioName }))).filter(Boolean);
+    
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    
+    const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) => 
+        Object.entries(scenarios).map(([id, scenarioData]) => ({ ...scenarioData, categoryName: categoryName, id: id }))
+    ).filter(Boolean);
+    
     const suggestionSection = document.createElement('section'); suggestionSection.className = 'suggestion-section';
-    suggestionSection.innerHTML = `<div class="suggestion-card"><div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão"><img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar"><h3 id="suggestion-title"></h3></div><button id="start-suggestion-btn" class="primary-btn">Começar Missão</button></div>`;
+    
+    suggestionSection.innerHTML = `
+        <div class="suggestion-card">
+            <div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão">
+                <img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar">
+                <div class="suggestion-info">
+                    <h3 id="suggestion-title"></h3>
+                    <p id="suggestion-category" class="suggestion-category-text"></p>
+                </div>
+            </div>
+            <button id="start-suggestion-btn" class="primary-btn">Começar Missão</button>
+        </div>
+    `;
+    
     mainContentArea.appendChild(suggestionSection);
+    
     const renderNewSuggestion = () => {
         const categoryImageMap = { "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg', "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg', "🛒 Compras": 'assets/avatar-compras.jpg', "🤝 Situações Sociais": 'assets/avatar-social.jpg', "💼 Profissional": 'assets/avatar-profissional.jpg', "🎓 Estudos": 'assets/avatar-estudos.jpg', "❤️ Saúde e Bem-estar": 'assets/avatar-saude.jpg', "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg' };
         const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
-        const suggestionTitleEl = document.getElementById('suggestion-title'); const startSuggestionBtn = document.getElementById('start-suggestion-btn'); const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
-        if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl) {
-            suggestionTitleEl.textContent = suggestedScenario.scenarioName; startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName; startSuggestionBtn.dataset.scenarioName = suggestedScenario.scenarioName;
-            const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg'; suggestionAvatarEl.src = imagePath;
-            if (suggestedScenario.image) { suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario['en-US'].name}`; } else { const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`; }
+        const suggestionTitleEl = document.getElementById('suggestion-title'); 
+        const startSuggestionBtn = document.getElementById('start-suggestion-btn'); 
+        const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
+        const suggestionCategoryEl = document.getElementById('suggestion-category');
+
+        if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl && suggestionCategoryEl) {
+            suggestionTitleEl.textContent = suggestedScenario[currentLang].name; 
+            suggestionCategoryEl.textContent = `${suggestedScenario.categoryName}`; 
+
+            startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName; 
+            startSuggestionBtn.dataset.scenarioId = suggestedScenario.id; 
+            
+            const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg'; 
+            suggestionAvatarEl.src = imagePath;
+            if (suggestedScenario.image) { 
+                suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario[currentLang].name}`; 
+            } else { 
+                const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); 
+                suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`; 
+            }
         }
     };
+    
     renderNewSuggestion();
     document.getElementById('new-suggestion-trigger').addEventListener('click', renderNewSuggestion);
     const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel';
@@ -1472,21 +1958,42 @@ function renderHomePageContent() {
             const collapsibleContent = document.createElement('div'); collapsibleContent.className = 'collapsible-content';
             const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container';
             const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
-            scenariosToShow.forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); });
+            scenariosToShow.forEach(scenarioId => { 
+                const card = document.createElement('button'); 
+                card.className = 'scenario-card'; 
+                // Exibe o nome no idioma atual
+                card.textContent = SCENARIOS[categoryName][scenarioId][currentLang].name; 
+                card.dataset.categoryName = categoryName; 
+                card.dataset.scenarioId = scenarioId; // Armazena o ID
+                cardsContainer.appendChild(card); 
+            });
             const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName;
             collapsibleContent.appendChild(cardsContainer); collapsibleContent.appendChild(viewAllButton);
             categorySection.appendChild(collapsibleContent); panelContainer.appendChild(categorySection);
         });
     mainContentArea.appendChild(panelContainer);
 }
+
 function renderCategoryPage(categoryName) {
     heartsIndicator.classList.add('score-indicator-hidden'); exitChatBtn.classList.add('exit-chat-btn-hidden'); headerBackBtn.classList.remove('back-btn-hidden');
     mainContentArea.innerHTML = ''; mainContentArea.className = 'main-content-area category-page';
+    
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    
     const categoryContainer = document.createElement('div'); categoryContainer.className = 'category-page-container';
     const header = document.createElement('div'); header.className = 'category-page-header';
     const title = document.createElement('h2'); title.textContent = categoryName; header.appendChild(title);
     const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container full-view';
-    Object.keys(SCENARIOS[categoryName]).forEach(scenarioName => { const card = document.createElement('button'); card.className = 'scenario-card'; card.textContent = scenarioName; card.dataset.categoryName = categoryName; card.dataset.scenarioName = scenarioName; cardsContainer.appendChild(card); });
+    
+    Object.keys(SCENARIOS[categoryName]).forEach(scenarioId => { 
+        const card = document.createElement('button'); 
+        card.className = 'scenario-card'; 
+        card.textContent = SCENARIOS[categoryName][scenarioId][currentLang].name; 
+        card.dataset.categoryName = categoryName; 
+        card.dataset.scenarioId = scenarioId; 
+        cardsContainer.appendChild(card); 
+    });
+    
     categoryContainer.appendChild(header); categoryContainer.appendChild(cardsContainer); mainContentArea.appendChild(categoryContainer);
     mainContentArea.scrollTop = 0;
 }
@@ -1494,27 +2001,85 @@ function renderCategoryPage(categoryName) {
 function scrollToBottom() { mainContentArea.scrollTop = mainContentArea.scrollHeight; }
 function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
-function displayMessage(text, sender) { if (sender === 'ai') { removeTypingIndicator(); } if (sender === 'system') { const systemEl = document.createElement('div'); systemEl.className = 'message system-message'; systemEl.innerHTML = `<p>${text}</p>`; mainContentArea.appendChild(systemEl); } else { const wrapper = document.createElement('div'); wrapper.className = 'message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message'; messageBubble.innerHTML = `<p>${text}</p>`; if (sender === 'user') { wrapper.classList.add('user-message-wrapper'); avatar.src = AVATAR_USER_URL; avatar.alt = 'User Avatar'; messageBubble.classList.add('user-message'); } else { wrapper.classList.add('ai-message-wrapper'); avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; messageBubble.classList.add('ai-message'); } wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); } scrollToBottom(); }
-function showTypingIndicator() { if (document.getElementById('typing-indicator')) return; const wrapper = document.createElement('div'); wrapper.id = 'typing-indicator'; wrapper.className = 'message-wrapper ai-message-wrapper'; const avatar = document.createElement('img'); avatar.className = 'avatar'; avatar.src = AVATAR_AI_URL; avatar.alt = 'AI Avatar'; const messageBubble = document.createElement('div'); messageBubble.className = 'message ai-message'; messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>'; wrapper.appendChild(avatar); wrapper.appendChild(messageBubble); mainContentArea.appendChild(wrapper); }
+function displayMessage(text, sender) {
+    if (sender === 'ai') {
+        removeTypingIndicator();
+    }
+    if (sender === 'system') {
+        const systemEl = document.createElement('div');
+        systemEl.className = 'message system-message';
+        systemEl.innerHTML = `<p>${text}</p>`;
+        mainContentArea.appendChild(systemEl);
+    } else {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-wrapper';
+        const avatar = document.createElement('img');
+        avatar.className = 'avatar';
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message';
+        messageBubble.innerHTML = `<p>${text}</p>`;
+
+        if (sender === 'user') {
+            wrapper.classList.add('user-message-wrapper');
+            avatar.src = AVATAR_USER_URL;
+            avatar.alt = 'User Avatar';
+            messageBubble.classList.add('user-message');
+        } else {
+            wrapper.classList.add('ai-message-wrapper');
+            // Alterado para usar a função dinâmica de avatar
+            avatar.src = getAIAvatar();
+            avatar.alt = 'AI Avatar';
+            messageBubble.classList.add('ai-message');
+        }
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(messageBubble);
+        mainContentArea.appendChild(wrapper);
+    }
+    scrollToBottom();
+}
+
+function showTypingIndicator() {
+    if (document.getElementById('typing-indicator')) return;
+    const wrapper = document.createElement('div');
+    wrapper.id = 'typing-indicator';
+    wrapper.className = 'message-wrapper ai-message-wrapper';
+    
+    const avatar = document.createElement('img');
+    avatar.className = 'avatar';
+    // Alterado para usar a função dinâmica de avatar
+    avatar.src = getAIAvatar();
+    avatar.alt = 'AI Avatar';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.className = 'message ai-message';
+    messageBubble.innerHTML = '<p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>';
+    
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(messageBubble);
+    mainContentArea.appendChild(wrapper);
+}
 
 // =================================================================
 //  18. INICIALIZAÇÃO DA APLICAÇÃO
 // =================================================================
 function initializeApp() {
-    loadSettings();
+    setDefaultSettings();
     updateHeaderIndicators();
     initializeHeartSystem();
-    if (!getGoogleApiKey() || !getElevenLabsApiKey()) {
-        openApiKeyModal(true);
+    syncUserProgressAndCheckBadges();
+
+    if (!localStorage.getItem('hasSeenGuide')) {
+        renderGuidePage();
+        localStorage.setItem('hasSeenGuide', 'true');
     } else {
-        syncUserProgressAndCheckBadges();
         renderHomePage();
     }
+    
     initializeSpeechAPI();
 }
 
-const GIF_DURATION = 3900;
-const TITLE_DURATION = 2000;
+const GIF_DURATION = 4000;
+const TITLE_DURATION = 2200;
 const TRANSITION_DURATION = 500;
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -1540,57 +2105,95 @@ async function handleAppOpening() {
 // =================================================================
 //  PONTO DE ENTRADA DA APLICAÇÃO
 // =================================================================
-// MODIFICAÇÃO: Apenas os listeners e a chamada de inicialização permanecem aqui.
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Navegação e Ações Globais ---
     navHomeBtn.addEventListener('click', renderHomePage);
     navCustomBtn.addEventListener('click', renderCustomScenarioPage);
-    navStoreBtn.addEventListener('click', renderStorePage); // A função agora é global
+    navStoreBtn.addEventListener('click', renderStorePage);
     navHistoryBtn.addEventListener('click', renderHistoryPage);
-    navSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
+    navGuideBtn.addEventListener('click', renderGuidePage);
     sendBtn.addEventListener('click', handleSendMessage);
     textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendMessage(); } });
     micBtn.addEventListener('click', handleMicButtonClick);
     exitChatBtn.addEventListener('click', handleExitChat);
     headerBackBtn.addEventListener('click', renderHomePage);
 
-    // --- Cabeçalho e Configurações ---
-    langIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
-    proficiencyIndicatorBtn.addEventListener('click', () => settingsModal.classList.remove('modal-hidden'));
+    langIndicatorBtn.addEventListener('click', renderSettingsPage); 
+    proficiencyIndicatorBtn.addEventListener('click', renderSettingsPage); 
     heartsIndicator.addEventListener('click', renderJornadaPage);
     fullscreenBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
 
-    // --- Mudanças nas Configurações ---
-    languageSelect.addEventListener('change', () => {
-        localStorage.setItem('language', languageSelect.value);
-        updateHeaderIndicators();
-    });
-    proficiencySelect.addEventListener('change', () => {
-        localStorage.setItem('proficiency', proficiencySelect.value);
-        updateHeaderIndicators();
-    });
-
-    // --- Delegação de Eventos na Área de Conteúdo Principal ---
     mainContentArea.addEventListener('click', async (e) => {
+        const optionCard = e.target.closest('.option-card:not(.disabled)');
+        if (optionCard) {
+            const value = optionCard.dataset.value;
+            const parentContainer = optionCard.parentElement;
+
+            if (parentContainer.classList.contains('language-options-container') && !optionCard.classList.contains('voice-card')) {
+                localStorage.setItem('language', value);
+            } else if (parentContainer.classList.contains('proficiency-grid')) {
+                localStorage.setItem('proficiency', value);
+            } else if (optionCard.classList.contains('voice-card')) {
+                localStorage.setItem('voiceGender', value);
+            }
+
+            parentContainer.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            optionCard.classList.add('active');
+
+            updateHeaderIndicators();
+            return;
+        }
+
+        const guideStartBtn = e.target.closest('#guide-start-mission-btn');
+        if (guideStartBtn) {
+            renderHomePage();
+            return;
+        }
+
+        const guideStoreBtn = e.target.closest('#guide-go-to-store-btn');
+        if (guideStoreBtn) {
+            renderStorePage();
+            return;
+        }
+
+        const guideSettingsBtn = e.target.closest('#guide-go-to-settings-btn');
+        if (guideSettingsBtn) {
+            renderSettingsPage();
+            return;
+        }
+
         const suggestionBtn = e.target.closest('#start-suggestion-btn');
         if (suggestionBtn) {
             const categoryName = suggestionBtn.dataset.categoryName;
-            const scenarioName = suggestionBtn.dataset.scenarioName;
-            const scenario = SCENARIOS[categoryName]?.[scenarioName];
+            const scenarioId = suggestionBtn.dataset.scenarioId;
+            const scenario = SCENARIOS[categoryName]?.[scenarioId];
             if (scenario) {
-                startNewConversation(scenario, categoryName);
+                if (userHearts > 0) {
+                    // Passa o ID (chave PT-BR)
+                    startNewConversation(scenario, categoryName, scenarioId);
+                } else {
+                    showNoHeartsModal();
+                }
             }
             return;
         }
 
         const scenarioCard = e.target.closest('.scenario-card');
         if (scenarioCard) {
-            const scenarioName = scenarioCard.dataset.scenarioName;
+            const scenarioId = scenarioCard.dataset.scenarioId;
             const categoryName = scenarioCard.dataset.categoryName;
-            const scenario = SCENARIOS[categoryName]?.[scenarioName];
-            if (scenario) { startNewConversation(scenario, categoryName); }
+            const scenario = SCENARIOS[categoryName]?.[scenarioId];
+            if (scenario) {
+                if (userHearts > 0) {
+                    // Passa o ID (chave PT-BR)
+                    startNewConversation(scenario, categoryName, scenarioId);
+                } else {
+                    showNoHeartsModal();
+                }
+            }
             return;
         }
 
@@ -1625,26 +2228,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const customBtn = e.target.closest('#start-custom-scenario-btn');
         if (customBtn) {
+            const heartsNeeded = 2; 
             const customInput = document.getElementById('custom-scenario-input');
             const goal = customInput.value.trim();
-            const apiKey = getGoogleApiKey();
-            if (!apiKey) { openApiKeyModal(true); return; }
+
             if (!goal) {
                 showCustomScenarioError("Por favor, descreva o cenário que você quer praticar.");
                 return;
             }
+            
+            if (userHearts < heartsNeeded) { 
+                showNoHeartsModal();
+                return;
+            }
+
             clearCustomScenarioError();
             customBtn.disabled = true;
             customInput.disabled = true;
             customBtn.textContent = 'Validando...';
+            
             try {
-                const validation = await validateScenarioGoal(goal, apiKey);
+                const validation = await validateScenarioGoal(goal);
                 if (validation.isValid) {
+                    spendHeart(); 
+                    spendHeart(); 
+
                     const customScenario = {
                         "pt-BR": { goal: goal },
-                        "en-US": { name: "Custom Scenario", goal: goal }
+                        "en-US": { name: "Custom Scenario", goal: goal },
+                        "es-MX": { name: "Escenario Personalizado", goal: goal }
                     };
-                    startNewConversation(customScenario, 'custom');
+                    // ID para cenário customizado pode ser o texto "Custom Scenario" ou similar
+                    startNewConversation(customScenario, 'custom', "Custom Scenario");
                 } else {
                     showCustomScenarioError(validation.reason || "Ocorreu um erro ao validar o cenário.");
                 }
@@ -1654,7 +2269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 customBtn.disabled = false;
                 customInput.disabled = false;
-                customBtn.textContent = 'Iniciar Cenário';
+                customBtn.textContent = 'Iniciar Cenário'; 
             }
             return;
         }
@@ -1678,6 +2293,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showHistoryModal(viewTarget.dataset.index);
             return;
         }
+        
         const deleteTarget = e.target.closest('.history-item-delete');
         if (deleteTarget) {
             deleteHistoryItem(deleteTarget.dataset.index);
@@ -1685,7 +2301,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Listeners para Fechar Modais ---
     modalCloseBtn.addEventListener('click', () => feedbackModal.classList.add('modal-hidden'));
     feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) feedbackModal.classList.add('modal-hidden'); });
     translateBtn.addEventListener('click', handleTranslateFeedback);
@@ -1693,19 +2308,9 @@ document.addEventListener('DOMContentLoaded', () => {
     historyModal.addEventListener('click', (e) => { if (e.target === historyModal) historyModal.classList.add('modal-hidden'); });
     missionModalCloseBtn.addEventListener('click', () => missionModal.classList.add('modal-hidden'));
     missionModal.addEventListener('click', (e) => { if (e.target === missionModal) missionModal.classList.add('modal-hidden'); });
-    settingsModalCloseBtn.addEventListener('click', () => settingsModal.classList.add('modal-hidden'));
-    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('modal-hidden'); });
-    saveApiKeyBtn.addEventListener('click', saveApiKey);
-    changeApiKeyBtn.addEventListener('click', () => { settingsModal.classList.add('modal-hidden'); openApiKeyModal(false); });
-    apiKeyModal.addEventListener('click', (e) => { if (!apiKeyModal.classList.contains('modal-persistent') && e.target === apiKeyModal) closeApiKeyModal(); });
     practiceAgainBtn.addEventListener('click', handlePracticeAgain);
 
-    // --- Listeners para Iniciar Missão (Texto/Voz) ---
     startTextMissionBtn.addEventListener('click', () => {
-        if (userHearts < 1) {
-            showNoHeartsModal();
-            return;
-        }
         spendHeart();
         currentInteractionMode = 'text';
         missionModal.classList.add('modal-hidden');
@@ -1713,16 +2318,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     startVoiceMissionBtn.addEventListener('click', () => {
-        if (userHearts < 1) {
-            showNoHeartsModal();
-            return;
-        }
         spendHeart();
         currentInteractionMode = 'voice';
         missionModal.classList.add('modal-hidden');
         initiateVoiceChat();
     });
 
-    // Ponto de entrada da aplicação
     handleAppOpening();
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missões da Odete 37</title>
+    <title>Missões da Odete 46</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,13 @@
     <!-- ===== NOVO: ESTRUTURA DA SPLASH SCREEN ===== -->
     <div id="splash-screen">
         <img src="assets/animacoes/odete-airport-suitcase.gif" alt="Animação de Odete chegando ao aeroporto" id="splash-gif">
-        <h1 id="splash-title">Missões da Odete</h1>
+        <h1 id="splash-title" style="text-align: center;">
+            Missões da Odete
+            <br>
+            <span style="font-size: 1.2rem; color: var(--text-secondary); font-weight: 400;">
+                (e do Luciano também)
+            </span>
+        </h1>
     </div>
 
 
@@ -80,35 +86,6 @@
             </div>
         </div>
     </div>
-    
-    <div id="api-key-modal" class="modal-overlay modal-hidden">
-        <div class="modal-content">
-            <h2>Missões da Odete</h2><hr><br>
-            <div class="modal-header">
-                <h2>Conecte suas IAs (Chat e Voz)</h2>
-            </div>
-            <div class="modal-body">
-                <p style="text-align: left; margin-bottom: 24px;">Para o aplicativo funcionar, você precisa de duas chaves de API gratuitas. Siga os passos abaixo (você só precisa fazer isso uma vez):</p>
-                <ol class="step-by-step-list">
-                    <li><strong><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Crie sua chave do Google AI Studio</a></strong>
-                        Faça login com sua conta Google, clique em "Create API key" e copie o código. Essa chave cuidará da inteligência da conversa.
-                    </li>
-                    <li><strong><a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer">Crie sua chave da ElevenLabs</a></strong>
-                        Crie uma conta (pode usar o login do Google), clique no ícone do seu perfil (canto superior direito) e em "Profile Settings". A chave estará lá para você copiar. Ela cuidará da voz de alta qualidade.
-                    </li>
-                </ol>
-                
-                <label for="modal-google-api-key-input">1. Chave de API do Google AI Studio (para o Chat)</label>
-                <input type="password" id="modal-google-api-key-input" placeholder="Cole sua chave do Google aqui (ex: AIza...)">
-                
-                <label for="modal-elevenlabs-api-key-input">2. Chave de API da ElevenLabs (para a Voz)</label>
-                <input type="password" id="modal-elevenlabs-api-key-input" placeholder="Cole sua chave da ElevenLabs aqui">
-
-                <button id="save-api-key-btn">Salvar e Começar</button>
-                <p class="modal-info-text">Suas chaves são salvas com segurança apenas no seu navegador.</p>
-            </div>
-        </div>
-    </div>
 
     <div id="history-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
@@ -117,6 +94,9 @@
                 <span class="modal-close" id="history-modal-close-btn">&times;</span>
             </div>
             <div class="modal-body" id="history-modal-content"></div>
+            <div class="modal-footer">
+                <button id="history-practice-again-btn" class="primary-btn">Praticar Novamente</button>
+            </div>
         </div>
     </div>
 
@@ -142,38 +122,13 @@
         </div>
     </div>
 
-    <div id="settings-modal" class="modal-overlay modal-hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Configurações</h2>
-                <span class="modal-close" id="settings-modal-close-btn">&times;</span>
-            </div>
-            <div class="modal-body" id="settings-modal-body">
-                <label for="language-select">Idioma</label>
-                <select id="language-select" name="language">
-                    <option value="en-US">Inglês</option>
-                </select>
-                
-                <label for="proficiency-select">Nível de Conversa</label>
-                <select id="proficiency-select" name="proficiency">
-                    <option value="basic">Básico: Frases curtas</option>
-                    <option value="intermediate">Intermediário: Conversa direta</option>
-                    <option value="advanced">Avançado: Conversa natural</option>
-                </select>
-
-                <label>Conexão com a IA</label>
-                <button id="change-api-key-btn">Gerenciar Chaves de API</button>
-            </div>
-        </div>
-    </div>
-
     <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav-bar" id="bottom-nav-bar">
         <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
         <button class="icon-btn" id="nav-custom-btn" title="Cenário Personalizado">✨</button>
         <button class="icon-btn" id="nav-store-btn" title="Loja">🛍️</button>
         <button class="icon-btn" id="nav-history-btn" title="Histórico">🕒</button>
-        <button class="icon-btn" id="nav-settings-btn" title="Configurações">⚙️</button>
+        <button class="icon-btn" id="nav-guide-btn" title="Guia da Odete">❓</button>
     </nav>
     
     <!-- ESTRUTURA DA NOTIFICAÇÃO DE RECOMPENSA -->
