@@ -7,7 +7,7 @@ const sendBtn = document.getElementById('send-btn');
 const chatInputArea = document.querySelector('.chat-input-area');
 const bottomNavBar = document.getElementById('bottom-nav-bar');
 const navHomeBtn = document.getElementById('nav-home-btn');
-const navPracticeBtn = document.getElementById('nav-practice-btn');
+const navCustomBtn = document.getElementById('nav-custom-btn');
 const navStoreBtn = document.getElementById('nav-store-btn');
 const navHistoryBtn = document.getElementById('nav-history-btn');
 const navGuideBtn = document.getElementById('nav-guide-btn');
@@ -43,64 +43,6 @@ const splashGif = document.getElementById('splash-gif');
 const splashTitle = document.getElementById('splash-title');
 const splashStartBtn = document.getElementById('splash-start-btn'); // NOVO
 const appContainer = document.getElementById('app-container');
-
-// =================================================================
-//  NOVO: VARIÁVEIS DE ESTADO DA JORNADA
-// =================================================================
-let journeyState = {
-    day: 1,
-    location: "Aeroporto Internacional",
-    image: "assets/viagens/placeholder.png", // NOVA PROPRIEDADE DE IMAGEM
-    narrative: "Você acabou de desembarcar. O ar é diferente aqui. Sua jornada começa agora, mas sua mala não apareceu na esteira.",
-    mood: "neutral", 
-    inventory: [], 
-    social: [], 
-    historyTags: [], 
-    currentChoices: [
-        { 
-            id: "choice_1",
-            text: "Ir ao balcão de reclamações", 
-            goal: "Complain about lost luggage at the counter.",
-            type: "negotiation"
-        },
-        { 
-            id: "choice_2",
-            text: "Pedir ajuda a um segurança", 
-            goal: "Ask a security guard for help finding your luggage.",
-            type: "help"
-        }
-    ]
-};
-
-// Mapeamento de Ícones de Humor
-const MOOD_ICONS = {
-    neutral: { icon: "😐", label: "Normal" },
-    happy: { icon: "😁", label: "Feliz" },
-    angry: { icon: "😡", label: "Irritado" },
-    sick: { icon: "🤧", label: "Doente" },
-    sad: { icon: "😢", label: "Triste" },
-    love: { icon: "🥰", label: "Apaixonado" },
-    scared: { icon: "😨", label: "Com Medo" },
-    tired: { icon: "🥱", label: "Cansado" },
-    surprised: { icon: "😮", label: "Surpreso" },
-    hurt: { icon: "🤕", label: "Machucado" },
-    peace: { icon: "😎", label: "Em Paz" }
-};
-
-function loadJourneyState() {
-    const saved = localStorage.getItem('journeyState');
-    if (saved) {
-        journeyState = JSON.parse(saved);
-        // Garante que a propriedade image exista para usuários antigos (fallback)
-        if (!journeyState.image) journeyState.image = "assets/viagens/placeholder.png";
-    }
-}
-
-function saveJourneyState() {
-    localStorage.setItem('journeyState', JSON.stringify(journeyState));
-}
-
-//---------------------------------------------------------------
 
 // Elementos do Wizard de Onboarding (NOVO)
 const onboardingWizard = document.getElementById('onboarding-wizard');
@@ -660,209 +602,78 @@ function finishOnboarding() {
 function renderHomePage() {
     updateActiveNavIcon('nav-home-btn');
     mainContentArea.innerHTML = '';
-    mainContentArea.className = 'main-content-area journey-page';
-    
-    // Configuração de visibilidade dos elementos globais
+    mainContentArea.className = 'main-content-area';
     chatInputArea.classList.add('chat-input-hidden');
     bottomNavBar.classList.remove('nav-hidden');
+
     exitChatBtn.textContent = 'Sair';
     exitChatBtn.classList.add('exit-chat-btn-hidden');
-    headerBackBtn.classList.add('back-btn-hidden');
+
     updateHeartsDisplay();
+    headerBackBtn.classList.add('back-btn-hidden');
 
-    loadJourneyState();
+    renderHomePageContent();
 
-    // 1. CARTÃO DE CENA (SCENE CARD)
-    const sceneCard = document.createElement('div');
-    sceneCard.className = 'scene-card';
-
-    // 1.1 Imagem
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'scene-image-container';
-    // Usa a imagem do estado ou um fallback
-    const sceneImage = journeyState.image || "assets/viagens/placeholder.png"; 
-    imageContainer.innerHTML = `<img src="${sceneImage}" alt="Imagem do cenário atual">`;
-    
-    // 1.2 Barra de Informação (Local e Dia)
-    const infoBar = document.createElement('div');
-    infoBar.className = 'scene-info-bar';
-    infoBar.innerHTML = `
-        <span class="journey-location">📍 ${journeyState.location}</span>
-        <span class="journey-day">Dia ${journeyState.day}</span>
-    `;
-
-    // 1.3 Narrativa
-    const narrativeContent = document.createElement('div');
-    narrativeContent.className = 'narrative-content';
-    narrativeContent.innerHTML = `<p class="narrative-text">"${journeyState.narrative}"</p>`;
-
-    // Monta o Scene Card
-    sceneCard.appendChild(imageContainer);
-    sceneCard.appendChild(infoBar);
-    sceneCard.appendChild(narrativeContent);
-    mainContentArea.appendChild(sceneCard);
-
-
-    // 2. ÁREA DE DECISÃO (Botões)
-    const decisionsArea = document.createElement('div');
-    decisionsArea.className = 'decisions-area';
-    
-    journeyState.currentChoices.forEach((choice, index) => {
-        const card = document.createElement('div');
-        card.className = 'decision-card';
-        // Letra A ou B baseada no index
-        const letter = String.fromCharCode(65 + index); 
-        card.innerHTML = `
-            <h4>Opção ${letter}</h4>
-            <p>${choice.text}</p>
-        `;
-        card.onclick = () => handleJourneyChoice(choice);
-        decisionsArea.appendChild(card);
-    });
-    mainContentArea.appendChild(decisionsArea);
-
-
-    // 3. TÍTULO SEPARADOR DE STATUS
-    const statusTitle = document.createElement('div');
-    statusTitle.className = 'status-section-title';
-    statusTitle.innerHTML = `👤 Estado do Viajante`;
-    mainContentArea.appendChild(statusTitle);
-
-
-    // 4. PAINEL DE STATUS (GRID)
-    const statusGrid = document.createElement('div');
-    statusGrid.className = 'status-grid';
-
-    // 4.1 Card Humor
-    const currentMood = MOOD_ICONS[journeyState.mood] || MOOD_ICONS.neutral;
-    const moodCard = document.createElement('div');
-    moodCard.className = 'status-card mood-card';
-    moodCard.innerHTML = `
-        <div class="mood-icon">${currentMood.icon}</div>
-        <div class="mood-label">${currentMood.label}</div>
-    `;
-    statusGrid.appendChild(moodCard);
-
-    // 4.2 Card Inventário
-    const inventoryCard = document.createElement('div');
-    inventoryCard.className = 'status-card';
-    if (journeyState.inventory.length === 0) {
-        inventoryCard.innerHTML = `<span class="empty-state">Mochila vazia</span>`;
-    } else {
-        let invHtml = '<div class="mini-grid">';
-        journeyState.inventory.forEach(item => {
-            invHtml += `<div class="mini-icon" title="${item.name}">${item.icon}</div>`;
-        });
-        invHtml += '</div>';
-        inventoryCard.innerHTML = invHtml;
-    }
-    statusGrid.appendChild(inventoryCard);
-
-    // 4.3 Card Social
-    const socialCard = document.createElement('div');
-    socialCard.className = 'status-card';
-    if (journeyState.social.length === 0) {
-        socialCard.innerHTML = `<span class="empty-state">Sozinho(a)</span>`;
-    } else {
-        let socialHtml = '<div class="mini-grid">';
-        journeyState.social.forEach(person => {
-            const borderClass = person.type === 'friend' ? 'friend' : 'enemy';
-            // Usa placeholder se não houver avatar
-            const avatarSrc = person.avatar || "assets/avatar-default.png"; 
-            socialHtml += `<img src="${avatarSrc}" class="mini-avatar ${borderClass}" title="${person.name}">`;
-        });
-        socialHtml += '</div>';
-        socialCard.innerHTML = socialHtml;
-    }
-    statusGrid.appendChild(socialCard);
-
-    // 4.4 Card Diário (Tags)
-    const diaryCard = document.createElement('div');
-    diaryCard.className = 'status-card diary-card';
-    
-    let tagsHtml = '';
-    if (journeyState.historyTags.length === 0) {
-        tagsHtml = '<span class="empty-state">Nenhuma experiência registrada.</span>';
-    } else {
-        journeyState.historyTags.forEach(tag => {
-            tagsHtml += `<span class="diary-tag">#${tag}</span>`;
-        });
-    }
-
-    diaryCard.innerHTML = `
-        <div class="diary-header">
-            <span class="diary-title">📖 Diário</span>
-            <span class="diary-count">${journeyState.historyTags.length}</span>
-        </div>
-        <div class="tags-container">
-            ${tagsHtml}
-        </div>
-    `;
-    statusGrid.appendChild(diaryCard);
-
-    mainContentArea.appendChild(statusGrid);
     mainContentArea.scrollTop = 0;
 }
 
-// Função auxiliar para lidar com a escolha
-function handleJourneyChoice(choice) {
-    if (userHearts < 1) {
-        showNoHeartsModal();
-        return;
-    }
-    
-    // Constrói o objeto de cenário temporário
-    const currentLang = localStorage.getItem('language') || 'en-US';
-    const scenarioObj = {
-        "pt-BR": { goal: choice.goal },
-        "en-US": { name: "Journey Mission", goal: choice.goal },
-        "es-MX": { name: "Misión de Viaje", goal: choice.goal }
-    };
-
-    // Adiciona a tag da escolha ao histórico (simulação simples por enquanto)
-    // Futuramente a IA fará isso
-    if (!journeyState.historyTags.includes(choice.text.substring(0, 15) + "...")) {
-         journeyState.historyTags.push(choice.text.substring(0, 15) + "...");
-         saveJourneyState();
-    }
-
-    startNewConversation(scenarioObj, 'journey', choice.id);
-}
-
-function renderPracticePage() {
-    // Atualiza navegação (ID NOVO: nav-practice-btn)
-    updateActiveNavIcon('nav-practice-btn'); 
-    
+function renderTrainingPage() {
+    updateActiveNavIcon('nav-custom-btn');
     mainContentArea.innerHTML = '';
-    mainContentArea.className = 'main-content-area practice-page';
+    mainContentArea.className = 'main-content-area training-page'; // Classe atualizada
     chatInputArea.classList.add('chat-input-hidden');
     bottomNavBar.classList.remove('nav-hidden');
+
+    exitChatBtn.textContent = 'Sair';
     exitChatBtn.classList.add('exit-chat-btn-hidden');
+
+    updateHeartsDisplay();
     headerBackBtn.classList.add('back-btn-hidden');
-    heartsIndicator.classList.remove('score-indicator-hidden');
 
-    // 1. SISTEMA DE ABAS
-    const tabsContainer = document.createElement('div');
-    tabsContainer.className = 'page-tabs';
-    tabsContainer.innerHTML = `
-        <button class="page-tab-btn active" onclick="switchPageTab('scenarios')">Cenários da Odete</button>
-        <button class="page-tab-btn" onclick="switchPageTab('custom')">Personalizado</button>
-    `;
-    mainContentArea.appendChild(tabsContainer);
-
-    // 2. CONTEÚDO DA ABA 1: CENÁRIOS (Antiga Home)
-    const tabScenarios = document.createElement('div');
-    tabScenarios.id = 'tab-scenarios';
-    tabScenarios.className = 'tab-content-area active';
-    
-    // Lógica de renderização das categorias (Adaptada da antiga home)
     const currentLang = localStorage.getItem('language') || 'en-US';
+
+    // Container Principal
+    const container = document.createElement('div');
+    container.className = 'training-container';
+    
+    // Cabeçalho e Abas
+    container.innerHTML = `
+        <h2 style="text-align: center; margin-bottom: 20px; font-size: 1.8rem;">✨ Treinamento</h2>
+        
+        <div class="tab-bar training-tabs">
+            <button class="tab-btn active" data-tab="scenarios">Cenários da Odete</button>
+            <button class="tab-btn" data-tab="custom">Personalizados</button>
+        </div>
+
+        <!-- ABA 1: CENÁRIOS (Lista de Categorias) -->
+        <div id="tab-content-scenarios" class="tab-content active">
+            <div id="scenarios-list-container" class="scenario-panel"></div>
+        </div>
+
+        <!-- ABA 2: PERSONALIZAÇÃO (Antiga página Custom) -->
+        <div id="tab-content-custom" class="tab-content">
+            <div class="custom-scenario-container">
+                <div class="guide-header">
+                    <img src="assets/luciano-e-odete-laboratorio.png" alt="Odete, sua guia" class="guide-avatar">
+                </div>
+                <div class="custom-charge-info">
+                    <p>Crie qualquer situação para praticar.</p>
+                    <p>Custo: <span class="custom-charge-hearts">2 ❤️ Corações</span></p>
+                </div>
+                <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Convidar a pessoa que amo para sair, correndo o risco de sofer uma rejeição."></textarea>
+                <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
+                <button id="start-custom-scenario-btn" class="primary-btn">Criar Novo Cenário</button>
+            </div>
+        </div>
+    `;
+
+    mainContentArea.appendChild(container);
+
+    // --- LÓGICA DA ABA 1: Renderizar Lista de Cenários ---
+    const scenariosListContainer = document.getElementById('scenarios-list-container');
     const freeCategories = getFreeCategories();
     const purchasedCategories = getPurchasedCategories();
     const allowedCategories = [...freeCategories, ...purchasedCategories];
-
-    const panelContainer = document.createElement('div');
-    panelContainer.className = 'scenario-panel';
 
     Object.keys(SCENARIOS)
         .filter(categoryName => allowedCategories.includes(categoryName))
@@ -873,6 +684,7 @@ function renderPracticePage() {
             const categoryTitle = document.createElement('h2'); 
             categoryTitle.className = 'panel-category-title'; 
             categoryTitle.innerHTML = `<span class="category-title-text">${categoryName}</span><span class="category-toggle-icon">▸</span>`; 
+            categorySection.appendChild(categoryTitle);
             
             const collapsibleContent = document.createElement('div'); 
             collapsibleContent.className = 'collapsible-content';
@@ -880,7 +692,7 @@ function renderPracticePage() {
             const cardsContainer = document.createElement('div'); 
             cardsContainer.className = 'scenario-cards-container';
             
-            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4); // Mostra 4
+            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
             scenariosToShow.forEach(scenarioId => { 
                 const card = document.createElement('button'); 
                 card.className = 'scenario-card'; 
@@ -889,57 +701,33 @@ function renderPracticePage() {
                 card.dataset.scenarioId = scenarioId; 
                 cardsContainer.appendChild(card); 
             });
-
+            
             const viewAllButton = document.createElement('button'); 
             viewAllButton.className = 'view-all-btn'; 
             viewAllButton.textContent = 'Ver todos →'; 
             viewAllButton.dataset.categoryName = categoryName;
-
+            
             collapsibleContent.appendChild(cardsContainer); 
             collapsibleContent.appendChild(viewAllButton);
-            
-            categorySection.appendChild(categoryTitle); // Título primeiro
             categorySection.appendChild(collapsibleContent); 
-            panelContainer.appendChild(categorySection);
+            scenariosListContainer.appendChild(categorySection);
         });
 
-    tabScenarios.appendChild(panelContainer);
-    mainContentArea.appendChild(tabScenarios);
+    // --- LÓGICA DE TROCA DE ABAS ---
+    const tabs = container.querySelectorAll('.tab-btn');
+    const contents = container.querySelectorAll('.tab-content');
 
-    // 3. CONTEÚDO DA ABA 2: PERSONALIZADO (Antiga Custom Page)
-    const tabCustom = document.createElement('div');
-    tabCustom.id = 'tab-custom';
-    tabCustom.className = 'tab-content-area';
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
 
-    const customContainer = document.createElement('div');
-    customContainer.className = 'custom-scenario-container';
-    customContainer.innerHTML = `
-        <div class="custom-charge-info">
-            <p>💡 <strong>Treino Livre:</strong> Crie qualquer situação.</p>
-            <p>Custo: <span class="custom-charge-hearts">2 ❤️</span> por missão.</p>
-        </div>
-        <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Quero praticar uma entrevista de emprego para vaga de TI..."></textarea>
-        <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
-        <button id="start-custom-scenario-btn" class="primary-btn">Criar Cenário</button>
-    `;
-    tabCustom.appendChild(customContainer);
-    mainContentArea.appendChild(tabCustom);
+            tab.classList.add('active');
+            const targetId = `tab-content-${tab.dataset.tab}`;
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
 }
-
-// Função Global para troca de abas
-window.switchPageTab = function(tabName) {
-    // Remove active dos botões
-    document.querySelectorAll('.page-tab-btn').forEach(btn => btn.classList.remove('active'));
-    // Adiciona ao clicado (lógica simples baseada no texto ou ordem, ou event.target)
-    const buttons = document.querySelectorAll('.page-tab-btn');
-    if(tabName === 'scenarios') buttons[0].classList.add('active');
-    else buttons[1].classList.add('active');
-
-    // Alterna conteúdo
-    document.getElementById('tab-scenarios').classList.remove('active');
-    document.getElementById('tab-custom').classList.remove('active');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-};
 
 function showCustomScenarioError(message) { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = message; feedbackArea.style.display = 'block'; } }
 function clearCustomScenarioError() { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = ''; feedbackArea.style.display = 'none'; } }
@@ -1242,7 +1030,7 @@ function setupGuideCarousel() {
 // =================================================================
 //  10. LÓGICA CENTRAL DA CONVERSA
 // =================================================================
-function startNewConversation(scenario, categoryName, scenarioId) {
+function startNewConversation(scenario, categoryName, scenarioId, contextText = null) {
     feedbackPromise = null;
     currentScenario = {
         details: scenario,
@@ -1265,6 +1053,30 @@ function startNewConversation(scenario, categoryName, scenarioId) {
         <span>Por Voz</span>
         <span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>
     `;
+
+    // Lógica de Contexto Narrativo no Modal
+    const modalBody = missionModal.querySelector('.modal-body');
+    let contextEl = document.getElementById('mission-context-text');
+    
+    // Se não existir o elemento de contexto, cria (antes do objetivo)
+    if (!contextEl) {
+        contextEl = document.createElement('p');
+        contextEl.id = 'mission-context-text';
+        contextEl.className = 'mission-context-text';
+        // Insere logo após o container da imagem
+        if (missionImageContainer.nextSibling) {
+            modalBody.insertBefore(contextEl, missionImageContainer.nextSibling);
+        } else {
+            modalBody.appendChild(contextEl);
+        }
+    }
+
+    if (contextText) {
+        contextEl.textContent = `"${contextText}"`;
+        contextEl.style.display = 'block';
+    } else {
+        contextEl.style.display = 'none';
+    }
 
     missionGoalText.textContent = scenario['pt-BR'].goal;
 
@@ -2461,17 +2273,140 @@ function renderBadgesGallery(container) {
 // =================================================================
 //  17. FUNÇÕES UTILITÁRIAS
 // =================================================================
-function updateActiveNavIcon(activeBtnId) {
-    // Lista atualizada com navPracticeBtn em vez de navCustomBtn
-    [navHomeBtn, navPracticeBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => {
-        if (btn) { // Verificação de segurança caso algum elemento não carregue
-            if (btn.id === activeBtnId) {
-                btn.classList.add('active-nav-icon');
-            } else {
-                btn.classList.remove('active-nav-icon');
-            }
+function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
+
+function renderHomePageContent() {
+    mainContentArea.innerHTML = '';
+    
+    // 1. Título da Página
+    const title = document.createElement('h1'); 
+    title.className = 'main-page-title'; 
+    title.textContent = "Jornada"; 
+    mainContentArea.appendChild(title);
+    
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    
+    // 2. Seção de Decisão Narrativa (Evento Fixo)
+    const narrativeSection = document.createElement('section'); 
+    narrativeSection.className = 'suggestion-section';
+    
+    // Dados do Evento Fixo (Hardcoded)
+    const narrativeEvent = {
+        category: "🍔 Restaurantes e Cafés",
+        image: "assets/restaurantes/placeholder.png", // Certifique-se que esta imagem existe ou use uma genérica
+        text: "Você acabou de chegar ao centro da cidade e seu estômago ronca. À sua frente, há um bistrô elegante com um anfitrião na porta, e logo ao lado, uma cafeteria rápida e cheirosa. O que você faz?",
+        optionA: {
+            label: "Ir ao Bistrô",
+            scenarioId: "Pedindo uma mesa para dois",
+            context: "Você ajeita a postura e caminha até o anfitrião do bistrô."
+        },
+        optionB: {
+            label: "Café Rápido",
+            scenarioId: "Pedindo um café simples",
+            context: "Você decide que precisa de cafeína rápido e entra na fila da cafeteria."
         }
-    });
+    };
+
+    narrativeSection.innerHTML = `
+        <div class="suggestion-card">
+            <img src="${narrativeEvent.image}" class="narrative-image" alt="Cenário do Evento">
+            <p class="narrative-text">${narrativeEvent.text}</p>
+            
+            <div class="decision-buttons">
+                <button id="btn-option-a" class="decision-btn">${narrativeEvent.optionA.label}</button>
+                <button id="btn-option-b" class="decision-btn">${narrativeEvent.optionB.label}</button>
+            </div>
+        </div>
+    `;
+    mainContentArea.appendChild(narrativeSection);
+
+    // Listeners para os botões de decisão
+    const btnA = document.getElementById('btn-option-a');
+    const btnB = document.getElementById('btn-option-b');
+
+    // Função auxiliar para carregar o cenário
+    const loadNarrativeScenario = (optionKey) => {
+        const option = narrativeEvent[optionKey];
+        const categoryName = narrativeEvent.category;
+        const scenarioId = option.scenarioId;
+        const scenario = SCENARIOS[categoryName]?.[scenarioId];
+
+        if (scenario) {
+            if (userHearts > 0) {
+                // Passamos o contexto narrativo aqui
+                startNewConversation(scenario, categoryName, scenarioId, option.context);
+            } else {
+                showNoHeartsModal();
+            }
+        } else {
+            console.error("Cenário não encontrado:", scenarioId);
+        }
+    };
+
+    if (btnA) btnA.addEventListener('click', () => loadNarrativeScenario('optionA'));
+    if (btnB) btnB.addEventListener('click', () => loadNarrativeScenario('optionB'));
+
+
+    // 3. NOVA SEÇÃO: Estado do Viajante (Dados Mockados)
+    const stateSection = document.createElement('section');
+    stateSection.className = 'traveler-state-grid';
+    stateSection.innerHTML = `
+        <div class="state-card">
+            <span class="state-icon">🎭</span>
+            <span class="state-title">Humor</span>
+            <span class="state-value">Animado</span>
+        </div>
+        <div class="state-card">
+            <span class="state-icon">🎒</span>
+            <span class="state-title">Mochila</span>
+            <span class="state-value">5 Itens</span>
+        </div>
+        <div class="state-card">
+            <span class="state-icon">⚡</span>
+            <span class="state-title">Habilidades</span>
+            <span class="state-value">Nível 3</span>
+        </div>
+        <div class="state-card">
+            <span class="state-icon">👥</span>
+            <span class="state-title">Pessoas</span>
+            <span class="state-value">3 Amigos</span>
+        </div>
+    `;
+    mainContentArea.appendChild(stateSection);
+
+    // 4. NOVA SEÇÃO: Diário de Experiências (Dados Mockados)
+    const journalSection = document.createElement('section');
+    journalSection.className = 'journal-section';
+    journalSection.innerHTML = `
+        <h3>Diário de Experiências</h3>
+        <div class="journal-list">
+            <div class="journal-entry">
+                <span class="journal-entry-icon">💼</span>
+                <span class="journal-entry-text">Apresentou um projeto para o CEO no trabalho</span>
+            </div>
+            <div class="journal-entry">
+                <span class="journal-entry-icon">✨</span>
+                <span class="journal-entry-text">Curou o pé machucado</span>
+            </div>
+            <div class="journal-entry">
+                <span class="journal-entry-icon">🚑</span>
+                <span class="journal-entry-text">Foi ao hospital de ambulância</span>
+            </div>
+            <div class="journal-entry">
+                <span class="journal-entry-icon">🤕</span>
+                <span class="journal-entry-text">Torceu o pé correndo</span>
+            </div>
+            <div class="journal-entry">
+                <span class="journal-entry-icon">🤝</span>
+                <span class="journal-entry-text">Conheceu Carlos, colega de trabalho</span>
+            </div>
+            <div class="journal-entry">
+                <span class="journal-entry-icon">☕</span>
+                <span class="journal-entry-text">Pediu café com leite na cafeteria</span>
+            </div>
+        </div>
+    `;
+    mainContentArea.appendChild(journalSection);
 }
 
 function renderCategoryPage(categoryName) {
@@ -2646,11 +2581,9 @@ function handleSplashStart() {
 //  PONTO DE ENTRADA DA APLICAÇÃO
 // =================================================================
 document.addEventListener('DOMContentLoaded', () => {
+
     navHomeBtn.addEventListener('click', renderHomePage);
-    const navPracticeBtn = document.getElementById('nav-practice-btn');
-    if (navPracticeBtn) {
-        navPracticeBtn.addEventListener('click', renderPracticePage);
-    }
+    navCustomBtn.addEventListener('click', renderTrainingPage);
     navStoreBtn.addEventListener('click', renderStorePage);
     navHistoryBtn.addEventListener('click', renderHistoryPage);
     navGuideBtn.addEventListener('click', renderGuidePage);

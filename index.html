@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missões da Odete 52</title>
+    <title>Missões da Odete 53</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
         <!-- Spinner de Carregamento -->
         <div id="splash-loader" class="splash-loader"></div>
 
-        <!-- O GIF começa invisível -->
+        <!-- O GIF agora começa com a classe 'loading' para ficar invisível -->
         <img src="assets/animacoes/odete-airport-suitcase.gif" 
              alt="Animação de Odete chegando ao aeroporto" 
              id="splash-gif" 
@@ -31,7 +31,7 @@
         </button>
     </div>
 
-    <!-- ===== WIZARD DE ONBOARDING ===== -->
+    <!-- ===== WIZARD DE ONBOARDING (NOVO) ===== -->
     <div id="onboarding-wizard" class="modal-overlay modal-hidden" style="background-color: var(--bg-main); z-index: 9000;">
         <div class="wizard-content">
             
@@ -119,7 +119,8 @@
         </div>
     </div>
 
-    <!-- CONTAINER PRINCIPAL -->
+
+    <!-- O CONTAINER PRINCIPAL AGORA ENVOLVE O CABEÇALHO GLOBAL, ÁREA DE CONTEÚDO E O INPUT DO CHAT -->
     <div class="app-container hidden" id="app-container">
 
         <!-- CABEÇALHO GLOBAL -->
@@ -127,59 +128,64 @@
             <!-- Indicadores de Status (Esquerda) -->
             <div class="header-indicators">
                 <button class="icon-btn header-indicator-btn" id="lang-indicator-btn" title="Mudar Idioma">
-                    <!-- Inserido via JS -->
+                    <!-- O emoji da bandeira será inserido aqui via JS, ex: 🇺🇸 -->
                 </button>
                 <button class="icon-btn header-indicator-btn" id="proficiency-indicator-btn" title="Mudar Nível de Conversa">
-                    <!-- Inserido via JS -->
+                    <!-- As estrelas serão inseridas aqui via JS, ex: ★★☆ -->
                 </button>
             </div>
 
             <!-- Ações e Status (Direita) -->
             <div class="header-actions">
+                <!-- Placeholder para a Pontuação -->
                 <div id="score-indicator" class="score-indicator">
-                    <!-- Pontuação inserida via JS -->
+                    <!-- A pontuação será inserida aqui via JS, ex: 🦉 15 --> <em>pt</em>
                 </div>
+                <!-- NOVO: Botão Voltar (Oculto por padrão) -->
                 <button id="header-back-btn" class="exit-chat-btn back-btn-hidden">Voltar</button>
+                <!-- Botão de Sair (Oculto por padrão) -->
                 <button id="exit-chat-btn" class="exit-chat-btn exit-chat-btn-hidden">Sair</button>
+                <!-- Botão de tela cheia -->
                 <button id="fullscreen-btn" class="icon-btn header-indicator-btn" title="Alternar Tela Cheia">
-                    <span>⛶</span>
+                    <span>⛶</span> <!-- Ícone de expandir -->
                 </button>
             </div>
         </div>
 
         <main class="main-area">
-            <!-- ÁREA DE CONTEÚDO DINÂMICA -->
-            <!-- O Javascript vai renderizar aqui: Jornada, Missão Avulsa, Chat, Loja, etc. -->
+            
+            <!-- ÁREA DE CONTEÚDO DINÂMICA (Exibirá a Home, Histórico, Chat, etc.) -->
             <div class="main-content-area" id="main-content-area">
+                <!-- O conteúdo será renderizado pelo script.js -->
             </div>
 
-            <!-- INPUT DO CHAT (Fica fora da área de scroll) -->
+            <!-- A ÁREA DE INPUT DO CHAT FICA FORA DA ÁREA DE SCROLL -->
             <div class="chat-input-area chat-input-hidden">
                 <button class="icon-btn" id="mic-btn" title="Usar microfone">🎤</button>
                 <input type="text" id="text-input" placeholder="Digite sua mensagem...">
                 <button class="icon-btn" id="send-btn" title="Enviar mensagem">➤</button>
             </div>
+
         </main>
     </div>
 
-    <!-- ===== MODAIS ===== -->
-    
-    <!-- Feedback Modal -->
+    <!-- ===== ESTRUTURA DOS MODAIS ===== -->
     <div id="feedback-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Feedback</h2>
+                <h2>Your Feedback</h2>
                 <button id="translate-btn" class="translate-btn-hidden">Traduzir para Português</button>
                 <span class="modal-close" id="modal-close-btn">&times;</span>
             </div>
-            <div class="modal-body" id="feedback-content"></div>
+            <div class="modal-body" id="feedback-content">
+                <!-- O feedback será inserido aqui -->
+            </div>
             <div class="modal-footer">
                 <button id="practice-again-btn" class="primary-btn">Praticar Novamente</button>
             </div>
         </div>
     </div>
     
-    <!-- History Modal -->
     <div id="history-modal" class="modal-overlay modal-hidden">
         <div class="modal-content history-modal-content-wrapper">
             <div class="modal-header history-header-column">
@@ -187,13 +193,20 @@
                     <h2 id="history-modal-title">Histórico</h2>
                     <span class="modal-close" id="history-modal-close-btn">&times;</span>
                 </div>
+                <!-- Novas Abas -->
                 <div class="tab-bar">
                     <button class="tab-btn active" data-tab="dialogue">Diálogo</button>
                     <button class="tab-btn" data-tab="feedback">Feedback</button>
                 </div>
             </div>
+            
             <div class="modal-body" id="history-modal-body">
-                <div id="history-tab-dialogue" class="tab-content active"></div>
+                <!-- Conteúdo da Aba Diálogo -->
+                <div id="history-tab-dialogue" class="tab-content active">
+                    <!-- O chat será inserido aqui via JS -->
+                </div>
+
+                <!-- Conteúdo da Aba Feedback -->
                 <div id="history-tab-feedback" class="tab-content">
                     <div id="history-feedback-text"></div>
                     <div class="history-actions">
@@ -202,13 +215,13 @@
                     </div>
                 </div>
             </div>
+
             <div class="modal-footer">
                 <button id="history-practice-again-btn" class="primary-btn">Praticar Novamente</button>
             </div>
         </div>
     </div>
 
-    <!-- Mission Modal (Pre-Chat) -->
     <div id="mission-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -216,7 +229,10 @@
                 <span class="modal-close" id="mission-modal-close-btn">&times;</span>
             </div>
             <div class="modal-body">
-                <div id="mission-image-container" class="mission-image-container modal-hidden"></div>
+                <!-- CONTAINER PARA A IMAGEM -->
+                <div id="mission-image-container" class="mission-image-container modal-hidden">
+                    <!-- A imagem será inserida aqui via JS -->
+                </div>
                 <p id="mission-goal-text">O objetivo da sua missão aparecerá aqui.</p>
                 <br>
                 <p style="text-align: center; font-weight: 500; margin-bottom: 20px;">Como você quer praticar?</p>
@@ -230,21 +246,22 @@
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav-bar" id="bottom-nav-bar">
-        <button class="icon-btn" id="nav-home-btn" title="Minha Jornada">🏠</button>
-        <!-- Botão Atualizado: De Cenário Personalizado para Missão Avulsa -->
-        <button class="icon-btn" id="nav-practice-btn" title="Missão Avulsa">🎯</button>
+        <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
+        <button class="icon-btn" id="nav-custom-btn" title="Treinamento">✨</button>
         <button class="icon-btn" id="nav-store-btn" title="Loja">🛍️</button>
         <button class="icon-btn" id="nav-history-btn" title="Histórico">🕒</button>
         <button class="icon-btn" id="nav-guide-btn" title="Guia da Odete">❓</button>
     </nav>
     
-    <!-- NOTIFICAÇÃO DE RECOMPENSA -->
+    <!-- ESTRUTURA DA NOTIFICAÇÃO DE RECOMPENSA -->
     <div id="reward-notification" class="reward-notification">
+        <!-- O ideal é que a imagem seja um GIF com fundo transparente -->
         <img src="assets/animacoes/odete-celebrating.gif" alt="Odete comemorando" id="reward-image">
         <p id="reward-text"></p>
     </div>
 
-    <!-- SCRIPTS -->
+
+    <!-- Scripts da Aplicação -->
     <script src="configuration.js"></script>
     <script src="scenarios.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
