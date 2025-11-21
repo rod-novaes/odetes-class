@@ -7,7 +7,7 @@ const sendBtn = document.getElementById('send-btn');
 const chatInputArea = document.querySelector('.chat-input-area');
 const bottomNavBar = document.getElementById('bottom-nav-bar');
 const navHomeBtn = document.getElementById('nav-home-btn');
-const navCustomBtn = document.getElementById('nav-custom-btn');
+const navPracticeBtn = document.getElementById('nav-practice-btn');
 const navStoreBtn = document.getElementById('nav-store-btn');
 const navHistoryBtn = document.getElementById('nav-history-btn');
 const navGuideBtn = document.getElementById('nav-guide-btn');
@@ -41,7 +41,76 @@ const rewardImage = document.getElementById('reward-image');
 const splashScreen = document.getElementById('splash-screen');
 const splashGif = document.getElementById('splash-gif');
 const splashTitle = document.getElementById('splash-title');
+const splashStartBtn = document.getElementById('splash-start-btn'); // NOVO
 const appContainer = document.getElementById('app-container');
+
+// =================================================================
+//  NOVO: VARIÁVEIS DE ESTADO DA JORNADA
+// =================================================================
+let journeyState = {
+    day: 1,
+    location: "Aeroporto Internacional",
+    image: "assets/viagens/placeholder.png", // NOVA PROPRIEDADE DE IMAGEM
+    narrative: "Você acabou de desembarcar. O ar é diferente aqui. Sua jornada começa agora, mas sua mala não apareceu na esteira.",
+    mood: "neutral", 
+    inventory: [], 
+    social: [], 
+    historyTags: [], 
+    currentChoices: [
+        { 
+            id: "choice_1",
+            text: "Ir ao balcão de reclamações", 
+            goal: "Complain about lost luggage at the counter.",
+            type: "negotiation"
+        },
+        { 
+            id: "choice_2",
+            text: "Pedir ajuda a um segurança", 
+            goal: "Ask a security guard for help finding your luggage.",
+            type: "help"
+        }
+    ]
+};
+
+// Mapeamento de Ícones de Humor
+const MOOD_ICONS = {
+    neutral: { icon: "😐", label: "Normal" },
+    happy: { icon: "😁", label: "Feliz" },
+    angry: { icon: "😡", label: "Irritado" },
+    sick: { icon: "🤧", label: "Doente" },
+    sad: { icon: "😢", label: "Triste" },
+    love: { icon: "🥰", label: "Apaixonado" },
+    scared: { icon: "😨", label: "Com Medo" },
+    tired: { icon: "🥱", label: "Cansado" },
+    surprised: { icon: "😮", label: "Surpreso" },
+    hurt: { icon: "🤕", label: "Machucado" },
+    peace: { icon: "😎", label: "Em Paz" }
+};
+
+function loadJourneyState() {
+    const saved = localStorage.getItem('journeyState');
+    if (saved) {
+        journeyState = JSON.parse(saved);
+        // Garante que a propriedade image exista para usuários antigos (fallback)
+        if (!journeyState.image) journeyState.image = "assets/viagens/placeholder.png";
+    }
+}
+
+function saveJourneyState() {
+    localStorage.setItem('journeyState', JSON.stringify(journeyState));
+}
+
+//---------------------------------------------------------------
+
+// Elementos do Wizard de Onboarding (NOVO)
+const onboardingWizard = document.getElementById('onboarding-wizard');
+const wizardSteps = document.querySelectorAll('.wizard-step');
+const wizardDots = document.querySelectorAll('.wizard-dot');
+const wizardNameInput = document.getElementById('wizard-name-input');
+const btnNextName = document.getElementById('btn-next-name');
+const btnNextLang = document.getElementById('btn-next-lang');
+const btnNextLevel = document.getElementById('btn-next-level');
+const btnFinishWizard = document.getElementById('btn-finish-wizard');
 
 // =================================================================
 //  2. VARIÁVEIS DE ESTADO E CONSTANTES GLOBAIS
@@ -70,6 +139,16 @@ let audioChunks = [];
 let badgeNotificationQueue = [];
 let isBadgeNotificationVisible = false;
 let messageDisplayTimeoutId = null;
+let feedbackPromise = null;
+
+// Variáveis do Wizard
+let currentWizardStep = 0;
+let tempOnboardingData = {
+    name: '',
+    language: '',
+    level: '',
+    voice: ''
+};
 
 // =================================================================
 //  3. SISTEMA DE GAMIFICAÇÃO: ENERGIA (CORAÇÕES)
@@ -96,6 +175,7 @@ function initializeSpeechAPI() {
 //  5. GERENCIAMENTO DE CONFIGURAÇÕES E CABEÇALHO
 // =================================================================
 function setDefaultSettings() {
+    // Fallback apenas se não houver nada, mas o Wizard deve cuidar disso para novos usuários
     if (!localStorage.getItem('language')) {
         localStorage.setItem('language', 'en-US');
     }
@@ -103,7 +183,7 @@ function setDefaultSettings() {
         localStorage.setItem('proficiency', 'intermediate');
     }
     if (!localStorage.getItem('voiceGender')) {
-        localStorage.setItem('voiceGender', 'female'); // Padrão feminino
+        localStorage.setItem('voiceGender', 'female'); 
     }
 }
 
@@ -290,7 +370,6 @@ function populateHistoryList(listElement) {
         li.className = 'history-item'; 
         const viewButton = document.createElement('div'); 
         viewButton.className = 'history-item-view'; 
-        // Exibe o nome do cenário na língua em que foi praticado, ou o fallback em inglês
         viewButton.innerHTML = `<span>${item.scenarioName}</span><small>${new Date(item.timestamp).toLocaleString()}</small>`; 
         viewButton.dataset.index = index; 
         const deleteButton = document.createElement('button'); 
@@ -310,88 +389,270 @@ function showHistoryModal(index) {
     if (!item) return;
 
     let scenarioToPractice;
-
     if (item.categoryName === 'custom') {
-        scenarioToPractice = {
-            "pt-BR": { goal: item.scenarioGoal },
-            "en-US": { name: item.scenarioName, goal: item.scenarioGoal },
-            "es-MX": { name: item.scenarioName, goal: item.scenarioGoal } // Adiciona fallback
-        };
+        scenarioToPractice = { "pt-BR": { goal: item.scenarioGoal }, "en-US": { name: item.scenarioName, goal: item.scenarioGoal }, "es-MX": { name: item.scenarioName, goal: item.scenarioGoal } };
     } else {
-        // Tenta encontrar pelo ID do cenário (chave em PT-BR), que é mais seguro
-        if (item.scenarioId && SCENARIOS[item.categoryName] && SCENARIOS[item.categoryName][item.scenarioId]) {
+         if (item.scenarioId && SCENARIOS[item.categoryName] && SCENARIOS[item.categoryName][item.scenarioId]) {
              scenarioToPractice = SCENARIOS[item.categoryName][item.scenarioId];
-        } 
-        // Fallback para sistemas antigos (pelo nome em inglês)
-        else {
+        } else {
             const categoryScenarios = SCENARIOS[item.categoryName];
-            let originalScenarioKey = null;
             if (categoryScenarios) {
-                originalScenarioKey = Object.keys(categoryScenarios).find(key => 
-                    categoryScenarios[key]['en-US'].name === item.scenarioName
-                );
-            }
-            if (originalScenarioKey) {
-                scenarioToPractice = SCENARIOS[item.categoryName][originalScenarioKey];
+                const key = Object.keys(categoryScenarios).find(k => categoryScenarios[k]['en-US'].name === item.scenarioName);
+                if(key) scenarioToPractice = SCENARIOS[item.categoryName][key];
             }
         }
     }
-
-    const practiceBtn = document.getElementById('history-practice-again-btn');
-
-    if (scenarioToPractice && practiceBtn) {
-        practiceBtn.style.display = 'block';
-
-        const newBtn = practiceBtn.cloneNode(true);
-        practiceBtn.parentNode.replaceChild(newBtn, practiceBtn);
-        
-        newBtn.addEventListener('click', () => {
-            if (userHearts < 1) {
-                showNoHeartsModal();
-                return;
-            }
-            historyModal.classList.add('modal-hidden');
-            // Usa o scenarioId se disponível, senão tenta recuperar do nome
-            const scenarioId = item.scenarioId || Object.keys(SCENARIOS[item.categoryName] || {}).find(k => SCENARIOS[item.categoryName][k]['en-US'].name === item.scenarioName);
-            
-            setTimeout(() => {
-                startNewConversation(scenarioToPractice, item.categoryName, scenarioId);
-            }, 300);
-        });
-
-    } else if (practiceBtn) {
-        practiceBtn.style.display = 'none';
-    }
     
+    const practiceBtn = document.getElementById('history-practice-again-btn');
+    const newBtn = practiceBtn.cloneNode(true);
+    practiceBtn.parentNode.replaceChild(newBtn, practiceBtn);
+
+    if (scenarioToPractice) {
+        newBtn.style.display = 'block';
+        newBtn.addEventListener('click', () => {
+            if (userHearts < 1) { showNoHeartsModal(); return; }
+            historyModal.classList.add('modal-hidden');
+            const sId = item.scenarioId || "unknown";
+            setTimeout(() => startNewConversation(scenarioToPractice, item.categoryName, sId), 300);
+        });
+    } else {
+        newBtn.style.display = 'none';
+    }
+
     historyModalTitle.textContent = item.scenarioName;
-    historyModalContent.innerHTML = '';
+    
+    const dialogueContainer = document.getElementById('history-tab-dialogue');
+    dialogueContainer.innerHTML = '';
     item.transcript.forEach(msg => {
         const el = document.createElement('div');
-        el.classList.add('message', `${msg.role}-message`);
-        const p = document.createElement('p');
-        p.textContent = msg.content;
-        el.appendChild(p);
-        historyModalContent.appendChild(el);
+        const bubbleClass = msg.role === 'user' ? 'user-message history-user-message' : 'ai-message';
+        const wrapperClass = msg.role === 'user' ? 'user-message-wrapper' : 'ai-message-wrapper';
+        
+        el.className = `message-wrapper ${wrapperClass}`;
+        
+        const avatar = document.createElement('img');
+        avatar.className = 'avatar';
+        avatar.src = msg.role === 'user' ? AVATAR_USER_URL : getAIAvatar();
+        
+        const bubble = document.createElement('div');
+        bubble.className = `message ${bubbleClass}`;
+        bubble.innerHTML = `<p>${msg.content}</p>`;
+        
+        el.appendChild(avatar);
+        el.appendChild(bubble);
+        dialogueContainer.appendChild(el);
     });
 
+    const feedbackTextContainer = document.getElementById('history-feedback-text');
+    const translateBtnHist = document.getElementById('history-translate-btn');
+    const generateBtnHist = document.getElementById('history-generate-btn');
+
+    let histTranslated = false;
+    let histOriginalText = item.feedback || "";
+    let histTranslatedText = "";
+
     if (item.feedback) {
-        const separator = document.createElement('hr');
-        separator.className = 'history-feedback-separator';
-        const feedbackTitle = document.createElement('h3');
-        feedbackTitle.className = 'history-feedback-title';
-        feedbackTitle.textContent = 'Your Feedback';
-        const feedbackContainer = document.createElement('div');
-        feedbackContainer.className = 'history-feedback-content';
-        feedbackContainer.innerHTML = formatFeedbackText(item.feedback);
-        historyModalContent.appendChild(separator);
-        historyModalContent.appendChild(feedbackTitle);
-        historyModalContent.appendChild(feedbackContainer);
+        feedbackTextContainer.innerHTML = formatFeedbackText(item.feedback);
+        translateBtnHist.style.display = 'block';
+        translateBtnHist.textContent = 'Traduzir para Português';
+        generateBtnHist.style.display = 'none';
+    } else {
+        feedbackTextContainer.innerHTML = `<p style="text-align:center; color:var(--text-secondary); margin-top:20px;">Nenhum feedback foi gerado para esta conversa.</p>`;
+        translateBtnHist.style.display = 'none';
+        generateBtnHist.style.display = 'block';
     }
 
+    translateBtnHist.onclick = async () => {
+        translateBtnHist.disabled = true;
+        if (histTranslated) {
+            feedbackTextContainer.innerHTML = formatFeedbackText(histOriginalText);
+            translateBtnHist.textContent = 'Traduzir para Português';
+            histTranslated = false;
+        } else {
+            if (!histTranslatedText) {
+                try {
+                    feedbackTextContainer.innerHTML = '<p>Traduzindo...</p>';
+                    const protectedSnippets = [];
+                    const textToTranslate = histOriginalText.replace(/<lang>(.*?)<\/lang>/g, (match, content) => {
+                        protectedSnippets.push(content);
+                        return `%%PROTECTED_${protectedSnippets.length - 1}%%`;
+                    });
+                    let finalTranslated = await translateText(textToTranslate, localStorage.getItem('language'));
+                    protectedSnippets.forEach((snippet, idx) => {
+                        finalTranslated = finalTranslated.replace(`%%PROTECTED_${idx}%%`, snippet);
+                    });
+                    histTranslatedText = finalTranslated;
+                } catch (e) {
+                    console.error(e);
+                    histTranslatedText = "Erro na tradução.";
+                }
+            }
+            feedbackTextContainer.innerHTML = formatFeedbackText(histTranslatedText);
+            translateBtnHist.textContent = 'Mostrar Original';
+            histTranslated = true;
+        }
+        translateBtnHist.disabled = false;
+    };
+
+    generateBtnHist.onclick = async () => {
+        generateBtnHist.disabled = true;
+        generateBtnHist.textContent = "Gerando...";
+        feedbackTextContainer.innerHTML = '<p class="typing-dots" style="justify-content:center;"><span>.</span><span>.</span><span>.</span></p>';
+        
+        try {
+            const settings = { language: localStorage.getItem('language'), proficiency: localStorage.getItem('proficiency') };
+            const newFeedback = await getFeedbackForConversation(item.transcript, localStorage.getItem('language'), settings, item.interactionMode || 'text');
+            
+            item.feedback = newFeedback;
+            history[index] = item;
+            localStorage.setItem('conversationHistory', JSON.stringify(history));
+            
+            histOriginalText = newFeedback;
+            feedbackTextContainer.innerHTML = formatFeedbackText(newFeedback);
+            generateBtnHist.style.display = 'none';
+            translateBtnHist.style.display = 'block';
+        } catch (e) {
+            feedbackTextContainer.innerHTML = `<p>Erro: ${e.message}</p>`;
+            generateBtnHist.textContent = "Tentar Novamente";
+            generateBtnHist.disabled = false;
+        }
+    };
+
+    setupHistoryTabs();
     historyModal.classList.remove('modal-hidden');
 }
 
+function setupHistoryTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-tab="dialogue"]').classList.add('active');
+    document.getElementById('history-tab-dialogue').classList.add('active');
+
+    tabs.forEach(tab => {
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+        
+        newTab.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            newTab.classList.add('active');
+            const targetId = `history-tab-${newTab.dataset.tab}`;
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+}
+
 function deleteHistoryItem(index) { if (!confirm('Tem certeza de que deseja excluir este diálogo do seu histórico?')) { return; } let history = JSON.parse(localStorage.getItem('conversationHistory')) || []; history.splice(index, 1); localStorage.setItem('conversationHistory', JSON.stringify(history)); renderHistoryPage(); }
+
+// =================================================================
+//  8. LÓGICA DO WIZARD DE ONBOARDING (NOVO)
+// =================================================================
+
+function startOnboarding() {
+    splashScreen.style.display = 'none';
+    onboardingWizard.classList.remove('modal-hidden');
+    updateWizardUI();
+}
+
+function updateWizardUI() {
+    // Atualiza passos
+    wizardSteps.forEach((step, index) => {
+        if (index === currentWizardStep) {
+            step.classList.add('active');
+        } else {
+            step.classList.remove('active');
+        }
+    });
+
+    // Atualiza bolinhas
+    wizardDots.forEach((dot, index) => {
+        if (index === currentWizardStep) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+}
+
+function handleWizardNext(stepIndex) {
+    if (stepIndex === 0) {
+        // Valida Nome
+        const name = wizardNameInput.value.trim();
+        if (!name) return;
+        tempOnboardingData.name = name;
+    } else if (stepIndex === 1) {
+        if (!tempOnboardingData.language) return;
+    } else if (stepIndex === 2) {
+        if (!tempOnboardingData.level) return;
+    }
+
+    currentWizardStep++;
+    updateWizardUI();
+}
+
+function selectWizardOption(type, value, element) {
+    // CORREÇÃO: Mapeia 'lang' (do HTML) para 'language' (do objeto JS)
+    const key = type === 'lang' ? 'language' : type;
+    tempOnboardingData[key] = value;
+
+    // Remove seleção anterior
+    const container = element.parentNode;
+    if (type === 'level') {
+        // Nível tem uma estrutura de lista diferente
+        const list = element.parentNode;
+        list.querySelectorAll('.wizard-card-list').forEach(card => card.classList.remove('selected'));
+    } else {
+        // Grid
+        container.querySelectorAll('.wizard-card').forEach(card => card.classList.remove('selected'));
+    }
+    
+    element.classList.add('selected');
+
+    // Habilita botão correspondente
+    if (type === 'lang') btnNextLang.disabled = false;
+    if (type === 'level') btnNextLevel.disabled = false;
+    if (type === 'voice') btnFinishWizard.disabled = false;
+}
+
+function finishOnboarding() {
+    // Salva tudo no localStorage
+    localStorage.setItem('userName', tempOnboardingData.name);
+    localStorage.setItem('language', tempOnboardingData.language);
+    localStorage.setItem('proficiency', tempOnboardingData.level);
+    localStorage.setItem('voiceGender', tempOnboardingData.voice);
+    localStorage.setItem('hasCompletedOnboarding', 'true');
+
+    // Recompensa
+    const currentCoins = getCoins();
+    saveCoins(currentCoins + 10);
+    
+    // Fecha o Wizard
+    onboardingWizard.classList.add('modal-hidden');
+    
+    // CORREÇÃO 1: Remove a classe 'hidden' antes de adicionar 'visible'
+    appContainer.classList.remove('hidden');
+    appContainer.classList.add('visible');
+    
+    // CORREÇÃO 2: Inicializa apenas os sistemas essenciais, sem chamar initializeApp()
+    // Isso evita que o app tente carregar a Home Page e o Guia ao mesmo tempo.
+    setDefaultSettings();
+    updateHeaderIndicators();
+    initializeHeartSystem();
+    syncUserProgressAndCheckBadges();
+    initializeSpeechAPI();
+
+    // Redireciona para o guia e mostra recompensa
+    renderGuidePage();
+    setTimeout(() => {
+        triggerCoinAnimation();
+        showRewardNotification("Perfil Criado! +10 Moedas 🪙");
+    }, 500);
+}
+
 
 // =================================================================
 //  9. RENDERIZAÇÃO DE PÁGINAS E INTERFACES
@@ -399,58 +660,286 @@ function deleteHistoryItem(index) { if (!confirm('Tem certeza de que deseja excl
 function renderHomePage() {
     updateActiveNavIcon('nav-home-btn');
     mainContentArea.innerHTML = '';
-    mainContentArea.className = 'main-content-area';
+    mainContentArea.className = 'main-content-area journey-page';
+    
+    // Configuração de visibilidade dos elementos globais
     chatInputArea.classList.add('chat-input-hidden');
     bottomNavBar.classList.remove('nav-hidden');
-
     exitChatBtn.textContent = 'Sair';
     exitChatBtn.classList.add('exit-chat-btn-hidden');
-
-    updateHeartsDisplay();
     headerBackBtn.classList.add('back-btn-hidden');
+    updateHeartsDisplay();
 
-    renderHomePageContent();
+    loadJourneyState();
 
+    // 1. CARTÃO DE CENA (SCENE CARD)
+    const sceneCard = document.createElement('div');
+    sceneCard.className = 'scene-card';
+
+    // 1.1 Imagem
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'scene-image-container';
+    // Usa a imagem do estado ou um fallback
+    const sceneImage = journeyState.image || "assets/viagens/placeholder.png"; 
+    imageContainer.innerHTML = `<img src="${sceneImage}" alt="Imagem do cenário atual">`;
+    
+    // 1.2 Barra de Informação (Local e Dia)
+    const infoBar = document.createElement('div');
+    infoBar.className = 'scene-info-bar';
+    infoBar.innerHTML = `
+        <span class="journey-location">📍 ${journeyState.location}</span>
+        <span class="journey-day">Dia ${journeyState.day}</span>
+    `;
+
+    // 1.3 Narrativa
+    const narrativeContent = document.createElement('div');
+    narrativeContent.className = 'narrative-content';
+    narrativeContent.innerHTML = `<p class="narrative-text">"${journeyState.narrative}"</p>`;
+
+    // Monta o Scene Card
+    sceneCard.appendChild(imageContainer);
+    sceneCard.appendChild(infoBar);
+    sceneCard.appendChild(narrativeContent);
+    mainContentArea.appendChild(sceneCard);
+
+
+    // 2. ÁREA DE DECISÃO (Botões)
+    const decisionsArea = document.createElement('div');
+    decisionsArea.className = 'decisions-area';
+    
+    journeyState.currentChoices.forEach((choice, index) => {
+        const card = document.createElement('div');
+        card.className = 'decision-card';
+        // Letra A ou B baseada no index
+        const letter = String.fromCharCode(65 + index); 
+        card.innerHTML = `
+            <h4>Opção ${letter}</h4>
+            <p>${choice.text}</p>
+        `;
+        card.onclick = () => handleJourneyChoice(choice);
+        decisionsArea.appendChild(card);
+    });
+    mainContentArea.appendChild(decisionsArea);
+
+
+    // 3. TÍTULO SEPARADOR DE STATUS
+    const statusTitle = document.createElement('div');
+    statusTitle.className = 'status-section-title';
+    statusTitle.innerHTML = `👤 Estado do Viajante`;
+    mainContentArea.appendChild(statusTitle);
+
+
+    // 4. PAINEL DE STATUS (GRID)
+    const statusGrid = document.createElement('div');
+    statusGrid.className = 'status-grid';
+
+    // 4.1 Card Humor
+    const currentMood = MOOD_ICONS[journeyState.mood] || MOOD_ICONS.neutral;
+    const moodCard = document.createElement('div');
+    moodCard.className = 'status-card mood-card';
+    moodCard.innerHTML = `
+        <div class="mood-icon">${currentMood.icon}</div>
+        <div class="mood-label">${currentMood.label}</div>
+    `;
+    statusGrid.appendChild(moodCard);
+
+    // 4.2 Card Inventário
+    const inventoryCard = document.createElement('div');
+    inventoryCard.className = 'status-card';
+    if (journeyState.inventory.length === 0) {
+        inventoryCard.innerHTML = `<span class="empty-state">Mochila vazia</span>`;
+    } else {
+        let invHtml = '<div class="mini-grid">';
+        journeyState.inventory.forEach(item => {
+            invHtml += `<div class="mini-icon" title="${item.name}">${item.icon}</div>`;
+        });
+        invHtml += '</div>';
+        inventoryCard.innerHTML = invHtml;
+    }
+    statusGrid.appendChild(inventoryCard);
+
+    // 4.3 Card Social
+    const socialCard = document.createElement('div');
+    socialCard.className = 'status-card';
+    if (journeyState.social.length === 0) {
+        socialCard.innerHTML = `<span class="empty-state">Sozinho(a)</span>`;
+    } else {
+        let socialHtml = '<div class="mini-grid">';
+        journeyState.social.forEach(person => {
+            const borderClass = person.type === 'friend' ? 'friend' : 'enemy';
+            // Usa placeholder se não houver avatar
+            const avatarSrc = person.avatar || "assets/avatar-default.png"; 
+            socialHtml += `<img src="${avatarSrc}" class="mini-avatar ${borderClass}" title="${person.name}">`;
+        });
+        socialHtml += '</div>';
+        socialCard.innerHTML = socialHtml;
+    }
+    statusGrid.appendChild(socialCard);
+
+    // 4.4 Card Diário (Tags)
+    const diaryCard = document.createElement('div');
+    diaryCard.className = 'status-card diary-card';
+    
+    let tagsHtml = '';
+    if (journeyState.historyTags.length === 0) {
+        tagsHtml = '<span class="empty-state">Nenhuma experiência registrada.</span>';
+    } else {
+        journeyState.historyTags.forEach(tag => {
+            tagsHtml += `<span class="diary-tag">#${tag}</span>`;
+        });
+    }
+
+    diaryCard.innerHTML = `
+        <div class="diary-header">
+            <span class="diary-title">📖 Diário</span>
+            <span class="diary-count">${journeyState.historyTags.length}</span>
+        </div>
+        <div class="tags-container">
+            ${tagsHtml}
+        </div>
+    `;
+    statusGrid.appendChild(diaryCard);
+
+    mainContentArea.appendChild(statusGrid);
     mainContentArea.scrollTop = 0;
 }
 
-function renderCustomScenarioPage() {
-    updateActiveNavIcon('nav-custom-btn');
+// Função auxiliar para lidar com a escolha
+function handleJourneyChoice(choice) {
+    if (userHearts < 1) {
+        showNoHeartsModal();
+        return;
+    }
+    
+    // Constrói o objeto de cenário temporário
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const scenarioObj = {
+        "pt-BR": { goal: choice.goal },
+        "en-US": { name: "Journey Mission", goal: choice.goal },
+        "es-MX": { name: "Misión de Viaje", goal: choice.goal }
+    };
+
+    // Adiciona a tag da escolha ao histórico (simulação simples por enquanto)
+    // Futuramente a IA fará isso
+    if (!journeyState.historyTags.includes(choice.text.substring(0, 15) + "...")) {
+         journeyState.historyTags.push(choice.text.substring(0, 15) + "...");
+         saveJourneyState();
+    }
+
+    startNewConversation(scenarioObj, 'journey', choice.id);
+}
+
+function renderPracticePage() {
+    // Atualiza navegação (ID NOVO: nav-practice-btn)
+    updateActiveNavIcon('nav-practice-btn'); 
+    
     mainContentArea.innerHTML = '';
-    mainContentArea.className = 'main-content-area custom-scenario-page';
+    mainContentArea.className = 'main-content-area practice-page';
     chatInputArea.classList.add('chat-input-hidden');
     bottomNavBar.classList.remove('nav-hidden');
-
-    exitChatBtn.textContent = 'Sair';
     exitChatBtn.classList.add('exit-chat-btn-hidden');
-
-    updateHeartsDisplay();
     headerBackBtn.classList.add('back-btn-hidden');
+    heartsIndicator.classList.remove('score-indicator-hidden');
 
-    // Exibe o nome do idioma atual para o usuário
-    const langMap = { "en-US": "inglês", "es-MX": "espanhol" };
-    const currentLang = localStorage.getItem('language') || 'en-US';
-    const selectedLanguageName = langMap[currentLang] || "inglês";
-
-    const customScenarioContainer = document.createElement('div');
-    customScenarioContainer.className = 'custom-scenario-container';
-    customScenarioContainer.innerHTML = `
-        <h2>Cenário Personalizado</h2>
-        <p>Descreva uma situação ou objetivo que você gostaria de praticar em <strong>${selectedLanguageName}</strong>.</p>
-        
-        <div class="custom-charge-info">
-            <p>
-                <span style="font-size: 1.2rem;">✨</span> Cenários personalizados custam <span class="custom-charge-hearts">2 Corações ❤️❤️</span>.
-                Eles exigem um esforço extra da IA!
-            </p>
-        </div>
-        
-        <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Convidar a pessoa que amo para sair, correndo o risco de sofer uma rejeição."></textarea>
-        <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
-        <button id="start-custom-scenario-btn" class="primary-btn">Iniciar Cenário</button>
+    // 1. SISTEMA DE ABAS
+    const tabsContainer = document.createElement('div');
+    tabsContainer.className = 'page-tabs';
+    tabsContainer.innerHTML = `
+        <button class="page-tab-btn active" onclick="switchPageTab('scenarios')">Cenários da Odete</button>
+        <button class="page-tab-btn" onclick="switchPageTab('custom')">Personalizado</button>
     `;
-    mainContentArea.appendChild(customScenarioContainer);
+    mainContentArea.appendChild(tabsContainer);
+
+    // 2. CONTEÚDO DA ABA 1: CENÁRIOS (Antiga Home)
+    const tabScenarios = document.createElement('div');
+    tabScenarios.id = 'tab-scenarios';
+    tabScenarios.className = 'tab-content-area active';
+    
+    // Lógica de renderização das categorias (Adaptada da antiga home)
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    const freeCategories = getFreeCategories();
+    const purchasedCategories = getPurchasedCategories();
+    const allowedCategories = [...freeCategories, ...purchasedCategories];
+
+    const panelContainer = document.createElement('div');
+    panelContainer.className = 'scenario-panel';
+
+    Object.keys(SCENARIOS)
+        .filter(categoryName => allowedCategories.includes(categoryName))
+        .forEach(categoryName => {
+            const categorySection = document.createElement('section'); 
+            categorySection.className = 'panel-category-section';
+            
+            const categoryTitle = document.createElement('h2'); 
+            categoryTitle.className = 'panel-category-title'; 
+            categoryTitle.innerHTML = `<span class="category-title-text">${categoryName}</span><span class="category-toggle-icon">▸</span>`; 
+            
+            const collapsibleContent = document.createElement('div'); 
+            collapsibleContent.className = 'collapsible-content';
+            
+            const cardsContainer = document.createElement('div'); 
+            cardsContainer.className = 'scenario-cards-container';
+            
+            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4); // Mostra 4
+            scenariosToShow.forEach(scenarioId => { 
+                const card = document.createElement('button'); 
+                card.className = 'scenario-card'; 
+                card.textContent = SCENARIOS[categoryName][scenarioId][currentLang].name; 
+                card.dataset.categoryName = categoryName; 
+                card.dataset.scenarioId = scenarioId; 
+                cardsContainer.appendChild(card); 
+            });
+
+            const viewAllButton = document.createElement('button'); 
+            viewAllButton.className = 'view-all-btn'; 
+            viewAllButton.textContent = 'Ver todos →'; 
+            viewAllButton.dataset.categoryName = categoryName;
+
+            collapsibleContent.appendChild(cardsContainer); 
+            collapsibleContent.appendChild(viewAllButton);
+            
+            categorySection.appendChild(categoryTitle); // Título primeiro
+            categorySection.appendChild(collapsibleContent); 
+            panelContainer.appendChild(categorySection);
+        });
+
+    tabScenarios.appendChild(panelContainer);
+    mainContentArea.appendChild(tabScenarios);
+
+    // 3. CONTEÚDO DA ABA 2: PERSONALIZADO (Antiga Custom Page)
+    const tabCustom = document.createElement('div');
+    tabCustom.id = 'tab-custom';
+    tabCustom.className = 'tab-content-area';
+
+    const customContainer = document.createElement('div');
+    customContainer.className = 'custom-scenario-container';
+    customContainer.innerHTML = `
+        <div class="custom-charge-info">
+            <p>💡 <strong>Treino Livre:</strong> Crie qualquer situação.</p>
+            <p>Custo: <span class="custom-charge-hearts">2 ❤️</span> por missão.</p>
+        </div>
+        <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Quero praticar uma entrevista de emprego para vaga de TI..."></textarea>
+        <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
+        <button id="start-custom-scenario-btn" class="primary-btn">Criar Cenário</button>
+    `;
+    tabCustom.appendChild(customContainer);
+    mainContentArea.appendChild(tabCustom);
 }
+
+// Função Global para troca de abas
+window.switchPageTab = function(tabName) {
+    // Remove active dos botões
+    document.querySelectorAll('.page-tab-btn').forEach(btn => btn.classList.remove('active'));
+    // Adiciona ao clicado (lógica simples baseada no texto ou ordem, ou event.target)
+    const buttons = document.querySelectorAll('.page-tab-btn');
+    if(tabName === 'scenarios') buttons[0].classList.add('active');
+    else buttons[1].classList.add('active');
+
+    // Alterna conteúdo
+    document.getElementById('tab-scenarios').classList.remove('active');
+    document.getElementById('tab-custom').classList.remove('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+};
 
 function showCustomScenarioError(message) { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = message; feedbackArea.style.display = 'block'; } }
 function clearCustomScenarioError() { const feedbackArea = document.getElementById('custom-scenario-feedback'); if (feedbackArea) { feedbackArea.textContent = ''; feedbackArea.style.display = 'none'; } }
@@ -470,7 +959,7 @@ function renderHistoryPage() {
 
     const historyContainer = document.createElement('div');
     historyContainer.className = 'history-container';
-    historyContainer.innerHTML = '<h2>Histórico de Diálogos</h2>';
+    historyContainer.innerHTML = '<h2>🕒 Histórico</h2>';
     const list = document.createElement('ul');
     list.id = 'history-list';
     populateHistoryList(list);
@@ -592,6 +1081,8 @@ function renderGuidePage() {
 
     const languageMap = { 'en-US': 'inglês', 'es-MX': 'espanhol' };
     const currentLanguageName = languageMap[localStorage.getItem('language') || 'en-US'];
+    // Recupera o nome do usuário
+    const userName = localStorage.getItem('userName') || "Viajante";
 
     const guideContainer = document.createElement('div');
     guideContainer.className = 'guide-carousel-container';
@@ -603,10 +1094,9 @@ function renderGuidePage() {
                     <div class="guide-header">
                         <img src="assets/luciano-e-odete.png" alt="Odete, sua guia" class="guide-avatar">
                     </div>    
-                    <h2>Seus Guias</h2>
+                    <h2>Olá, ${userName}!</h2>
                     <div class="guide-content">
-                        <p>Olá! Somos <strong>Luciano e Odete</strong>, seus guias pessoais nesta jornada.</p>
-                        <p>Vamos ajudar você a destravar seu <strong>${currentLanguageName}</strong> em diálogos realistas <strong>conduzidos por IA</strong>.</p>
+                        <p>Eu sou Odete e este é Luciano. Vamos ajudar você a destravar seu <strong>${currentLanguageName}</strong> em diálogos realistas.</p>
                     </div>
                 </div>
 
@@ -617,7 +1107,7 @@ function renderGuidePage() {
                     </div> 
                     <h2>Suas Missões</h2>
                     <div class="guide-content">
-                        <p>Cada diálogo tem um objetivo realista, seja pedir um café, fazer uma apresentação ou chamar alguém pra sair.</p>
+                        <p>Cada diálogo tem um objetivo, seja pedir um café, fazer uma apresentação ou chamar alguém pra sair.</p>
                         <p>Você pode cumprir suas missões por voz 🎤 ou texto ✍️.</p>
                     </div>
                 </div>
@@ -627,7 +1117,7 @@ function renderGuidePage() {
                     <div class="guide-header">
                         <img src="assets/luciano-e-odete-estrelas.png" alt="Odete, sua guia" class="guide-avatar">
                     </div> 
-                    <h2>Idioma e Nível</h2>
+                    <h2>Personalize</h2>
                     <div class="guide-content">
                         <p>Você está no controle! A qualquer momento, clique nas estrelas no topo da tela para ajustar o idioma e o nível de dificuldade.</p>
                     </div>
@@ -641,7 +1131,7 @@ function renderGuidePage() {
                     <h2>Corações</h2>
                     <div class="guide-content">
                         <p>Os corações são sua <strong>energia</strong>. Missões custam <strong>1 ❤️</strong> (normais) ou <strong>2 ❤️</strong> (personalizadas).</p>
-                        <p>Eles recarregam com o tempo. Se acabar, espere ou visite a 🛍️ <strong>Loja</strong>.</p>
+                        <p>Eles recarregam com o tempo. Se acabarem, espere ou recarregue na 🛍️ <strong>Loja</strong>.</p>
                     </div>
                 </div>
                 
@@ -752,13 +1242,8 @@ function setupGuideCarousel() {
 // =================================================================
 //  10. LÓGICA CENTRAL DA CONVERSA
 // =================================================================
-/**
- * Inicia uma nova conversa.
- * @param {Object} scenario O objeto do cenário contendo todos os idiomas (pt-BR, en-US, es-MX).
- * @param {string} categoryName O nome da categoria.
- * @param {string} scenarioId O ID do cenário (geralmente a chave em PT-BR, ex: "Pedindo um desconto").
- */
 function startNewConversation(scenario, categoryName, scenarioId) {
+    feedbackPromise = null;
     currentScenario = {
         details: scenario,
         categoryName: categoryName,
@@ -781,7 +1266,6 @@ function startNewConversation(scenario, categoryName, scenarioId) {
         <span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>
     `;
 
-    // O objetivo mostrado ao usuário é sempre em PT-BR (instrução)
     missionGoalText.textContent = scenario['pt-BR'].goal;
 
     if (scenario && scenario.image) {
@@ -796,18 +1280,18 @@ function startNewConversation(scenario, categoryName, scenarioId) {
 }
 
 async function initiateChat() {
+    feedbackPromise = null;
     if (!currentScenario) return;
     isConversationActive = true;
     currentInteractionMode = 'text';
     renderChatInterface();
-    chatInputArea.classList.remove('voice-mode-active');
+    chatInputArea.classList.remove('chat-input-hidden');
     micBtn.style.display = 'none';
     textInput.style.display = 'block';
     sendBtn.style.display = 'flex';
 
     conversationHistory = [];
 
-    // Seleciona os detalhes do cenário com base no idioma atual
     const currentLang = localStorage.getItem('language') || 'en-US';
     const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
 
@@ -816,7 +1300,13 @@ async function initiateChat() {
     setProcessingState(true);
 
     try {
-        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
+        // Inclui userName nas settings
+        const settings = { 
+            userName: localStorage.getItem('userName') || 'Viajante',
+            language: currentLang, 
+            proficiency: localStorage.getItem('proficiency'), 
+            voiceGender: localStorage.getItem('voiceGender') 
+        };
         const aiResponse = await getAIResponse(null, [], scenarioDetails, settings);
         conversationHistory.push({ role: 'assistant', content: aiResponse });
 
@@ -865,16 +1355,27 @@ function handleExitChat() {
 
     if (currentAudioPlayer && !currentAudioPlayer.paused) {
         currentAudioPlayer.pause();
+        currentAudioPlayer = null;
     }
     if (synthesis.speaking) {
         synthesis.cancel();
     }
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
+
+    if (mediaRecorder) {
+        mediaRecorder.onstop = null;
+        if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+        if (mediaRecorder.stream) {
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+        mediaRecorder = null;
     }
 
     conversationHistory = [];
     currentScenario = null;
+    feedbackPromise = null; 
+    
     renderHomePage();
 }
 
@@ -909,6 +1410,7 @@ function setupVoiceUI() {
 }
 
 async function initiateVoiceChat() {
+    feedbackPromise = null;
     if (!currentScenario) return;
     if (!checkBrowserCompatibility()) { renderHomePage(); return; }
     isConversationActive = true;
@@ -918,7 +1420,6 @@ async function initiateVoiceChat() {
     micBtn.style.display = 'flex';
     conversationHistory = [];
 
-    // Seleciona os detalhes do cenário com base no idioma atual
     const currentLang = localStorage.getItem('language') || 'en-US';
     const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
 
@@ -927,7 +1428,12 @@ async function initiateVoiceChat() {
     setProcessingState(true);
 
     try {
-        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
+        const settings = { 
+            userName: localStorage.getItem('userName') || 'Viajante',
+            language: currentLang, 
+            proficiency: localStorage.getItem('proficiency'), 
+            voiceGender: localStorage.getItem('voiceGender') 
+        };
         const aiResponse = await getAIResponse(null, [], scenarioDetails, settings);
         conversationHistory.push({ role: 'assistant', content: aiResponse });
         await speakText(aiResponse);
@@ -963,6 +1469,7 @@ async function handleAIResponse(text) {
         return new Promise(resolve => {
             messageDisplayTimeoutId = setTimeout(() => {
                 removeTypingIndicator();
+                removeVoiceStatusIndicator();
                 displayMessage(text, 'ai');
                 setUserTurnState(true);
                 resolve();
@@ -983,14 +1490,24 @@ function checkBrowserCompatibility() {
 //  12. GERENCIAMENTO DE ESTADO DA INTERFACE DE USUÁRIO (UI)
 // =================================================================
 function setProcessingState(isProcessing) {
+    removeVoiceStatusIndicator();
+
     if (isProcessing) {
-        removeVoiceStatusIndicator();
         conversationState = 'PROCESSING';
         showTypingIndicator();
+        
         textInput.disabled = true;
         sendBtn.disabled = true;
         micBtn.disabled = true;
         updateMicButtonState('processing');
+
+        const statusIndicator = document.createElement('span');
+        statusIndicator.id = 'voice-status-indicator';
+        statusIndicator.className = 'voice-status-indicator';
+        statusIndicator.textContent = '-- Pensando -- ';
+        
+        chatInputArea.insertBefore(statusIndicator, micBtn);
+
     } else {
         removeTypingIndicator();
     }
@@ -1031,6 +1548,7 @@ async function speakText(text) {
     }
     conversationState = 'AI_SPEAKING';
     updateMicButtonState('disabled');
+    removeVoiceStatusIndicator();
     displayMessage(text, 'ai');
     removeTypingIndicator();
 
@@ -1038,11 +1556,6 @@ async function speakText(text) {
     const currentGender = localStorage.getItem('voiceGender') || 'female';
 
     try {
-        // Tenta usar o servidor (Google Cloud TTS)
-        // Passamos o idioma para que a configuração correta seja usada
-        // Nota: Se configuration.js não estiver atualizado para aceitar o segundo argumento, 
-        // ele será ignorado e o backend fará fallback para en-US. 
-        // Nesse caso, o bloco catch (fallback nativo) é nossa rede de segurança.
         const audioBlob = await getAudioFromServer(text, currentLang, currentGender); 
         const audioUrl = URL.createObjectURL(audioBlob);
         currentAudioPlayer = new Audio(audioUrl);
@@ -1057,7 +1570,6 @@ async function speakText(text) {
             currentAudioPlayer.onerror = (e) => {
                 console.error('Audio playback error:', e);
                 URL.revokeObjectURL(audioUrl);
-                // Fallback para voz nativa
                 speakTextNative(text, currentLang).then(resolve);
             };
             currentAudioPlayer.play();
@@ -1074,12 +1586,10 @@ function speakTextNative(text, langCode) {
         synthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Seleciona a melhor voz nativa para o idioma
         const bestVoice = findBestVoice(langCode);
         if (bestVoice) {
             utterance.voice = bestVoice;
         } else {
-            // Fallback genérico de idioma se não encontrar voz específica
             utterance.lang = langCode; 
         }
 
@@ -1101,22 +1611,17 @@ function findBestVoice(langCode) {
     if (voices.length === 0) voices = synthesis.getVoices();
     if (voices.length === 0) return null;
 
-    // Define o prefixo do idioma (ex: 'en', 'es')
     const langPrefix = langCode.split('-')[0];
 
-    // Tenta encontrar vozes de alta qualidade (Google/Microsoft) para o idioma específico (ex: es-MX)
     let bestVoice = voices.find(voice => voice.lang === langCode && (voice.name.includes('Google') || voice.name.includes('Microsoft')));
     if (bestVoice) return bestVoice;
 
-    // Tenta encontrar qualquer voz para o idioma específico
     bestVoice = voices.find(voice => voice.lang === langCode);
     if (bestVoice) return bestVoice;
 
-    // Tenta encontrar vozes de alta qualidade para o grupo de idiomas (ex: es-ES para es-MX)
     bestVoice = voices.find(voice => voice.lang.startsWith(langPrefix) && (voice.name.includes('Google') || voice.name.includes('Microsoft')));
     if (bestVoice) return bestVoice;
 
-    // Qualquer voz do grupo de idiomas
     return voices.find(voice => voice.lang.startsWith(langPrefix));
 }
 
@@ -1142,7 +1647,7 @@ async function startRecording() {
         const statusIndicator = document.createElement('span');
         statusIndicator.id = 'voice-status-indicator'; 
         statusIndicator.className = 'voice-status-indicator';
-        statusIndicator.textContent = '-- Clique em ⏹️ quando terminar de falar --';
+        statusIndicator.textContent = '-- Clique em ⏹️ quando terminar --';
         chatInputArea.insertBefore(statusIndicator, micBtn); 
 
     } catch (error) {
@@ -1159,6 +1664,10 @@ async function handleRecordingStop() {
     const statusIndicator = document.getElementById('voice-status-indicator');
     if (statusIndicator) {
         statusIndicator.remove();
+    }
+
+    if (mediaRecorder && mediaRecorder.stream) {
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
 
     const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
@@ -1196,23 +1705,28 @@ async function processUserMessage(messageText) {
 
     try {
         const currentLang = localStorage.getItem('language') || 'en-US';
-        const settings = { language: currentLang, proficiency: localStorage.getItem('proficiency') };
-        // Garante que temos os detalhes do cenário no idioma correto
+        const settings = { 
+            userName: localStorage.getItem('userName') || 'Viajante',
+            language: currentLang, 
+            proficiency: localStorage.getItem('proficiency'), 
+            voiceGender: localStorage.getItem('voiceGender') 
+        };
         const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
         
         const aiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings);
 
         if (aiResponse.includes("[Scenario Complete]")) {
             const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
-
             if (cleanResponse) {
                 conversationHistory.push({ role: 'assistant', content: cleanResponse });
                 await handleAIResponse(cleanResponse);
             }
 
             const coinsEarned = await finalizeConversation();
-            displayCompletionScreen(coinsEarned);
+            
+            feedbackPromise = startBackgroundFeedbackGeneration();
 
+            displayCompletionScreen(coinsEarned);
         } else {
             conversationHistory.push({ role: 'assistant', content: aiResponse });
             await handleAIResponse(aiResponse);
@@ -1322,6 +1836,38 @@ function showQuoteNotification(message) {
     }, 4000);
 }
 
+async function startBackgroundFeedbackGeneration() {
+    console.log("Iniciando feedback em background...");
+    const historySnapshot = [...conversationHistory];
+    const language = localStorage.getItem('language');
+    const settings = { language: language, proficiency: localStorage.getItem('proficiency'), voiceGender: localStorage.getItem('voiceGender') };
+    const mode = currentInteractionMode;
+
+    try {
+        const feedbackText = await getFeedbackForConversation(historySnapshot, language, settings, mode);
+        
+        const savedHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+        if (savedHistory.length > 0) {
+            savedHistory[0].feedback = feedbackText;
+            localStorage.setItem('conversationHistory', JSON.stringify(savedHistory));
+            
+            const userStats = JSON.parse(localStorage.getItem('userStats') || '{}');
+            userStats.feedbackViewed = (userStats.feedbackViewed || 0) + 1;
+            if (feedbackText.toLowerCase().includes("no corrections needed")) {
+                userStats.flawlessMissions = (userStats.flawlessMissions || 0) + 1;
+            }
+            localStorage.setItem('userStats', JSON.stringify(userStats));
+            
+            await checkAndAwardBadges(null, true);
+            processBadgeNotificationQueue();
+        }
+        return feedbackText;
+    } catch (error) {
+        console.error("Erro no feedback background:", error);
+        return null;
+    }
+}
+
 async function finalizeConversation() {
     isConversationActive = false;
     conversationState = 'IDLE';
@@ -1374,7 +1920,6 @@ async function finalizeConversation() {
     const currentCoins = getCoins();
     saveCoins(currentCoins + totalCoinsToAdd);
 
-    // Usa o idioma atual para salvar o nome do cenário corretamente no histórico
     const currentLang = localStorage.getItem('language') || 'en-US';
     let finalScenarioName = currentScenario.details[currentLang].name;
     
@@ -1391,7 +1936,7 @@ async function finalizeConversation() {
     history.unshift({
         scenarioName: finalScenarioName,
         scenarioGoal: currentScenario.details[currentLang].goal,
-        scenarioId: currentScenario.id, // Salva o ID para referência futura segura
+        scenarioId: currentScenario.id, 
         timestamp: new Date().getTime(),
         transcript: conversationHistory,
         feedback: '',
@@ -1405,7 +1950,7 @@ async function finalizeConversation() {
         interactionMode: currentInteractionMode,
         timestamp: new Date().getTime(),
         scenarioName: finalScenarioName,
-        scenarioId: currentScenario.id // Usado para validação de badges
+        scenarioId: currentScenario.id 
     };
     await checkAndAwardBadges(newMissionData, true);
     processBadgeNotificationQueue();
@@ -1465,19 +2010,16 @@ function startNextChallenge() {
     spendHeart();
     const currentLang = localStorage.getItem('language') || 'en-US';
     
-    // Reúne todos os cenários e adiciona o ID (chave PT-BR) a eles
     const allScenarios = Object.entries(SCENARIOS).flatMap(([category, scenarios]) =>
         Object.entries(scenarios).map(([id, s]) => ({ ...s, categoryName: category, id: id }))
     );
     
     const currentGoal = currentScenario.details[currentLang].goal;
-    // Filtra cenários diferentes do atual
     const availableScenarios = allScenarios.filter(s => s[currentLang].goal !== currentGoal);
 
     if (availableScenarios.length > 0) {
         const randomIndex = Math.floor(Math.random() * availableScenarios.length);
         const nextScenario = availableScenarios[randomIndex];
-        // Passa o ID (chave PT-BR) para startNewConversation
         startNewConversation(nextScenario, nextScenario.categoryName, nextScenario.id);
     } else {
         renderHomePage();
@@ -1487,35 +2029,39 @@ function startNextChallenge() {
 
 async function handleGetFeedback() {
     feedbackModal.classList.remove('modal-hidden');
-    feedbackContent.innerHTML = '<p>Analisando sua conversa, por favor, aguarde...</p>';
+    feedbackContent.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <p>A Odete está escrevendo suas dicas...</p>
+            <p class="typing-dots" style="justify-content: center;"><span>.</span><span>.</span><span>.</span></p>
+        </div>`;
     translateBtn.classList.add('translate-btn-hidden');
+
     try {
-        const settings = { language: localStorage.getItem('language'), proficiency: localStorage.getItem('proficiency') };
-        
-        originalFeedback = await getFeedbackForConversation(conversationHistory, localStorage.getItem('language'), settings, currentInteractionMode);
-        
-        const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
-        if (history.length > 0 && !history[0].feedback) {
-            history[0].feedback = originalFeedback;
-            localStorage.setItem('conversationHistory', JSON.stringify(history));
+        if (feedbackPromise) {
+            console.log("Usando feedback pré-carregado.");
+            originalFeedback = await feedbackPromise;
+        } else {
+            console.log("Gerando feedback agora (fallback).");
+            const settings = { language: localStorage.getItem('language'), proficiency: localStorage.getItem('proficiency') };
+            originalFeedback = await getFeedbackForConversation(conversationHistory, localStorage.getItem('language'), settings, currentInteractionMode);
+            
+            const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+            if (history.length > 0 && !history[0].feedback) {
+                history[0].feedback = originalFeedback;
+                localStorage.setItem('conversationHistory', JSON.stringify(history));
+            }
         }
+
+        if(!originalFeedback) throw new Error("Falha na geração.");
+
         displayFormattedFeedback(originalFeedback);
         translateBtn.classList.remove('translate-btn-hidden');
         isTranslated = false;
         translatedFeedback = '';
         translateBtn.textContent = 'Traduzir para Português';
 
-        const userStats = JSON.parse(localStorage.getItem('userStats') || '{}');
-        userStats.feedbackViewed = (userStats.feedbackViewed || 0) + 1;
-        if (originalFeedback.toLowerCase().includes("no corrections needed")) {
-            userStats.flawlessMissions = (userStats.flawlessMissions || 0) + 1;
-        }
-        localStorage.setItem('userStats', JSON.stringify(userStats));
-        await checkAndAwardBadges(null, true);
-        processBadgeNotificationQueue();
-
     } catch (error) {
-        feedbackContent.innerHTML = `<p>Erro ao gerar feedback: ${error.message}. Verifique o console do servidor.</p>`;
+        feedbackContent.innerHTML = `<p>Erro: ${error.message}</p>`;
     }
 }
 
@@ -1533,7 +2079,6 @@ async function handleTranslateFeedback() {
 
             if (!translatedFeedback) {
                 const protectedSnippets = [];
-                // Regex atualizado para usar a tag <lang>
                 const textToTranslate = originalFeedback.replace(/<lang>(.*?)<\/lang>/g, (match, content) => {
                     protectedSnippets.push(content);
                     return `%%PROTECTED_${protectedSnippets.length - 1}%%`;
@@ -1644,48 +2189,60 @@ function renderJornadaPage() {
             <h2>Minha Jornada</h2>
         </div>
 
-        <section class="jornada-section stats-grid-section">
-            <div class="summary-card theme-points" data-icon="🪙">
-                <span class="summary-value">${totalCoins}</span>
-                <span class="summary-label">Moedas Totais</span>
-            </div>
-            <div class="summary-card theme-missions" data-icon="✅">
-                <span class="summary-value">${performanceData.missionsCompleted}</span>
-                <span class="summary-label">Missões Concluídas</span>
-            </div>
-            <div class="summary-card theme-streak" data-icon="🔥">
-                <span class="summary-value">${currentStreak}</span>
-                <span class="summary-label">Sequência Atual</span>
-            </div>
-            <div class="summary-card theme-best-streak" data-icon="🏆">
-                <span class="summary-value">${bestStreak}</span>
-                <span class="summary-label">Melhor Sequência</span>
-            </div>
-        </section>
+        <!-- Barra de Abas -->
+        <div class="tab-bar jornada-tabs">
+            <button class="tab-btn active" data-tab="progress">Progresso</button>
+            <button class="tab-btn" data-tab="achievements">Conquistas</button>
+        </div>
 
-        <section class="jornada-section">
-            <h3>Modo de Prática</h3>
-            <div class="stat-card chart-card">
-                <canvas id="modeChart"></canvas>
-            </div>
-        </section>
+        <!-- ABA 1: PROGRESSO (Ativa por padrão) -->
+        <div id="content-progress" class="tab-content active">
+            <section class="jornada-section stats-grid-section">
+                <div class="summary-card theme-points" data-icon="🪙">
+                    <span class="summary-value">${totalCoins}</span>
+                    <span class="summary-label">Moedas Totais</span>
+                </div>
+                <div class="summary-card theme-missions" data-icon="✅">
+                    <span class="summary-value">${performanceData.missionsCompleted}</span>
+                    <span class="summary-label">Missões Concluídas</span>
+                </div>
+                <div class="summary-card theme-streak" data-icon="🔥">
+                    <span class="summary-value">${currentStreak}</span>
+                    <span class="summary-label">Sequência Atual</span>
+                </div>
+                <div class="summary-card theme-best-streak" data-icon="🏆">
+                    <span class="summary-value">${bestStreak}</span>
+                    <span class="summary-label">Melhor Sequência</span>
+                </div>
+            </section>
 
-        <section class="jornada-section">
-            <h3>Desempenho por Categoria</h3>
-            <div class="stat-card chart-card">
-                <canvas id="categoryChart"></canvas>
-            </div>
-        </section>
+            <section class="jornada-section">
+                <h3>Modo de Prática</h3>
+                <div class="stat-card chart-card">
+                    <canvas id="modeChart"></canvas>
+                </div>
+            </section>
 
-        <section class="jornada-section">
-            <h3>Calendário de Atividades</h3>
-            <div class="stat-card calendar-card" id="calendar-container"></div>
-        </section>
+            <section class="jornada-section">
+                <h3>Desempenho por Categoria</h3>
+                <div class="stat-card chart-card">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </section>
 
-        <section class="jornada-section" id="badges-section">
-            <h3>Minhas Conquistas</h3>
-            <div class="badges-gallery-container"></div>
-        </section>
+            <section class="jornada-section">
+                <h3>Calendário de Atividades</h3>
+                <div class="stat-card calendar-card" id="calendar-container"></div>
+            </section>
+        </div>
+
+        <!-- ABA 2: CONQUISTAS (Oculta por padrão) -->
+        <div id="content-achievements" class="tab-content">
+             <section class="jornada-section">
+                <!-- O container onde os badges serão renderizados -->
+                <div class="badges-gallery-container"></div>
+            </section>
+        </div>
     `;
 
     mainContentArea.appendChild(container);
@@ -1695,6 +2252,24 @@ function renderJornadaPage() {
     createActivityCalendar(document.getElementById('calendar-container'), performanceData.activityByDay);
 
     renderBadgesGallery(container.querySelector('.badges-gallery-container'));
+
+    const tabs = container.querySelectorAll('.tab-btn');
+    const contents = container.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            
+            const targetId = `content-${tab.dataset.tab}`;
+            const targetContent = container.querySelector(`#${targetId}`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
 }
 
 function createModeChart(canvasElement, modeData) {
@@ -1774,7 +2349,6 @@ async function checkAndAwardBadges(newMissionData = null, triggerNotification = 
         userStats.totalMissions++; userStats.missionsByMode[newMissionData.interactionMode]++; const categoryKey = newMissionData.categoryName === 'custom' ? '✨ Cenários Personalizados' : newMissionData.categoryName; userStats.missionsByCategory[categoryKey] = (userStats.missionsByCategory[categoryKey] || 0) + 1; userStats.uniqueCategories.add(categoryKey);
         const now = new Date(); if (now.getHours() >= 0 && now.getHours() < 4) { userStats.night_owl_mission = true; } 
         
-        // Verificação atualizada para usar o ID (chave PT-BR), independente do idioma de prática
         if (newMissionData.scenarioId === "Pedindo um desconto") { userStats.negotiator_mission = true; } 
         
         if (userStats.phoenix_eligible) { userStats.phoenix_achieved = true; userStats.phoenix_eligible = false; }
@@ -1887,91 +2461,17 @@ function renderBadgesGallery(container) {
 // =================================================================
 //  17. FUNÇÕES UTILITÁRIAS
 // =================================================================
-function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
-
-function renderHomePageContent() {
-    mainContentArea.innerHTML = '';
-    const title = document.createElement('h1'); title.className = 'main-page-title'; title.textContent = "Missões da Odete"; mainContentArea.appendChild(title);
-    
-    const currentLang = localStorage.getItem('language') || 'en-US';
-    
-    const allScenarios = Object.entries(SCENARIOS).flatMap(([categoryName, scenarios]) => 
-        Object.entries(scenarios).map(([id, scenarioData]) => ({ ...scenarioData, categoryName: categoryName, id: id }))
-    ).filter(Boolean);
-    
-    const suggestionSection = document.createElement('section'); suggestionSection.className = 'suggestion-section';
-    
-    suggestionSection.innerHTML = `
-        <div class="suggestion-card">
-            <div id="new-suggestion-trigger" class="suggestion-header" title="Clique para gerar uma nova sugestão">
-                <img src="assets/odete.jpg" alt="Mascote Odete" class="suggestion-avatar">
-                <div class="suggestion-info">
-                    <h3 id="suggestion-title"></h3>
-                    <p id="suggestion-category" class="suggestion-category-text"></p>
-                </div>
-            </div>
-            <button id="start-suggestion-btn" class="primary-btn">Começar Missão</button>
-        </div>
-    `;
-    
-    mainContentArea.appendChild(suggestionSection);
-    
-    const renderNewSuggestion = () => {
-        const categoryImageMap = { "🍔 Restaurantes e Cafés": 'assets/avatar-restaurantes.jpg', "✈️ Viagens e Transporte": 'assets/avatar-viagens.jpg', "🛒 Compras": 'assets/avatar-compras.jpg', "🤝 Situações Sociais": 'assets/avatar-social.jpg', "💼 Profissional": 'assets/avatar-profissional.jpg', "🎓 Estudos": 'assets/avatar-estudos.jpg', "❤️ Saúde e Bem-estar": 'assets/avatar-saude.jpg', "🏠 Moradia e Serviços": 'assets/avatar-moradia.jpg' };
-        const suggestedScenario = allScenarios[Math.floor(Math.random() * allScenarios.length)];
-        const suggestionTitleEl = document.getElementById('suggestion-title'); 
-        const startSuggestionBtn = document.getElementById('start-suggestion-btn'); 
-        const suggestionAvatarEl = document.querySelector('.suggestion-avatar');
-        const suggestionCategoryEl = document.getElementById('suggestion-category');
-
-        if (suggestionTitleEl && startSuggestionBtn && suggestionAvatarEl && suggestionCategoryEl) {
-            suggestionTitleEl.textContent = suggestedScenario[currentLang].name; 
-            suggestionCategoryEl.textContent = `${suggestedScenario.categoryName}`; 
-
-            startSuggestionBtn.dataset.categoryName = suggestedScenario.categoryName; 
-            startSuggestionBtn.dataset.scenarioId = suggestedScenario.id; 
-            
-            const imagePath = suggestedScenario.image || categoryImageMap[suggestedScenario.categoryName] || 'assets/odete.jpg'; 
-            suggestionAvatarEl.src = imagePath;
-            if (suggestedScenario.image) { 
-                suggestionAvatarEl.alt = `Ilustração do cenário: ${suggestedScenario[currentLang].name}`; 
-            } else { 
-                const cleanCategoryName = suggestedScenario.categoryName.replace(/[^a-zA-ZÀ-ú\s]/g, '').trim(); 
-                suggestionAvatarEl.alt = `Ilustração da categoria: ${cleanCategoryName}`; 
+function updateActiveNavIcon(activeBtnId) {
+    // Lista atualizada com navPracticeBtn em vez de navCustomBtn
+    [navHomeBtn, navPracticeBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => {
+        if (btn) { // Verificação de segurança caso algum elemento não carregue
+            if (btn.id === activeBtnId) {
+                btn.classList.add('active-nav-icon');
+            } else {
+                btn.classList.remove('active-nav-icon');
             }
         }
-    };
-    
-    renderNewSuggestion();
-    document.getElementById('new-suggestion-trigger').addEventListener('click', renderNewSuggestion);
-    const panelContainer = document.createElement('div'); panelContainer.className = 'scenario-panel';
-
-    const freeCategories = getFreeCategories();
-    const purchasedCategories = getPurchasedCategories();
-    const allowedCategories = [...freeCategories, ...purchasedCategories];
-
-    Object.keys(SCENARIOS)
-        .filter(categoryName => allowedCategories.includes(categoryName))
-        .forEach(categoryName => {
-            const categorySection = document.createElement('section'); categorySection.className = 'panel-category-section';
-            const categoryTitle = document.createElement('h2'); categoryTitle.className = 'panel-category-title'; categoryTitle.innerHTML = `<span class="category-title-text">${categoryName}</span><span class="category-toggle-icon">▸</span>`; categorySection.appendChild(categoryTitle);
-            const collapsibleContent = document.createElement('div'); collapsibleContent.className = 'collapsible-content';
-            const cardsContainer = document.createElement('div'); cardsContainer.className = 'scenario-cards-container';
-            const scenariosToShow = Object.keys(SCENARIOS[categoryName]).slice(0, 4);
-            scenariosToShow.forEach(scenarioId => { 
-                const card = document.createElement('button'); 
-                card.className = 'scenario-card'; 
-                // Exibe o nome no idioma atual
-                card.textContent = SCENARIOS[categoryName][scenarioId][currentLang].name; 
-                card.dataset.categoryName = categoryName; 
-                card.dataset.scenarioId = scenarioId; // Armazena o ID
-                cardsContainer.appendChild(card); 
-            });
-            const viewAllButton = document.createElement('button'); viewAllButton.className = 'view-all-btn'; viewAllButton.textContent = 'Ver todos →'; viewAllButton.dataset.categoryName = categoryName;
-            collapsibleContent.appendChild(cardsContainer); collapsibleContent.appendChild(viewAllButton);
-            categorySection.appendChild(collapsibleContent); panelContainer.appendChild(categorySection);
-        });
-    mainContentArea.appendChild(panelContainer);
+    });
 }
 
 function renderCategoryPage(categoryName) {
@@ -2026,7 +2526,6 @@ function displayMessage(text, sender) {
             messageBubble.classList.add('user-message');
         } else {
             wrapper.classList.add('ai-message-wrapper');
-            // Alterado para usar a função dinâmica de avatar
             avatar.src = getAIAvatar();
             avatar.alt = 'AI Avatar';
             messageBubble.classList.add('ai-message');
@@ -2046,7 +2545,6 @@ function showTypingIndicator() {
     
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
-    // Alterado para usar a função dinâmica de avatar
     avatar.src = getAIAvatar();
     avatar.alt = 'AI Avatar';
     
@@ -2068,11 +2566,14 @@ function initializeApp() {
     initializeHeartSystem();
     syncUserProgressAndCheckBadges();
 
-    if (!localStorage.getItem('hasSeenGuide')) {
-        renderGuidePage();
-        localStorage.setItem('hasSeenGuide', 'true');
-    } else {
+    // Verifica se já passou pelo onboarding
+    if (localStorage.getItem('hasCompletedOnboarding') === 'true') {
         renderHomePage();
+    } else {
+        // Se não, inicia o Wizard (caso o clique em Iniciar tenha sido feito)
+        // Nota: O clique em "Iniciar" chama startOnboarding se não houver flag
+        // Mas se inicializarmos aqui direto, pode conflitar com a lógica do botão.
+        // Vamos deixar o botão controlar o fluxo inicial.
     }
     
     initializeSpeechAPI();
@@ -2083,22 +2584,61 @@ const TITLE_DURATION = 2200;
 const TRANSITION_DURATION = 500;
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// Função auxiliar para garantir que a imagem carregou
+function preloadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(img); // Resolve mesmo com erro para não travar o app
+        img.src = src;
+    });
+}
+
 async function handleAppOpening() {
-    if (sessionStorage.getItem('hasVisited')) {
-        splashScreen.style.display = 'none';
-        appContainer.classList.add('visible');
-        initializeApp();
+    initializeApp(); // Carrega configurações básicas
+    
+    const gifUrl = 'assets/animacoes/odete-airport-suitcase.gif';
+    const splashLoader = document.getElementById('splash-loader');
+    
+    // 1. Espera o download real da imagem acontecer nos bastidores
+    await preloadImage(gifUrl);
+
+    // 2. Imagem carregada! Troca o Spinner pelo GIF
+    if (splashLoader) splashLoader.classList.add('loader-hidden');
+    splashGif.classList.remove('gif-loading');
+    
+    // 3. AGORA sim iniciamos o cronômetro da animação (garantindo a duração igual para todos)
+    await delay(GIF_DURATION);
+    
+    splashGif.classList.add('hidden');
+    splashTitle.classList.add('visible');
+    
+    await delay(TITLE_DURATION);
+    
+    // Mostra o botão iniciar
+    splashStartBtn.classList.remove('hidden'); 
+    splashStartBtn.classList.add('visible');
+}
+
+// Função chamada ao clicar em "Iniciar"
+function handleSplashStart() {
+    const hasCompleted = localStorage.getItem('hasCompletedOnboarding') === 'true';
+    
+    if (hasCompleted) {
+        // Usuário antigo: Vai para Home
+        splashScreen.style.opacity = '0';
+        setTimeout(() => {
+            splashScreen.style.display = 'none';
+            
+            // CORREÇÃO: Remove a classe 'hidden' para garantir que a tela apareça
+            appContainer.classList.remove('hidden');
+            appContainer.classList.add('visible');
+            
+            renderHomePage();
+        }, 500);
     } else {
-        sessionStorage.setItem('hasVisited', 'true');
-        initializeApp();
-        await delay(GIF_DURATION);
-        splashGif.classList.add('hidden');
-        splashTitle.classList.add('visible');
-        await delay(TITLE_DURATION);
-        splashScreen.classList.add('hidden');
-        appContainer.classList.add('visible');
-        await delay(TRANSITION_DURATION);
-        splashScreen.style.display = 'none';
+        // Usuário novo: Abre Wizard
+        startOnboarding();
     }
 }
 
@@ -2106,9 +2646,11 @@ async function handleAppOpening() {
 //  PONTO DE ENTRADA DA APLICAÇÃO
 // =================================================================
 document.addEventListener('DOMContentLoaded', () => {
-
     navHomeBtn.addEventListener('click', renderHomePage);
-    navCustomBtn.addEventListener('click', renderCustomScenarioPage);
+    const navPracticeBtn = document.getElementById('nav-practice-btn');
+    if (navPracticeBtn) {
+        navPracticeBtn.addEventListener('click', renderPracticePage);
+    }
     navStoreBtn.addEventListener('click', renderStorePage);
     navHistoryBtn.addEventListener('click', renderHistoryPage);
     navGuideBtn.addEventListener('click', renderGuidePage);
@@ -2123,6 +2665,34 @@ document.addEventListener('DOMContentLoaded', () => {
     heartsIndicator.addEventListener('click', renderJornadaPage);
     fullscreenBtn.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
+
+    // Listener do botão Iniciar da Splash Screen
+    if (splashStartBtn) {
+        splashStartBtn.addEventListener('click', handleSplashStart);
+    }
+
+    // Listeners do Wizard
+    if (wizardNameInput) {
+        wizardNameInput.addEventListener('input', (e) => {
+            btnNextName.disabled = e.target.value.trim().length === 0;
+        });
+        wizardNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !btnNextName.disabled) handleWizardNext(0);
+        });
+    }
+
+    // Delegação de eventos para cards do Wizard
+    onboardingWizard.addEventListener('click', (e) => {
+        const card = e.target.closest('.wizard-card, .wizard-card-list');
+        if (card) {
+            selectWizardOption(card.dataset.type, card.dataset.value, card);
+        }
+    });
+
+    if (btnNextName) btnNextName.addEventListener('click', () => handleWizardNext(0));
+    if (btnNextLang) btnNextLang.addEventListener('click', () => handleWizardNext(1));
+    if (btnNextLevel) btnNextLevel.addEventListener('click', () => handleWizardNext(2));
+    if (btnFinishWizard) btnFinishWizard.addEventListener('click', finishOnboarding);
 
     mainContentArea.addEventListener('click', async (e) => {
         const optionCard = e.target.closest('.option-card:not(.disabled)');
@@ -2172,7 +2742,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const scenario = SCENARIOS[categoryName]?.[scenarioId];
             if (scenario) {
                 if (userHearts > 0) {
-                    // Passa o ID (chave PT-BR)
                     startNewConversation(scenario, categoryName, scenarioId);
                 } else {
                     showNoHeartsModal();
@@ -2188,7 +2757,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const scenario = SCENARIOS[categoryName]?.[scenarioId];
             if (scenario) {
                 if (userHearts > 0) {
-                    // Passa o ID (chave PT-BR)
                     startNewConversation(scenario, categoryName, scenarioId);
                 } else {
                     showNoHeartsModal();
@@ -2258,7 +2826,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         "en-US": { name: "Custom Scenario", goal: goal },
                         "es-MX": { name: "Escenario Personalizado", goal: goal }
                     };
-                    // ID para cenário customizado pode ser o texto "Custom Scenario" ou similar
                     startNewConversation(customScenario, 'custom', "Custom Scenario");
                 } else {
                     showCustomScenarioError(validation.reason || "Ocorreu um erro ao validar o cenário.");

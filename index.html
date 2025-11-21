@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missões da Odete 46</title>
+    <title>Missões da Odete 52</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- ===== NOVO: ESTRUTURA DA SPLASH SCREEN ===== -->
+    <!-- ===== SPLASH SCREEN ===== -->
     <div id="splash-screen">
-        <img src="assets/animacoes/odete-airport-suitcase.gif" alt="Animação de Odete chegando ao aeroporto" id="splash-gif">
+        <!-- Spinner de Carregamento -->
+        <div id="splash-loader" class="splash-loader"></div>
+
+        <!-- O GIF começa invisível -->
+        <img src="assets/animacoes/odete-airport-suitcase.gif" 
+             alt="Animação de Odete chegando ao aeroporto" 
+             id="splash-gif" 
+             class="gif-loading">
+             
         <h1 id="splash-title" style="text-align: center;">
             Missões da Odete
             <br>
@@ -18,88 +26,189 @@
                 (e do Luciano também)
             </span>
         </h1>
+        <button id="splash-start-btn" class="primary-btn" style="margin-top: 32px; min-width: 200px; font-size: 1.2rem;">
+            Iniciar
+        </button>
     </div>
 
+    <!-- ===== WIZARD DE ONBOARDING ===== -->
+    <div id="onboarding-wizard" class="modal-overlay modal-hidden" style="background-color: var(--bg-main); z-index: 9000;">
+        <div class="wizard-content">
+            
+            <!-- Indicadores de Progresso -->
+            <div class="wizard-progress-container">
+                <span class="wizard-dot active"></span>
+                <span class="wizard-dot"></span>
+                <span class="wizard-dot"></span>
+                <span class="wizard-dot"></span>
+            </div>
 
-    <!-- O CONTAINER PRINCIPAL AGORA ENVOLVE O CABEÇALHO GLOBAL, ÁREA DE CONTEÚDO E O INPUT DO CHAT -->
-    <div class="app-container" id="app-container">
+            <!-- PASSO 1: NOME -->
+            <div class="wizard-step active" id="wizard-step-name">
+                <h2 class="wizard-title">Como você se chama?</h2>
+                <p class="wizard-subtitle">Para que a gente possa se conhecer melhor.</p>
+                <div class="wizard-input-container">
+                    <input type="text" id="wizard-name-input" class="wizard-input" placeholder="Digite seu nome" autocomplete="off">
+                </div>
+                <div class="wizard-actions">
+                    <button id="btn-next-name" class="primary-btn full-width" disabled>Próximo</button>
+                </div>
+            </div>
+
+            <!-- PASSO 2: IDIOMA -->
+            <div class="wizard-step" id="wizard-step-lang">
+                <h2 class="wizard-title">O que você quer praticar?</h2>
+                <p class="wizard-subtitle">Escolha o idioma da sua jornada.</p>
+                <div class="wizard-grid-2">
+                    <div class="wizard-card" data-type="lang" data-value="en-US">
+                        <span class="wizard-emoji">🇺🇸</span>
+                        <span class="wizard-label">Inglês</span>
+                    </div>
+                    <div class="wizard-card" data-type="lang" data-value="es-MX">
+                        <span class="wizard-emoji">🇲🇽</span>
+                        <span class="wizard-label">Espanhol</span>
+                    </div>
+                </div>
+                <div class="wizard-actions">
+                    <button id="btn-next-lang" class="primary-btn full-width" disabled>Próximo</button>
+                </div>
+            </div>
+
+            <!-- PASSO 3: NÍVEL -->
+            <div class="wizard-step" id="wizard-step-level">
+                <h2 class="wizard-title">Qual é seu nível atual?</h2>
+                <p class="wizard-subtitle">Isso define a dificuldade das conversas.</p>
+                <div class="wizard-list">
+                    <div class="wizard-card-list" data-type="level" data-value="basic">
+                        <span class="wizard-stars">★☆☆</span>
+                        <span class="wizard-label">Básico (Frases curtas)</span>
+                    </div>
+                    <div class="wizard-card-list" data-type="level" data-value="intermediate">
+                        <span class="wizard-stars">★★☆</span>
+                        <span class="wizard-label">Intermediário (Conversa direta)</span>
+                    </div>
+                    <div class="wizard-card-list" data-type="level" data-value="advanced">
+                        <span class="wizard-stars">★★★</span>
+                        <span class="wizard-label">Avançado (Conversa natural)</span>
+                    </div>
+                </div>
+                <div class="wizard-actions">
+                    <button id="btn-next-level" class="primary-btn full-width" disabled>Próximo</button>
+                </div>
+            </div>
+
+            <!-- PASSO 4: VOZ -->
+            <div class="wizard-step" id="wizard-step-voice">
+                <h2 class="wizard-title">Escolha seu guia</h2>
+                <p class="wizard-subtitle">Que voz vai te acompanhar nas missões?</p>
+                <div class="wizard-grid-2">
+                    <div class="wizard-card" data-type="voice" data-value="female">
+                        <img src="assets/avatar-odete2.png" alt="Odete" class="wizard-avatar">
+                        <span class="wizard-label">Odete</span>
+                    </div>
+                    <div class="wizard-card" data-type="voice" data-value="male">
+                        <img src="assets/avatar-luciano.png" alt="Luciano" class="wizard-avatar">
+                        <span class="wizard-label">Luciano</span>
+                    </div>
+                </div>
+                <div class="wizard-actions">
+                    <button id="btn-finish-wizard" class="primary-btn full-width" disabled>Concluir Configuração</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CONTAINER PRINCIPAL -->
+    <div class="app-container hidden" id="app-container">
 
         <!-- CABEÇALHO GLOBAL -->
         <div class="context-bar" id="context-bar">
             <!-- Indicadores de Status (Esquerda) -->
             <div class="header-indicators">
                 <button class="icon-btn header-indicator-btn" id="lang-indicator-btn" title="Mudar Idioma">
-                    <!-- O emoji da bandeira será inserido aqui via JS, ex: 🇺🇸 -->
+                    <!-- Inserido via JS -->
                 </button>
                 <button class="icon-btn header-indicator-btn" id="proficiency-indicator-btn" title="Mudar Nível de Conversa">
-                    <!-- As estrelas serão inseridas aqui via JS, ex: ★★☆ -->
+                    <!-- Inserido via JS -->
                 </button>
             </div>
 
             <!-- Ações e Status (Direita) -->
             <div class="header-actions">
-                <!-- Placeholder para a Pontuação -->
                 <div id="score-indicator" class="score-indicator">
-                    <!-- A pontuação será inserida aqui via JS, ex: 🦉 15 --> <em>pt</em>
+                    <!-- Pontuação inserida via JS -->
                 </div>
-                <!-- NOVO: Botão Voltar (Oculto por padrão) -->
                 <button id="header-back-btn" class="exit-chat-btn back-btn-hidden">Voltar</button>
-                <!-- Botão de Sair (Oculto por padrão) -->
                 <button id="exit-chat-btn" class="exit-chat-btn exit-chat-btn-hidden">Sair</button>
-                <!-- Botão de tela cheia -->
                 <button id="fullscreen-btn" class="icon-btn header-indicator-btn" title="Alternar Tela Cheia">
-                    <span>⛶</span> <!-- Ícone de expandir -->
+                    <span>⛶</span>
                 </button>
             </div>
         </div>
 
         <main class="main-area">
-            
-            <!-- ÁREA DE CONTEÚDO DINÂMICA (Exibirá a Home, Histórico, Chat, etc.) -->
+            <!-- ÁREA DE CONTEÚDO DINÂMICA -->
+            <!-- O Javascript vai renderizar aqui: Jornada, Missão Avulsa, Chat, Loja, etc. -->
             <div class="main-content-area" id="main-content-area">
-                <!-- O conteúdo será renderizado pelo script.js -->
             </div>
 
-            <!-- A ÁREA DE INPUT DO CHAT FICA FORA DA ÁREA DE SCROLL -->
+            <!-- INPUT DO CHAT (Fica fora da área de scroll) -->
             <div class="chat-input-area chat-input-hidden">
                 <button class="icon-btn" id="mic-btn" title="Usar microfone">🎤</button>
                 <input type="text" id="text-input" placeholder="Digite sua mensagem...">
                 <button class="icon-btn" id="send-btn" title="Enviar mensagem">➤</button>
             </div>
-
         </main>
     </div>
 
-    <!-- ===== ESTRUTURA DOS MODAIS ===== -->
+    <!-- ===== MODAIS ===== -->
+    
+    <!-- Feedback Modal -->
     <div id="feedback-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Your Feedback</h2>
+                <h2>Feedback</h2>
                 <button id="translate-btn" class="translate-btn-hidden">Traduzir para Português</button>
                 <span class="modal-close" id="modal-close-btn">&times;</span>
             </div>
-            <div class="modal-body" id="feedback-content">
-                <!-- O feedback será inserido aqui -->
-            </div>
+            <div class="modal-body" id="feedback-content"></div>
             <div class="modal-footer">
                 <button id="practice-again-btn" class="primary-btn">Praticar Novamente</button>
             </div>
         </div>
     </div>
-
+    
+    <!-- History Modal -->
     <div id="history-modal" class="modal-overlay modal-hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="history-modal-title">Histórico da Conversa</h2>
-                <span class="modal-close" id="history-modal-close-btn">&times;</span>
+        <div class="modal-content history-modal-content-wrapper">
+            <div class="modal-header history-header-column">
+                <div class="history-title-row">
+                    <h2 id="history-modal-title">Histórico</h2>
+                    <span class="modal-close" id="history-modal-close-btn">&times;</span>
+                </div>
+                <div class="tab-bar">
+                    <button class="tab-btn active" data-tab="dialogue">Diálogo</button>
+                    <button class="tab-btn" data-tab="feedback">Feedback</button>
+                </div>
             </div>
-            <div class="modal-body" id="history-modal-content"></div>
+            <div class="modal-body" id="history-modal-body">
+                <div id="history-tab-dialogue" class="tab-content active"></div>
+                <div id="history-tab-feedback" class="tab-content">
+                    <div id="history-feedback-text"></div>
+                    <div class="history-actions">
+                         <button id="history-translate-btn" class="secondary-btn translate-btn-hidden">Traduzir para Português</button>
+                         <button id="history-generate-btn" class="primary-btn" style="display: none;">Gerar Feedback Agora</button>
+                    </div>
+                </div>
+            </div>
             <div class="modal-footer">
                 <button id="history-practice-again-btn" class="primary-btn">Praticar Novamente</button>
             </div>
         </div>
     </div>
 
+    <!-- Mission Modal (Pre-Chat) -->
     <div id="mission-modal" class="modal-overlay modal-hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -107,10 +216,7 @@
                 <span class="modal-close" id="mission-modal-close-btn">&times;</span>
             </div>
             <div class="modal-body">
-                <!-- CONTAINER PARA A IMAGEM -->
-                <div id="mission-image-container" class="mission-image-container modal-hidden">
-                    <!-- A imagem será inserida aqui via JS -->
-                </div>
+                <div id="mission-image-container" class="mission-image-container modal-hidden"></div>
                 <p id="mission-goal-text">O objetivo da sua missão aparecerá aqui.</p>
                 <br>
                 <p style="text-align: center; font-weight: 500; margin-bottom: 20px;">Como você quer praticar?</p>
@@ -124,22 +230,21 @@
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav-bar" id="bottom-nav-bar">
-        <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
-        <button class="icon-btn" id="nav-custom-btn" title="Cenário Personalizado">✨</button>
+        <button class="icon-btn" id="nav-home-btn" title="Minha Jornada">🏠</button>
+        <!-- Botão Atualizado: De Cenário Personalizado para Missão Avulsa -->
+        <button class="icon-btn" id="nav-practice-btn" title="Missão Avulsa">🎯</button>
         <button class="icon-btn" id="nav-store-btn" title="Loja">🛍️</button>
         <button class="icon-btn" id="nav-history-btn" title="Histórico">🕒</button>
         <button class="icon-btn" id="nav-guide-btn" title="Guia da Odete">❓</button>
     </nav>
     
-    <!-- ESTRUTURA DA NOTIFICAÇÃO DE RECOMPENSA -->
+    <!-- NOTIFICAÇÃO DE RECOMPENSA -->
     <div id="reward-notification" class="reward-notification">
-        <!-- O ideal é que a imagem seja um GIF com fundo transparente -->
         <img src="assets/animacoes/odete-celebrating.gif" alt="Odete comemorando" id="reward-image">
         <p id="reward-text"></p>
     </div>
 
-
-    <!-- Scripts da Aplicação -->
+    <!-- SCRIPTS -->
     <script src="configuration.js"></script>
     <script src="scenarios.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

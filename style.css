@@ -448,10 +448,188 @@ html, body {
 /* ===== ESTILOS PARA A SPLASH SCREEN ===== */
 #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-main); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s ease-in-out; }
 #splash-gif { max-width: 90%; width: 600px; height: auto; transition: opacity 0.5s ease-in-out; }
-#splash-title { font-size: 2rem; font-weight: 700; color: var(--text-primary); position: absolute; opacity: 0; transition: opacity 1s ease-in-out; top: 40%; }
+#splash-title { font-size: 2rem; font-weight: 700; color: var(--text-primary); position: absolute; opacity: 0; transition: opacity 1s ease-in-out; top: 30%; }
 #app-container { opacity: 0; transition: opacity 0.5s ease-in-out; }
 .visible { opacity: 1 !important; }
 .hidden { opacity: 0 !important; pointer-events: none; }
+
+/* NOVO: Estilo para o botão de Iniciar na Splash Screen (Corrigido) */
+#splash-start-btn {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none; /* Garante que não seja clicável enquanto invisível */
+}
+#splash-start-btn.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+
+/* ======================================================= */
+/* ===== ESTILOS PARA O WIZARD DE ONBOARDING (NOVO) ===== */
+/* ======================================================= */
+
+/* Container do Conteúdo do Wizard (centralizado) */
+.wizard-content {
+    width: 100%;
+    max-width: 500px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Passos do Wizard */
+.wizard-step {
+    display: none;
+    animation: fadeIn 0.4s ease;
+    width: 100%;
+}
+.wizard-step.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Tipografia do Wizard */
+.wizard-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+.wizard-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+}
+
+/* Grades e Listas para Seleção */
+.wizard-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+.wizard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+/* Cards de Seleção (Grid e Lista) */
+.wizard-card, .wizard-card-list {
+    background-color: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.wizard-card-list {
+    flex-direction: row; /* Lista horizontal */
+    justify-content: flex-start;
+    gap: 16px;
+    text-align: left;
+}
+
+.wizard-card:hover, .wizard-card-list:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+}
+
+.wizard-card.selected, .wizard-card-list.selected {
+    border-color: var(--color-accent);
+    background-color: #fefce8; /* Amarelo/Bege claro */
+    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.1);
+}
+
+/* Elementos Internos dos Cards */
+.wizard-emoji {
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+.wizard-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 12px;
+    border: 2px solid var(--border-color);
+}
+.wizard-stars {
+    font-size: 1.5rem;
+    color: #FBBF24; /* Dourado */
+}
+.wizard-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+/* Input de Nome */
+.wizard-input-container {
+    width: 100%;
+    margin-bottom: 24px;
+}
+.wizard-input {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.2rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    text-align: center;
+    background-color: var(--bg-container);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+.wizard-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.2);
+}
+
+/* Botões do Wizard */
+.wizard-actions {
+    width: 100%;
+}
+.full-width {
+    width: 100%;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    font-size: 1.1rem;
+}
+
+/* Indicadores de Progresso (Dots) */
+.wizard-progress-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+}
+.wizard-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--border-color);
+    transition: all 0.3s ease;
+}
+.wizard-dot.active {
+    background-color: var(--color-accent);
+    width: 30px; /* Estica a bolinha ativa */
+    border-radius: 5px;
+}
+
 
 /* ======================================================= */
 /* ===== ESTILOS PARA A PÁGINA "MINHA JORNADA" (ATUALIZADO) ===== */
@@ -459,7 +637,7 @@ html, body {
 
 .performance-page .jornada-container { display: flex; flex-direction: column; gap: 24px; max-width: 900px; margin: 0 auto; }
 .jornada-header h2 { font-size: 1.8rem; font-weight: 700; text-align: center; color: var(--text-primary); }
-.jornada-section { width: 100%; }
+.jornada-section { width: 100%; margin-bottom: 32px; }
 .jornada-section h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); padding-bottom: 8px; border-bottom: 2px solid var(--border-color); }
 
 .stats-grid-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -1036,7 +1214,7 @@ html, body {
     user-select: none; /* Impede que o ícone seja selecionado */
 }
 
-.guide-carousel-card .guide-header img {
+.guide-carousel-card .guide-header img, .guide-header img {
     text-align: center;
     margin-bottom: 8px; /* Reduzido para ficar mais perto do primeiro card */
     height: 132px;
@@ -1103,4 +1281,508 @@ html, body {
 .guide-dot.active {
     background-color: var(--color-accent);
     transform: scale(1.3);
+}
+
+/* ===== NOVOS ESTILOS PARA O MODAL DE HISTÓRICO (ABAS) ===== */
+
+/* Ajuste do cabeçalho para acomodar título e abas */
+.history-header-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 0; /* Remove padding inferior pois as abas farão a borda */
+    border-bottom: none; /* Remove borda padrão */
+}
+
+.history-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* Barra de Abas */
+.tab-bar {
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--color-accent);
+    background-color: rgba(0,0,0,0.02);
+}
+
+.tab-btn.active {
+    color: var(--color-accent);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--color-accent);
+    border-radius: 3px 3px 0 0;
+}
+
+/* Conteúdo das Abas */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+    padding-top: 10px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Estilo ESPECÍFICO para balões do usuário no histórico (Mais claro) */
+/* Isso evita confusão com o botão "Praticar Novamente" */
+.history-user-message {
+    background-color: #d4b483 !important; /* Um tom pastel/claro da cor accent */
+    color: #fff !important;
+    border: 1px solid #c2a06d;
+}
+
+/* Botões dentro da aba de Feedback do Histórico */
+.history-actions {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+.secondary-btn {
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.secondary-btn:hover {
+    background-color: var(--color-accent);
+    color: white;
+}
+
+/* Ajuste específico para as abas na página Minha Jornada */
+.jornada-tabs {
+    margin-bottom: 24px;
+    background-color: var(--bg-container); /* Fundo branco para a barra de abas */
+    border-radius: 12px; /* Arredondado para combinar com os cards */
+    border: 1px solid var(--border-color);
+    overflow: hidden; /* Garante que o radius funcione nos cantos */
+}
+
+/* ===== ESTILOS DO PRELOADER DA SPLASH SCREEN ===== */
+
+/* A rodinha girando */
+.splash-loader {
+    border: 5px solid var(--color-neutral); /* Cinza claro */
+    border-top: 5px solid var(--color-accent); /* Cor de destaque (Marrom/Dourado) */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px; /* Espaço onde o GIF entraria */
+}
+
+/* Animação de rotação */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Classe para esconder o GIF enquanto carrega, mas mantendo o espaço se necessário (opcional) */
+/* Aqui usamos display: none para ele não ocupar espaço e o loader ficar centralizado */
+.gif-loading {
+    display: none;
+}
+
+/* Oculta o loader quando o GIF estiver pronto */
+.loader-hidden {
+    display: none;
+}
+
+/* ========================================= */
+/* ===== NOVOS ESTILOS: MODO JORNADA ===== */
+/* ========================================= */
+
+/* Container principal */
+.journey-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* O espaçamento será controlado pelos elementos internos */
+    padding-bottom: 20px;
+}
+
+/* --- CARTÃO DE CENA (Scene Card) --- */
+/* Engloba Imagem + Info + Narrativa */
+.scene-card {
+    background-color: var(--bg-container);
+    border-radius: 16px;
+    overflow: hidden; /* Garante que a imagem respeite as bordas arredondadas */
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Área da Imagem */
+.scene-image-container {
+    width: 150;
+    height: 180px;
+    background-color: var(--border-color);
+    position: relative;
+}
+
+.scene-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Garante que a imagem cubra a área sem distorcer */
+    display: block;
+}
+
+/* Faixa de Informações (Local e Dia) */
+.scene-info-bar {
+    background-color: var(--bg-header);
+    color: var(--text-inverted);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    border-bottom: 4px solid var(--color-accent); /* Detalhe visual */
+}
+
+.journey-location {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.journey-day {
+    color: #FBBF24; /* Dourado */
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+/* Texto da Narrativa */
+.narrative-content {
+    padding: 24px;
+    text-align: left;
+}
+
+.narrative-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    font-style: italic;
+    margin: 0;
+}
+
+/* --- CARTÕES DE DECISÃO (Estilo Botão) --- */
+.decisions-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px; /* Espaço extra antes dos status */
+}
+
+@media (min-width: 600px) {
+    .decisions-area {
+        flex-direction: row;
+    }
+}
+
+.decision-card {
+    flex: 1;
+    background-color: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px 20px;
+    padding-right: 40px; /* Espaço para a seta */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+    /* Sombra leve para dar profundidade de botão */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Efeito de Hover e Active */
+.decision-card:hover {
+    border-color: var(--color-accent);
+    background-color: #fffaf0; /* Fundo muito levemente colorido */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(161, 98, 7, 0.15);
+}
+
+.decision-card:active {
+    transform: translateY(0);
+    background-color: #fef3c7;
+}
+
+/* Seta indicativa à direita */
+.decision-card::after {
+    content: '➔';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-accent);
+    font-size: 1.2rem;
+    opacity: 0.6;
+    transition: right 0.2s ease, opacity 0.2s ease;
+}
+
+.decision-card:hover::after {
+    right: 10px; /* Move a seta um pouco para a direita */
+    opacity: 1;
+}
+
+.decision-card h4 {
+    color: var(--color-accent);
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.decision-card p {
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+}
+
+/* --- SEÇÃO DE STATUS (Separador) --- */
+.status-section-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+/* Linha divisória automática */
+.status-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+/* --- Painel de Status (Grid do Personagem) --- */
+/* MANTIDO IGUAL, APENAS REPOSICIONADO O GAP */
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.status-card {
+    background-color: var(--bg-container);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 110px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* Estilo do Humor */
+.status-card.mood-card .mood-icon {
+    font-size: 2.8rem;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+.status-card.mood-card .mood-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Estilo do Diário (Tags) */
+.status-card.diary-card {
+    grid-column: span 2;
+    align-items: flex-start;
+    padding: 16px;
+    min-height: auto;
+}
+
+.diary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+}
+
+.diary-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.diary-count {
+    font-size: 0.8rem;
+    background-color: var(--color-neutral);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    width: 100%;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.tags-container::-webkit-scrollbar { display: none; }
+
+.diary-tag {
+    white-space: nowrap;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.diary-tag:hover {
+    border-color: var(--color-accent);
+    background-color: #fff8e1;
+    transform: translateY(-1px);
+}
+
+/* Estilo para Inventário e Social */
+.mini-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.mini-icon {
+    font-size: 1.4rem;
+    background-color: var(--bg-main);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.mini-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+}
+.mini-avatar.friend { border-color: #10B981; }
+.mini-avatar.enemy { border-color: #EF4444; }
+
+.empty-state {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* ========================================= */
+/* ===== NOVOS ESTILOS: PÁGINA AVULSA ===== */
+/* ========================================= */
+
+/* Sistema de Abas da Página */
+.page-tabs {
+    display: flex;
+    background-color: var(--bg-container);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.page-tab-btn {
+    flex: 1;
+    border: none;
+    background: none;
+    padding: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-tab-btn:hover {
+    background-color: rgba(0,0,0,0.02);
+    color: var(--color-accent);
+}
+
+.page-tab-btn.active {
+    background-color: var(--color-neutral);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Área de conteúdo das abas */
+.tab-content-area {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content-area.active {
+    display: block;
 }
