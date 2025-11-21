@@ -1361,7 +1361,6 @@ function setUserTurnState(isUserTurn) {
             // Traz de volta os controles de texto
             textInput.style.display = 'block';
             textInput.disabled = false;
-            textInput.focus(); // Foco automático para melhor UX
             
             sendBtn.style.display = 'flex';
             sendBtn.disabled = false;
