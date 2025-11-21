@@ -1308,20 +1308,27 @@ function setProcessingState(isProcessing) {
         conversationState = 'PROCESSING';
         showTypingIndicator();
         
-        textInput.disabled = true;
-        sendBtn.disabled = true;
+        // Oculta os controles de texto para limpar a área
+        textInput.style.display = 'none';
+        sendBtn.style.display = 'none';
+        
+        // Desabilita visualmente o microfone (se estiver visível)
         micBtn.disabled = true;
         updateMicButtonState('processing');
 
+        // Cria e insere o indicador centralizado
         const statusIndicator = document.createElement('span');
         statusIndicator.id = 'voice-status-indicator';
         statusIndicator.className = 'voice-status-indicator';
-        statusIndicator.textContent = '-- Pensando -- ';
+        statusIndicator.textContent = '-- Pensando --';
         
+        // Insere antes do botão do microfone (que pode estar oculto ou não, dependendo do modo)
         chatInputArea.insertBefore(statusIndicator, micBtn);
 
     } else {
         removeTypingIndicator();
+        // Nota: Não reexibimos os inputs aqui. 
+        // Isso será feito explicitamente em setUserTurnState(true).
     }
 }
 
@@ -1329,11 +1336,15 @@ function setUserTurnState(isUserTurn) {
     if (!isConversationActive && isUserTurn) return;
 
     if (isUserTurn) {
-        textInput.disabled = false;
-        sendBtn.disabled = false;
+        // Habilita interações gerais
         micBtn.disabled = false;
-
+        
         if (currentInteractionMode === 'voice') {
+            // LÓGICA MODO VOZ
+            textInput.style.display = 'none';
+            sendBtn.style.display = 'none';
+            micBtn.style.display = 'flex'; // Garante que o mic esteja visível
+            
             conversationState = 'AWAITING_USER_INPUT';
             updateMicButtonState('ready');
             
@@ -1343,8 +1354,23 @@ function setUserTurnState(isUserTurn) {
             statusIndicator.className = 'voice-status-indicator';
             statusIndicator.textContent = '-- Clique em 🎤 para falar --';
             chatInputArea.insertBefore(statusIndicator, micBtn);
+        } else {
+            // LÓGICA MODO TEXTO (Atualizada)
+            removeVoiceStatusIndicator(); // Remove "-- Pensando --"
+            
+            // Traz de volta os controles de texto
+            textInput.style.display = 'block';
+            textInput.disabled = false;
+            textInput.focus(); // Foco automático para melhor UX
+            
+            sendBtn.style.display = 'flex';
+            sendBtn.disabled = false;
+            
+            // Garante que o mic esteja oculto no modo texto
+            micBtn.style.display = 'none';
         }
     } else {
+        // Turno da IA (ou inativo)
         textInput.disabled = true;
         sendBtn.disabled = true;
         micBtn.disabled = true;
