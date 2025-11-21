@@ -54,17 +54,48 @@ const btnNextLang = document.getElementById('btn-next-lang');
 const btnNextLevel = document.getElementById('btn-next-level');
 const btnFinishWizard = document.getElementById('btn-finish-wizard');
 
-// =================================================================
-//  2. VARIÁVEIS DE ESTADO E CONSTANTES GLOBAIS
-// =================================================================
 const AVATAR_FEMALE_URL = 'assets/avatar-odete2.png';
 const AVATAR_MALE_URL = 'assets/avatar-luciano.png';
 function getAIAvatar() {
     const gender = localStorage.getItem('voiceGender') || 'female';
     return gender === 'male' ? AVATAR_MALE_URL : AVATAR_FEMALE_URL;
 }
-const AVATAR_USER_URL = 'https://cdn.icon-icons.com/icons2/1378/PNG/512/avatardefault_92824.png';
+const AVATAR_USER_URL = 'assets/avatar-user.png';
 const TYPING_SIMULATION_DELAY = 500;
+
+const MOCK_TRAVELER_DATA = {
+    humor: {
+        title: "Humor: Animado",
+        content: "Você está se sentindo confiante após conseguir pedir seu café da manhã sem gaguejar. O sol está brilhando e a cidade parece acolhedora hoje."
+    },
+    backpack: {
+        title: "Sua Mochila",
+        items: [
+            { icon: "🗺️", name: "Mapa da Cidade", desc: "Um mapa turístico dobrado." },
+            { icon: "💧", name: "Garrafa de Água", desc: "Meia cheia." },
+            { icon: "🔑", name: "Chave do Hotel", desc: "Quarto 304." },
+            { icon: "📓", name: "Caderno de Anotações", desc: "Com vocabulário novo." },
+            { icon: "🌂", name: "Guarda-chuva", desc: "Pequeno e portátil." }
+        ]
+    },
+    skills: {
+        title: "Habilidades Adquiridas",
+        items: [
+            { icon: "🗣️", name: "Negociação Básica", level: "Nível 1" },
+            { icon: "👂", name: "Escuta Ativa", level: "Nível 2" },
+            { icon: "🧭", name: "Orientação Urbana", level: "Nível 1" }
+        ]
+    },
+    people: {
+        title: "Pessoas Conhecidas",
+        npcs: [
+            { name: "Carlos (Colega)", relation: 85, status: "Amigo" },
+            { name: "Sra. Marta (Vizinha)", relation: 50, status: "Conhecida" },
+            { name: "Garçom Rude", relation: 15, status: "Hostil" }
+        ]
+    }
+};
+
 let conversationHistory = [];
 let currentScenario = null;
 let originalFeedback = '';
@@ -2300,6 +2331,69 @@ function renderBadgesGallery(container) {
 // =================================================================
 function updateActiveNavIcon(activeBtnId) { [navHomeBtn, navCustomBtn, navStoreBtn, navHistoryBtn, navGuideBtn].forEach(btn => { if (btn.id === activeBtnId) { btn.classList.add('active-nav-icon'); } else { btn.classList.remove('active-nav-icon'); } }); }
 
+function openTravelerModal(type) {
+    const modal = document.getElementById('traveler-modal');
+    const titleEl = document.getElementById('traveler-modal-title');
+    const contentEl = document.getElementById('traveler-modal-content');
+    const data = MOCK_TRAVELER_DATA[type];
+
+    if (!data) return;
+
+    titleEl.textContent = data.title;
+    contentEl.innerHTML = ''; // Limpa conteúdo anterior
+
+    if (type === 'humor') {
+        contentEl.innerHTML = `<p class="traveler-detail-text">${data.content}</p>`;
+    } 
+    else if (type === 'backpack' || type === 'skills') {
+        const ul = document.createElement('ul');
+        ul.className = 'traveler-list';
+        data.items.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'traveler-list-item';
+            const secondaryText = item.desc || item.level || '';
+            li.innerHTML = `
+                <span style="font-size: 1.5rem;">${item.icon}</span>
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <span style="font-size: 0.85rem; color: var(--text-secondary);">${secondaryText}</span>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+        contentEl.appendChild(ul);
+    } 
+    else if (type === 'people') {
+        const ul = document.createElement('ul');
+        ul.className = 'traveler-list';
+        data.npcs.forEach(npc => {
+            const li = document.createElement('li');
+            li.className = 'traveler-list-item';
+            
+            // Define cor da barra
+            let barClass = 'rel-neutral';
+            if (npc.relation >= 70) barClass = 'rel-friend';
+            if (npc.relation <= 30) barClass = 'rel-enemy';
+
+            li.innerHTML = `
+                <div class="npc-item">
+                    <div class="npc-header">
+                        <span>${npc.name}</span>
+                        <span class="npc-status-text">${npc.status}</span>
+                    </div>
+                    <div class="relationship-bar-bg">
+                        <div class="relationship-bar-fill ${barClass}" style="width: ${npc.relation}%;"></div>
+                    </div>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+        contentEl.appendChild(ul);
+    }
+
+    modal.classList.remove('modal-hidden');
+}
+
 function renderHomePageContent() {
     mainContentArea.innerHTML = '';
     
@@ -2315,28 +2409,18 @@ function renderHomePageContent() {
     const narrativeSection = document.createElement('section'); 
     narrativeSection.className = 'suggestion-section';
     
-    // Dados do Evento Fixo (Hardcoded)
     const narrativeEvent = {
         category: "🍔 Restaurantes e Cafés",
-        image: "assets/restaurantes/placeholder.png", // Certifique-se que esta imagem existe ou use uma genérica
+        image: "assets/restaurantes/placeholder.png",
         text: "Você acabou de chegar ao centro da cidade e seu estômago ronca. À sua frente, há um bistrô elegante com um anfitrião na porta, e logo ao lado, uma cafeteria rápida e cheirosa. O que você faz?",
-        optionA: {
-            label: "Ir ao Bistrô",
-            scenarioId: "Pedindo uma mesa para dois",
-            context: "Você ajeita a postura e caminha até o anfitrião do bistrô."
-        },
-        optionB: {
-            label: "Café Rápido",
-            scenarioId: "Pedindo um café simples",
-            context: "Você decide que precisa de cafeína rápido e entra na fila da cafeteria."
-        }
+        optionA: { label: "Ir ao Bistrô", scenarioId: "Pedindo uma mesa para dois", context: "Você ajeita a postura e caminha até o anfitrião do bistrô." },
+        optionB: { label: "Café Rápido", scenarioId: "Pedindo um café simples", context: "Você decide que precisa de cafeína rápido e entra na fila da cafeteria." }
     };
 
     narrativeSection.innerHTML = `
         <div class="suggestion-card">
             <img src="${narrativeEvent.image}" class="narrative-image" alt="Cenário do Evento">
             <p class="narrative-text">${narrativeEvent.text}</p>
-            
             <div class="decision-buttons">
                 <button id="btn-option-a" class="decision-btn">${narrativeEvent.optionA.label}</button>
                 <button id="btn-option-b" class="decision-btn">${narrativeEvent.optionB.label}</button>
@@ -2345,53 +2429,46 @@ function renderHomePageContent() {
     `;
     mainContentArea.appendChild(narrativeSection);
 
-    // Listeners para os botões de decisão
+    // Listeners dos botões de decisão
     const btnA = document.getElementById('btn-option-a');
     const btnB = document.getElementById('btn-option-b');
-
-    // Função auxiliar para carregar o cenário
     const loadNarrativeScenario = (optionKey) => {
         const option = narrativeEvent[optionKey];
         const categoryName = narrativeEvent.category;
         const scenarioId = option.scenarioId;
         const scenario = SCENARIOS[categoryName]?.[scenarioId];
-
         if (scenario) {
             if (userHearts > 0) {
-                // Passamos o contexto narrativo aqui
                 startNewConversation(scenario, categoryName, scenarioId, option.context);
             } else {
                 showNoHeartsModal();
             }
-        } else {
-            console.error("Cenário não encontrado:", scenarioId);
         }
     };
-
     if (btnA) btnA.addEventListener('click', () => loadNarrativeScenario('optionA'));
     if (btnB) btnB.addEventListener('click', () => loadNarrativeScenario('optionB'));
 
 
-    // 3. NOVA SEÇÃO: Estado do Viajante (Dados Mockados)
+    // 3. SEÇÃO: Estado do Viajante (Com IDs para clique)
     const stateSection = document.createElement('section');
     stateSection.className = 'traveler-state-grid';
     stateSection.innerHTML = `
-        <div class="state-card">
+        <div class="state-card" id="card-humor">
             <span class="state-icon">🎭</span>
             <span class="state-title">Humor</span>
             <span class="state-value">Animado</span>
         </div>
-        <div class="state-card">
+        <div class="state-card" id="card-backpack">
             <span class="state-icon">🎒</span>
             <span class="state-title">Mochila</span>
             <span class="state-value">5 Itens</span>
         </div>
-        <div class="state-card">
+        <div class="state-card" id="card-skills">
             <span class="state-icon">⚡</span>
             <span class="state-title">Habilidades</span>
             <span class="state-value">Nível 3</span>
         </div>
-        <div class="state-card">
+        <div class="state-card" id="card-people">
             <span class="state-icon">👥</span>
             <span class="state-title">Pessoas</span>
             <span class="state-value">3 Amigos</span>
@@ -2399,36 +2476,25 @@ function renderHomePageContent() {
     `;
     mainContentArea.appendChild(stateSection);
 
-    // 4. NOVA SEÇÃO: Diário de Experiências (Dados Mockados)
+    // Adiciona Listeners aos Cards
+    document.getElementById('card-humor').addEventListener('click', () => openTravelerModal('humor'));
+    document.getElementById('card-backpack').addEventListener('click', () => openTravelerModal('backpack'));
+    document.getElementById('card-skills').addEventListener('click', () => openTravelerModal('skills'));
+    document.getElementById('card-people').addEventListener('click', () => openTravelerModal('people'));
+
+
+    // 4. SEÇÃO: Diário de Experiências
     const journalSection = document.createElement('section');
     journalSection.className = 'journal-section';
     journalSection.innerHTML = `
         <h3>Diário de Experiências</h3>
         <div class="journal-list">
-            <div class="journal-entry">
-                <span class="journal-entry-icon">💼</span>
-                <span class="journal-entry-text">Apresentou um projeto para o CEO no trabalho</span>
-            </div>
-            <div class="journal-entry">
-                <span class="journal-entry-icon">✨</span>
-                <span class="journal-entry-text">Curou o pé machucado</span>
-            </div>
-            <div class="journal-entry">
-                <span class="journal-entry-icon">🚑</span>
-                <span class="journal-entry-text">Foi ao hospital de ambulância</span>
-            </div>
-            <div class="journal-entry">
-                <span class="journal-entry-icon">🤕</span>
-                <span class="journal-entry-text">Torceu o pé correndo</span>
-            </div>
-            <div class="journal-entry">
-                <span class="journal-entry-icon">🤝</span>
-                <span class="journal-entry-text">Conheceu Carlos, colega de trabalho</span>
-            </div>
-            <div class="journal-entry">
-                <span class="journal-entry-icon">☕</span>
-                <span class="journal-entry-text">Pediu café com leite na cafeteria</span>
-            </div>
+            <div class="journal-entry"><span class="journal-entry-icon">💼</span><span class="journal-entry-text">Apresentou um projeto para o CEO no trabalho</span></div>
+            <div class="journal-entry"><span class="journal-entry-icon">✨</span><span class="journal-entry-text">Curou o pé machucado</span></div>
+            <div class="journal-entry"><span class="journal-entry-icon">🚑</span><span class="journal-entry-text">Foi ao hospital de ambulância</span></div>
+            <div class="journal-entry"><span class="journal-entry-icon">🤕</span><span class="journal-entry-text">Torceu o pé correndo</span></div>
+            <div class="journal-entry"><span class="journal-entry-icon">🤝</span><span class="journal-entry-text">Conheceu Carlos, colega de trabalho</span></div>
+            <div class="journal-entry"><span class="journal-entry-icon">☕</span><span class="journal-entry-text">Pediu café com leite na cafeteria</span></div>
         </div>
     `;
     mainContentArea.appendChild(journalSection);
@@ -2825,6 +2891,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     });
+
+    // Listeners para o Modal do Viajante
+    const travelerModal = document.getElementById('traveler-modal');
+    const travelerCloseBtn = document.getElementById('traveler-modal-close-btn');
+    
+    if (travelerCloseBtn) {
+        travelerCloseBtn.addEventListener('click', () => travelerModal.classList.add('modal-hidden'));
+    }
+    if (travelerModal) {
+        travelerModal.addEventListener('click', (e) => {
+            if (e.target === travelerModal) travelerModal.classList.add('modal-hidden');
+        });
+    }
 
     modalCloseBtn.addEventListener('click', () => feedbackModal.classList.add('modal-hidden'));
     feedbackModal.addEventListener('click', (e) => { if (e.target === feedbackModal) feedbackModal.classList.add('modal-hidden'); });
