@@ -528,7 +528,7 @@ html, body {
 
 .narrative-image {
     width: calc(100% + 32px); /* Compensa o padding do card para ir de ponta a ponta */
-    margin: -16px -16px 16px -16px; /* Puxa a imagem para as bordas */
+    margin: 6px -16px 16px -16px; /* Puxa a imagem para as bordas */
     height: 180px;
     object-fit: cover;
     display: block;
