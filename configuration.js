@@ -12,7 +12,7 @@
 const BACKEND_URL = 'https://odete-backend-161452649665.southamerica-east1.run.app';
 
 // URL Local (Use esta apenas para testes no seu computador)
-// const BACKEND_URL = 'http://localhost:3001';
+//const BACKEND_URL = 'http://localhost:3001';
 
 /**
  * Obtém uma resposta do nosso backend para continuar o diálogo.
