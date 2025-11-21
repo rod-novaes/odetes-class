@@ -72,7 +72,7 @@ const MOCK_TRAVELER_DATA = {
         title: "Sua Mochila",
         items: [
             { icon: "🗺️", name: "Mapa da Cidade", desc: "Um mapa turístico dobrado." },
-            { icon: "💧", name: "Garrafa de Água", desc: "Meia cheia." },
+            { icon: "💧", name: "Garrafa de Água", desc: "Meio cheia." },
             { icon: "🔑", name: "Chave do Hotel", desc: "Quarto 304." },
             { icon: "📓", name: "Caderno de Anotações", desc: "Com vocabulário novo." },
             { icon: "🌂", name: "Guarda-chuva", desc: "Pequeno e portátil." }
@@ -2400,7 +2400,7 @@ function renderHomePageContent() {
     // 1. Título da Página
     const title = document.createElement('h1'); 
     title.className = 'main-page-title'; 
-    title.textContent = "Jornada"; 
+    title.textContent = "Vida de Viajante"; 
     mainContentArea.appendChild(title);
     
     const currentLang = localStorage.getItem('language') || 'en-US';
@@ -2412,7 +2412,7 @@ function renderHomePageContent() {
     const narrativeEvent = {
         category: "🍔 Restaurantes e Cafés",
         image: "assets/restaurantes/placeholder.png",
-        text: "Você acabou de chegar ao centro da cidade e seu estômago ronca. À sua frente, há um bistrô elegante com um anfitrião na porta, e logo ao lado, uma cafeteria rápida e cheirosa. O que você faz?",
+        text: "Você acabou de chegar ao centro da cidade e seu estômago ronca. À sua frente, há um bistrô elegante e, logo ao lado, uma cafeteria rápida e cheirosa. O que você faz?",
         optionA: { label: "Ir ao Bistrô", scenarioId: "Pedindo uma mesa para dois", context: "Você ajeita a postura e caminha até o anfitrião do bistrô." },
         optionB: { label: "Café Rápido", scenarioId: "Pedindo um café simples", context: "Você decide que precisa de cafeína rápido e entra na fila da cafeteria." }
     };
