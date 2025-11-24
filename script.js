@@ -63,38 +63,65 @@ function getAIAvatar() {
 const AVATAR_USER_URL = 'assets/avatar-user.png';
 const TYPING_SIMULATION_DELAY = 500;
 
-const MOCK_TRAVELER_DATA = {
-    humor: {
-        title: "Humor: Animado",
-        content: "Você está se sentindo confiante após conseguir pedir seu café da manhã sem gaguejar. O sol está brilhando e a cidade parece acolhedora hoje."
-    },
-    backpack: {
-        title: "Sua Mochila",
-        items: [
-            { icon: "🗺️", name: "Mapa da Cidade", desc: "Um mapa turístico dobrado." },
-            { icon: "💧", name: "Garrafa de Água", desc: "Meio cheia." },
-            { icon: "🔑", name: "Chave do Hotel", desc: "Quarto 304." },
-            { icon: "📓", name: "Caderno de Anotações", desc: "Com vocabulário novo." },
-            { icon: "🌂", name: "Guarda-chuva", desc: "Pequeno e portátil." }
-        ]
-    },
-    skills: {
-        title: "Habilidades Adquiridas",
-        items: [
-            { icon: "🗣️", name: "Negociação Básica", level: "Nível 1" },
-            { icon: "👂", name: "Escuta Ativa", level: "Nível 2" },
-            { icon: "🧭", name: "Orientação Urbana", level: "Nível 1" }
-        ]
-    },
-    people: {
-        title: "Pessoas Conhecidas",
-        npcs: [
-            { name: "Carlos (Colega)", relation: 85, status: "Amigo" },
-            { name: "Sra. Marta (Vizinha)", relation: 50, status: "Conhecida" },
-            { name: "Garçom Rude", relation: 15, status: "Hostil" }
-        ]
+// =================================================================
+//  2.1 GERENCIAMENTO DE ESTADO DO VIAJANTE (NOVO)
+// =================================================================
+
+function getTravelerState() {
+    const defaultState = {
+        humor: "Ansioso",
+        backpack: ["Passaporte", "Celular"], // Itens iniciais
+        skills: [],
+        people: [],
+        journal: [], // Histórico narrativo
+        storyNodeCount: 0
+    };
+    return JSON.parse(localStorage.getItem('travelerState')) || defaultState;
+}
+
+function saveTravelerState(newState) {
+    localStorage.setItem('travelerState', JSON.stringify(newState));
+}
+
+function updateTravelerStateFromGame(gameUpdates, journalEntryText) {
+    let state = getTravelerState();
+
+    // 1. Adiciona entrada no diário
+    if (journalEntryText) {
+        state.journal.push({
+            text: journalEntryText,
+            timestamp: new Date().getTime()
+        });
     }
-};
+
+    // 2. Atualiza Status (se houver updates)
+    if (gameUpdates) {
+        if (gameUpdates.humor) state.humor = gameUpdates.humor;
+        
+        if (gameUpdates.backpack && Array.isArray(gameUpdates.backpack)) {
+            gameUpdates.backpack.forEach(item => {
+                if (!state.backpack.includes(item)) state.backpack.push(item);
+            });
+        }
+        
+        if (gameUpdates.skills && Array.isArray(gameUpdates.skills)) {
+            gameUpdates.skills.forEach(skill => {
+                if (!state.skills.includes(skill)) state.skills.push(skill);
+            });
+        }
+
+        if (gameUpdates.people && Array.isArray(gameUpdates.people)) {
+            gameUpdates.people.forEach(person => {
+                // Verifica se já conhece a pessoa pelo nome
+                const exists = state.people.find(p => p.name === person.name);
+                if (!exists) state.people.push(person);
+            });
+        }
+    }
+
+    saveTravelerState(state);
+    return state;
+}
 
 let conversationHistory = [];
 let currentScenario = null;
@@ -669,7 +696,7 @@ function renderTrainingPage() {
     
     // Cabeçalho e Abas
     container.innerHTML = `
-        <h2 style="text-align: center; margin-bottom: 20px; font-size: 1.8rem;">✨ Treinamento</h2>
+        <h2 style="text-align: center; margin-bottom: 20px; font-size: 1.8rem;">✨ Treino Rápido</h2>
         
         <div class="tab-bar training-tabs">
             <button class="tab-btn active" data-tab="scenarios">Cenários da Odete</button>
@@ -688,8 +715,7 @@ function renderTrainingPage() {
                     <img src="assets/luciano-e-odete-laboratorio.png" alt="Odete, sua guia" class="guide-avatar">
                 </div>
                 <div class="custom-charge-info">
-                    <p>Crie qualquer situação para praticar.</p>
-                    <p>Custo: <span class="custom-charge-hearts">2 ❤️ Corações</span></p>
+                    <p>Crie qualquer situação para praticar. Custo: <span class="custom-charge-hearts">2 ❤️ Corações</span></p>
                 </div>
                 <textarea id="custom-scenario-input" rows="6" placeholder="Ex: Convidar a pessoa que amo para sair, correndo o risco de sofer uma rejeição."></textarea>
                 <div id="custom-scenario-feedback" class="custom-scenario-feedback"></div>
@@ -1061,10 +1087,24 @@ function setupGuideCarousel() {
 // =================================================================
 //  10. LÓGICA CENTRAL DA CONVERSA
 // =================================================================
-function startNewConversation(scenario, categoryName, scenarioId, contextText = null) {
+
+function startNewConversation(scenario, categoryName, scenarioId, contextText = null, aiRole = null, userRole = null) {
     feedbackPromise = null;
+    
+    // Injeta os papéis dentro do objeto details do cenário para envio ao backend
+    const enhancedScenario = JSON.parse(JSON.stringify(scenario)); // Deep copy
+    const langs = ['pt-BR', 'en-US', 'es-MX'];
+    
+    langs.forEach(lang => {
+        if(enhancedScenario[lang]) {
+            enhancedScenario[lang].aiRole = aiRole;
+            enhancedScenario[lang].userRole = userRole;
+            enhancedScenario[lang].context = contextText;
+        }
+    });
+
     currentScenario = {
-        details: scenario,
+        details: enhancedScenario,
         categoryName: categoryName,
         id: scenarioId
     };
@@ -1072,29 +1112,19 @@ function startNewConversation(scenario, categoryName, scenarioId, contextText = 
     const currentLevel = localStorage.getItem('proficiency') || 'intermediate';
     const coinsEarnedText = calculateMissionCoins(currentLevel, 'text');
     const coinsEarnedVoice = calculateMissionCoins(currentLevel, 'voice');
-
     const textPlural = coinsEarnedText === 1 ? 'moeda' : 'moedas';
     const voicePlural = coinsEarnedVoice === 1 ? 'moeda' : 'moedas';
 
-    startTextMissionBtn.innerHTML = `
-        <span>Por Texto</span>
-        <span class="mission-points-badge badge-text">+${coinsEarnedText} ${textPlural} 🪙</span>
-    `;
-    startVoiceMissionBtn.innerHTML = `
-        <span>Por Voz</span>
-        <span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>
-    `;
+    startTextMissionBtn.innerHTML = `<span>Por Texto</span><span class="mission-points-badge badge-text">+${coinsEarnedText} ${textPlural} 🪙</span>`;
+    startVoiceMissionBtn.innerHTML = `<span>Por Voz</span><span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>`;
 
     // Lógica de Contexto Narrativo no Modal
     const modalBody = missionModal.querySelector('.modal-body');
     let contextEl = document.getElementById('mission-context-text');
-    
-    // Se não existir o elemento de contexto, cria (antes do objetivo)
     if (!contextEl) {
         contextEl = document.createElement('p');
         contextEl.id = 'mission-context-text';
         contextEl.className = 'mission-context-text';
-        // Insere logo após o container da imagem
         if (missionImageContainer.nextSibling) {
             modalBody.insertBefore(contextEl, missionImageContainer.nextSibling);
         } else {
@@ -1581,27 +1611,52 @@ async function processUserMessage(messageText) {
         };
         const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
         
-        const aiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings);
+        const rawAiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings);
+        let finalResponseText = rawAiResponse;
 
-        if (aiResponse.includes("[Scenario Complete]")) {
-            const cleanResponse = aiResponse.replace("[Scenario Complete]", "").trim();
-            if (cleanResponse) {
-                conversationHistory.push({ role: 'assistant', content: cleanResponse });
-                await handleAIResponse(cleanResponse);
+        // --- LÓGICA DE RPG (NOVO) ---
+        if (rawAiResponse.includes("[Scenario Complete]")) {
+            const parts = rawAiResponse.split("[Scenario Complete]");
+            finalResponseText = parts[0].trim(); // Texto para o usuário
+            const jsonPart = parts[1]; // JSON oculto
+
+            if (jsonPart) {
+                try {
+                    const rpgData = JSON.parse(jsonPart);
+                    console.log("RPG Update recebido:", rpgData);
+                    
+                    // Atualiza o estado no LocalStorage
+                    updateTravelerStateFromGame(rpgData.updates, rpgData.journalEntry);
+                    
+                    // Notifica visualmente se houve item novo
+                    if (rpgData.updates && rpgData.updates.backpack && rpgData.updates.backpack.length > 0) {
+                        showRewardNotification(`Item obtido: ${rpgData.updates.backpack[0]}`);
+                    }
+                } catch (e) {
+                    console.error("Erro ao processar JSON de RPG:", e);
+                }
+            }
+            
+            // Adiciona apenas o texto limpo ao histórico
+            if (finalResponseText) {
+                conversationHistory.push({ role: 'assistant', content: finalResponseText });
+                await handleAIResponse(finalResponseText);
             }
 
+            // Finaliza missão e dá recompensas
             const coinsEarned = await finalizeConversation();
-            
             feedbackPromise = startBackgroundFeedbackGeneration();
-
             displayCompletionScreen(coinsEarned);
+
         } else {
-            conversationHistory.push({ role: 'assistant', content: aiResponse });
-            await handleAIResponse(aiResponse);
+            // Fluxo normal
+            conversationHistory.push({ role: 'assistant', content: finalResponseText });
+            await handleAIResponse(finalResponseText);
         }
+
     } catch (error) {
         console.error("Erro no processamento da mensagem:", error);
-        const userFriendlyError = "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e se o servidor local está rodando no terminal.";
+        const userFriendlyError = "Não foi possível conectar ao servidor. Verifique sua conexão.";
         await handleAIResponse(userFriendlyError);
     }
 }
@@ -1853,16 +1908,15 @@ function displayCompletionScreen(rewards) {
 
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'completion-actions';
+    
+    // REMOVIDO: Botão "Próxima Missão"
     actionsContainer.innerHTML = `
         <button id="feedback-btn">Ver Feedback</button>
-        <button id="next-challenge-btn">Próxima Missão</button>
         <button id="finish-btn" class="completion-finish-btn">Concluir</button>
     `;
 
     actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
-    actionsContainer.querySelector('#next-challenge-btn').addEventListener('click', () => {
-        if (userHearts < 1) { showNoHeartsModal(); } else { startNextChallenge(); }
-    });
+    // REMOVIDO: Event Listener do botão "Próxima Missão"
     actionsContainer.querySelector('#finish-btn').addEventListener('click', handleExitChat);
 
     completionContainer.appendChild(actionsContainer);
@@ -2054,7 +2108,7 @@ function renderJornadaPage() {
 
     container.innerHTML = `
         <div class="jornada-header">
-            <h2>Minha Jornada</h2>
+            <h2>Meu Passaporte</h2>
         </div>
 
         <!-- Barra de Abas -->
@@ -2335,166 +2389,275 @@ function openTravelerModal(type) {
     const modal = document.getElementById('traveler-modal');
     const titleEl = document.getElementById('traveler-modal-title');
     const contentEl = document.getElementById('traveler-modal-content');
-    const data = MOCK_TRAVELER_DATA[type];
-
-    if (!data) return;
-
-    titleEl.textContent = data.title;
+    
+    const traveler = getTravelerState();
     contentEl.innerHTML = ''; // Limpa conteúdo anterior
 
     if (type === 'humor') {
-        contentEl.innerHTML = `<p class="traveler-detail-text">${data.content}</p>`;
+        titleEl.textContent = "Humor Atual";
+        contentEl.innerHTML = `<p class="traveler-detail-text">Você está se sentindo: <strong>${traveler.humor}</strong>.</p>`;
     } 
-    else if (type === 'backpack' || type === 'skills') {
-        const ul = document.createElement('ul');
-        ul.className = 'traveler-list';
-        data.items.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'traveler-list-item';
-            const secondaryText = item.desc || item.level || '';
-            li.innerHTML = `
-                <span style="font-size: 1.5rem;">${item.icon}</span>
-                <div>
-                    <strong>${item.name}</strong><br>
-                    <span style="font-size: 0.85rem; color: var(--text-secondary);">${secondaryText}</span>
-                </div>
-            `;
-            ul.appendChild(li);
-        });
-        contentEl.appendChild(ul);
+    else if (type === 'backpack') {
+        titleEl.textContent = "Sua Mochila";
+        if (traveler.backpack.length === 0) {
+            contentEl.innerHTML = "<p>Sua mochila está vazia.</p>";
+        } else {
+            const ul = document.createElement('ul');
+            ul.className = 'traveler-list';
+            traveler.backpack.forEach(item => {
+                ul.innerHTML += `
+                    <li class="traveler-list-item">
+                        <span style="font-size: 1.5rem;">🎒</span>
+                        <div><strong>${item}</strong></div>
+                    </li>`;
+            });
+            contentEl.appendChild(ul);
+        }
+    } 
+    else if (type === 'skills') {
+        titleEl.textContent = "Habilidades";
+        if (traveler.skills.length === 0) {
+            contentEl.innerHTML = "<p>Ainda não aprendeu habilidades específicas.</p>";
+        } else {
+            const ul = document.createElement('ul');
+            ul.className = 'traveler-list';
+            traveler.skills.forEach(skill => {
+                ul.innerHTML += `
+                    <li class="traveler-list-item">
+                        <span style="font-size: 1.5rem;">⚡</span>
+                        <div><strong>${skill}</strong></div>
+                    </li>`;
+            });
+            contentEl.appendChild(ul);
+        }
     } 
     else if (type === 'people') {
-        const ul = document.createElement('ul');
-        ul.className = 'traveler-list';
-        data.npcs.forEach(npc => {
-            const li = document.createElement('li');
-            li.className = 'traveler-list-item';
-            
-            // Define cor da barra
-            let barClass = 'rel-neutral';
-            if (npc.relation >= 70) barClass = 'rel-friend';
-            if (npc.relation <= 30) barClass = 'rel-enemy';
+        titleEl.textContent = "Pessoas Conhecidas";
+        if (traveler.people.length === 0) {
+            contentEl.innerHTML = "<p>Você ainda não fez contatos marcantes.</p>";
+        } else {
+            const ul = document.createElement('ul');
+            ul.className = 'traveler-list';
+            traveler.people.forEach(npc => {
+                // Define cor da barra (assumindo que o backend envia 'relation')
+                let barClass = 'rel-neutral';
+                if (npc.relation >= 70) barClass = 'rel-friend';
+                if (npc.relation <= 30) barClass = 'rel-enemy';
 
-            li.innerHTML = `
-                <div class="npc-item">
-                    <div class="npc-header">
-                        <span>${npc.name}</span>
-                        <span class="npc-status-text">${npc.status}</span>
-                    </div>
-                    <div class="relationship-bar-bg">
-                        <div class="relationship-bar-fill ${barClass}" style="width: ${npc.relation}%;"></div>
-                    </div>
-                </div>
-            `;
-            ul.appendChild(li);
-        });
-        contentEl.appendChild(ul);
+                ul.innerHTML += `
+                    <li class="traveler-list-item">
+                        <div class="npc-item">
+                            <div class="npc-header">
+                                <span>${npc.name}</span>
+                                <span class="npc-status-text">${npc.status || 'Conhecido'}</span>
+                            </div>
+                            <div class="relationship-bar-bg">
+                                <div class="relationship-bar-fill ${barClass}" style="width: ${npc.relation || 50}%;"></div>
+                            </div>
+                        </div>
+                    </li>`;
+            });
+            contentEl.appendChild(ul);
+        }
     }
 
     modal.classList.remove('modal-hidden');
 }
 
-function renderHomePageContent() {
+async function renderHomePageContent() {
     mainContentArea.innerHTML = '';
     
     // 1. Título da Página
     const title = document.createElement('h1'); 
     title.className = 'main-page-title'; 
-    title.textContent = "Vida de Viajante"; 
+    title.textContent = "Missões da Odete"; 
     mainContentArea.appendChild(title);
     
-    const currentLang = localStorage.getItem('language') || 'en-US';
-    
-    // 2. Seção de Decisão Narrativa (Evento Fixo)
+    // 2. Seção de Narrativa Infinita (IA)
     const narrativeSection = document.createElement('section'); 
     narrativeSection.className = 'suggestion-section';
     
-    const narrativeEvent = {
-        category: "🍔 Restaurantes e Cafés",
-        image: "assets/restaurantes/placeholder.png",
-        text: "Você acabou de chegar ao centro da cidade e seu estômago ronca. À sua frente, há um bistrô elegante e, logo ao lado, uma cafeteria rápida e cheirosa. O que você faz?",
-        optionA: { label: "Ir ao Bistrô", scenarioId: "Pedindo uma mesa para dois", context: "Você ajeita a postura e caminha até o anfitrião do bistrô." },
-        optionB: { label: "Café Rápido", scenarioId: "Pedindo um café simples", context: "Você decide que precisa de cafeína rápido e entra na fila da cafeteria." }
-    };
-
+    // Estado de Loading Inicial
     narrativeSection.innerHTML = `
-        <div class="suggestion-card">
-            <img src="${narrativeEvent.image}" class="narrative-image" alt="Cenário do Evento">
-            <p class="narrative-text">${narrativeEvent.text}</p>
-            <div class="decision-buttons">
-                <button id="btn-option-a" class="decision-btn">${narrativeEvent.optionA.label}</button>
-                <button id="btn-option-b" class="decision-btn">${narrativeEvent.optionB.label}</button>
-            </div>
+        <div class="suggestion-card" style="min-height: 200px; justify-content: center;">
+            <p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>
+            <p style="margin-top: 10px; color: var(--text-secondary);">Consultando o destino...</p>
         </div>
     `;
     mainContentArea.appendChild(narrativeSection);
 
-    // Listeners dos botões de decisão
-    const btnA = document.getElementById('btn-option-a');
-    const btnB = document.getElementById('btn-option-b');
-    const loadNarrativeScenario = (optionKey) => {
-        const option = narrativeEvent[optionKey];
-        const categoryName = narrativeEvent.category;
-        const scenarioId = option.scenarioId;
-        const scenario = SCENARIOS[categoryName]?.[scenarioId];
-        if (scenario) {
-            if (userHearts > 0) {
-                startNewConversation(scenario, categoryName, scenarioId, option.context);
-            } else {
-                showNoHeartsModal();
+    // --- Carregamento Assíncrono da Narrativa ---
+    try {
+        const currentState = getTravelerState();
+        // Chama a API
+        const narrativeData = await getNarrativeFromAI(currentState);
+
+        // Mapeamento de imagens (Mantido igual)
+        const categoryImages = {
+            "🍔 Restaurantes e Cafés": "assets/restaurantes/placeholder.png",
+            "✈️ Viagens e Transporte": "assets/viagens/placeholder.png",
+            "🏨 Hotéis e Hospedagens": "assets/hoteis/placeholder.png",
+            "🩹 Saúde e Bem-estar": "assets/saude/placeholder.png",
+            "🛒 Compras": "assets/compras/placeholder.png",
+            "💼 Profissional": "assets/profissional/placeholder.png",
+            "🎓 Estudos": "assets/estudos/placeholder.png",
+            "🏠 Moradia e Serviços": "assets/moradia/placeholder.png",
+            "💕 Romance": "assets/romance/placeholder.png",
+            "😅 Situações Embaraçosas": "assets/embaracoso/placeholder.png",
+            "🍺 Bar & Happy Hour": "assets/bar/placeholder.png",
+            "⚽ Esportes": "assets/esportes/placeholder.png",
+            "🤝 Situações Sociais": "assets/sociais/placeholder.png"
+        };
+
+        const imagePath = categoryImages[narrativeData.category] || "assets/viagens/placeholder.png";
+
+        // --- LÓGICA DE RENDERIZAÇÃO BASEADA NO TIPO DE NÓ ---
+        
+        if (narrativeData.nodeType === 'story') {
+            // === MODO HISTÓRIA (Só texto + Continuar) ===
+            narrativeSection.innerHTML = `
+                <div class="suggestion-card">
+                    <h3 style="font-size: 0.9rem; color: var(--color-accent); text-transform: uppercase; margin-bottom: 8px;">${narrativeData.category}</h3>
+                    <img src="${imagePath}" class="narrative-image" alt="Cenário Atual">
+                    <p class="narrative-text">${narrativeData.text}</p>
+                    <div class="decision-buttons" style="grid-template-columns: 1fr;">
+                        <button id="btn-continue-story" class="decision-btn primary-btn">Continuar ➜</button>
+                    </div>
+                </div>
+            `;
+
+            // Listener para Continuar (Recarrega a Home para pegar o próximo nó)
+            document.getElementById('btn-continue-story').addEventListener('click', () => {
+                const state = getTravelerState();
+                state.storyNodeCount = (state.storyNodeCount || 0) + 1; // Incrementa contador
+                // Adiciona texto ao diário automaticamente para manter contexto
+                state.journal.push({ text: narrativeData.text, timestamp: new Date().getTime() });
+                saveTravelerState(state);
+                renderHomePageContent(); // Recarrega a função
+            });
+
+        } else {
+            // === MODO INTERAÇÃO (Texto + Opções A/B) ===
+            
+            // Reseta o contador de história pois houve interação
+            const state = getTravelerState();
+            if (state.storyNodeCount > 0) {
+                state.storyNodeCount = 0;
+                saveTravelerState(state);
             }
+
+            narrativeSection.innerHTML = `
+                <div class="suggestion-card">
+                    <h3 style="font-size: 0.9rem; color: var(--color-accent); text-transform: uppercase; margin-bottom: 8px;">${narrativeData.category}</h3>
+                    <img src="${imagePath}" class="narrative-image" alt="Cenário Atual">
+                    <p class="narrative-text">${narrativeData.text}</p>
+                    <div class="decision-buttons">
+                        <button id="btn-option-a" class="decision-btn">${narrativeData.options.optionA.label}</button>
+                        <button id="btn-option-b" class="decision-btn">${narrativeData.options.optionB.label}</button>
+                    </div>
+                </div>
+            `;
+
+            // Listeners dos botões de opção
+            const handleDynamicScenario = (optionKey) => {
+                const option = narrativeData.options[optionKey];
+                if (userHearts > 0) {
+                    const dynamicScenario = {
+                        "pt-BR": { goal: option.goal },
+                        "en-US": { name: "Story Mission", goal: option.goal },
+                        "es-MX": { name: "Misión de Historia", goal: option.goal }
+                    };
+                    
+                    startNewConversation(
+                        dynamicScenario, 
+                        narrativeData.category, 
+                        "dynamic_story", 
+                        option.context, 
+                        option.aiRole,
+                        option.userRole
+                    );
+                } else {
+                    showNoHeartsModal();
+                }
+            };
+
+            document.getElementById('btn-option-a').addEventListener('click', () => handleDynamicScenario('optionA'));
+            document.getElementById('btn-option-b').addEventListener('click', () => handleDynamicScenario('optionB'));
         }
-    };
-    if (btnA) btnA.addEventListener('click', () => loadNarrativeScenario('optionA'));
-    if (btnB) btnB.addEventListener('click', () => loadNarrativeScenario('optionB'));
 
+    } catch (error) {
+        console.error("Erro ao carregar narrativa:", error);
+        narrativeSection.innerHTML = `
+            <div class="suggestion-card">
+                <p>Ops! A Odete se perdeu no mapa. Tente recarregar.</p>
+                <button class="primary-btn" onclick="renderHomePageContent()" style="margin-top:10px">Tentar Novamente</button>
+            </div>`;
+    }
 
-    // 3. SEÇÃO: Estado do Viajante (Com IDs para clique)
+    // 3. SEÇÃO: Status (Dados Reais do LocalStorage)
+    const traveler = getTravelerState();
+
+    const statusTitle = document.createElement('h3');
+    statusTitle.textContent = "Status";
+    statusTitle.style.cssText = "font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color); color: var(--text-primary); width: 100%;";
+    mainContentArea.appendChild(statusTitle);
+
     const stateSection = document.createElement('section');
     stateSection.className = 'traveler-state-grid';
     stateSection.innerHTML = `
         <div class="state-card" id="card-humor">
             <span class="state-icon">🎭</span>
             <span class="state-title">Humor</span>
-            <span class="state-value">Animado</span>
+            <span class="state-value">${traveler.humor}</span>
         </div>
         <div class="state-card" id="card-backpack">
             <span class="state-icon">🎒</span>
             <span class="state-title">Mochila</span>
-            <span class="state-value">5 Itens</span>
+            <span class="state-value">${traveler.backpack.length} Itens</span>
         </div>
         <div class="state-card" id="card-skills">
             <span class="state-icon">⚡</span>
             <span class="state-title">Habilidades</span>
-            <span class="state-value">Nível 3</span>
+            <span class="state-value">${traveler.skills.length}</span>
         </div>
         <div class="state-card" id="card-people">
             <span class="state-icon">👥</span>
             <span class="state-title">Pessoas</span>
-            <span class="state-value">3 Amigos</span>
+            <span class="state-value">${traveler.people.length}</span>
         </div>
     `;
     mainContentArea.appendChild(stateSection);
 
-    // Adiciona Listeners aos Cards
+    // Listeners dos Cards
     document.getElementById('card-humor').addEventListener('click', () => openTravelerModal('humor'));
     document.getElementById('card-backpack').addEventListener('click', () => openTravelerModal('backpack'));
     document.getElementById('card-skills').addEventListener('click', () => openTravelerModal('skills'));
     document.getElementById('card-people').addEventListener('click', () => openTravelerModal('people'));
 
 
-    // 4. SEÇÃO: Diário de Experiências
+    // 4. SEÇÃO: Diário de Experiências (Dados Reais)
     const journalSection = document.createElement('section');
     journalSection.className = 'journal-section';
+    
+    // Pega as últimas 5 entradas invertidas
+    const recentJournal = traveler.journal.slice(-5).reverse();
+    
+    let journalHtml = '';
+    if (recentJournal.length === 0) {
+        journalHtml = '<div class="journal-entry"><span class="journal-entry-text">Seu diário ainda está vazio. Comece sua jornada!</span></div>';
+    } else {
+        journalHtml = recentJournal.map(entry => `
+            <div class="journal-entry">
+                <span class="journal-entry-icon">✍️</span>
+                <span class="journal-entry-text">${entry.text}</span>
+            </div>
+        `).join('');
+    }
+
     journalSection.innerHTML = `
         <h3>Diário de Experiências</h3>
         <div class="journal-list">
-            <div class="journal-entry"><span class="journal-entry-icon">💼</span><span class="journal-entry-text">Apresentou um projeto para o CEO no trabalho</span></div>
-            <div class="journal-entry"><span class="journal-entry-icon">✨</span><span class="journal-entry-text">Curou o pé machucado</span></div>
-            <div class="journal-entry"><span class="journal-entry-icon">🚑</span><span class="journal-entry-text">Foi ao hospital de ambulância</span></div>
-            <div class="journal-entry"><span class="journal-entry-icon">🤕</span><span class="journal-entry-text">Torceu o pé correndo</span></div>
-            <div class="journal-entry"><span class="journal-entry-icon">🤝</span><span class="journal-entry-text">Conheceu Carlos, colega de trabalho</span></div>
-            <div class="journal-entry"><span class="journal-entry-icon">☕</span><span class="journal-entry-text">Pediu café com leite na cafeteria</span></div>
+            ${journalHtml}
         </div>
     `;
     mainContentArea.appendChild(journalSection);

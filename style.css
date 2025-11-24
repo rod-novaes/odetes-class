@@ -529,7 +529,7 @@ html, body {
 .narrative-image {
     width: calc(100% + 32px); /* Compensa o padding do card para ir de ponta a ponta */
     margin: 6px -16px 16px -16px; /* Puxa a imagem para as bordas */
-    height: 180px;
+    height: 150px;
     object-fit: cover;
     display: block;
 }
@@ -980,6 +980,7 @@ html, body {
 .store-header {
     text-align: center;
     padding: 16px;
+    padding-top: 0px;
     background-color: var(--bg-container);
     border-radius: 12px;
     border: 1px solid var(--border-color);
@@ -991,6 +992,7 @@ html, body {
     font-weight: 600;
     color: var(--text-primary);
     margin: 8px 0;
+    padding-top: 10px;
 }
 
 .store-description {

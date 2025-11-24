@@ -233,9 +233,6 @@ function handleUtilityPurchase(utilityId) {
 //  4. RENDERIZAÇÃO DA PÁGINA DA LOJA
 // =================================================================
 
-/**
- * Limpa a área de conteúdo principal e renderiza a interface da loja.
- */
 function renderStorePage() {
     // --- 1. Preparação da Interface ---
     const mainContentArea = document.getElementById('main-content-area');
@@ -262,9 +259,10 @@ function renderStorePage() {
     const storeContainer = document.createElement('div');
     storeContainer.className = 'store-container';
 
+    // ALTERAÇÃO AQUI: O <h1> foi movido para fora da div .store-header
     storeContainer.innerHTML = `
+        <h1 class="main-page-title" style="margin-bottom: 0px;">🛍️ Loja</h1>
         <div class="store-header">
-            <h1 class="main-page-title">Loja</h1>
             <div class="store-coin-balance">
                 Seu Saldo: <strong>${userCoins} 🪙</strong>
             </div>

@@ -206,3 +206,28 @@ async function getScenarioTitle(goalText, language) {
         return "Custom Scenario";
     }
 }
+
+/**
+ * Obtém o próximo nó narrativo e opções de ação baseado no estado do viajante.
+ * Chamado pela Home Page para gerar a história infinita.
+ */
+async function getNarrativeFromAI(travelerState) {
+    const API_URL = `${BACKEND_URL}/api/narrative`;
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ travelerState: travelerState })
+        });
+        
+        if (!response.ok) {
+            console.warn("Erro no backend de narrativa.");
+            throw new Error("Falha ao gerar narrativa");
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error("Erro em getNarrativeFromAI:", error);
+        throw error;
+    }
+}
