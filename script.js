@@ -2481,7 +2481,7 @@ async function renderHomePageContent() {
     narrativeSection.innerHTML = `
         <div class="suggestion-card" style="min-height: 200px; justify-content: center;">
             <p class="typing-dots"><span>.</span><span>.</span><span>.</span></p>
-            <p style="margin-top: 10px; color: var(--text-secondary);">Consultando o destino...</p>
+            <p style="margin-top: 10px; color: var(--text-secondary);">Preparando missão...</p>
         </div>
     `;
     mainContentArea.appendChild(narrativeSection);
