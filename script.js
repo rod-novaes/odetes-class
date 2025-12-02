@@ -70,11 +70,14 @@ const TYPING_SIMULATION_DELAY = 500;
 function getTravelerState() {
     const defaultState = {
         humor: "Ansioso",
-        backpack: ["Passaporte", "Celular"], // Itens iniciais
+        backpack: ["Passaporte", "Celular"],
         skills: [],
         people: [],
-        journal: [], // Histórico narrativo
-        storyNodeCount: 0
+        journal: [],
+        storyNodeCount: 0,
+        // NOVOS CAMPOS PARA O MODO HISTÓRIA
+        activeStory: null, // { seriesId: 'career_main', episodeId: 's1_e1', nodeId: 'node_1' }
+        currentRole: null  // "O Estagiário"
     };
     return JSON.parse(localStorage.getItem('travelerState')) || defaultState;
 }
@@ -660,7 +663,7 @@ function finishOnboarding() {
 function renderHomePage() {
     updateActiveNavIcon('nav-home-btn');
     mainContentArea.innerHTML = '';
-    mainContentArea.className = 'main-content-area';
+    mainContentArea.className = 'main-content-area home-streaming-layout'; 
     chatInputArea.classList.add('chat-input-hidden');
     bottomNavBar.classList.remove('nav-hidden');
 
@@ -670,7 +673,81 @@ function renderHomePage() {
     updateHeartsDisplay();
     headerBackBtn.classList.add('back-btn-hidden');
 
-    renderHomePageContent();
+    // Verifica se STORYLINES foi carregado
+    if (typeof STORYLINES === 'undefined') {
+        mainContentArea.innerHTML = '<p style="text-align:center; padding: 20px;">Carregando catálogo...</p>';
+        return;
+    }
+
+    // Converte o objeto STORYLINES em array para iterar
+    const allSeries = Object.values(STORYLINES);
+
+    // 1. HERO SECTION (DESTAQUE)
+    // Lógica: Tenta pegar a série 'Carreira' como destaque, ou a primeira da lista
+    const heroSeries = STORYLINES["career_main"] || allSeries[0]; 
+
+    if (heroSeries) {
+        const heroSection = document.createElement('div');
+        heroSection.className = 'hero-section';
+        // Adiciona listener no card inteiro
+        heroSection.onclick = (e) => {
+            // Evita duplo disparo se clicar no botão
+            if(e.target.closest('.hero-btn')) return; 
+            openSeriesModal(heroSeries.id);
+        };
+
+        heroSection.innerHTML = `
+            <img src="${heroSeries.heroImage}" class="hero-bg-image" alt="Destaque">
+            <div class="hero-content">
+                <span class="hero-tag">Série em Destaque</span>
+                <h1 class="hero-title">${heroSeries.title}</h1>
+                <p class="hero-subtitle">${heroSeries.description}</p>
+                <button class="hero-btn" onclick="openSeriesModal('${heroSeries.id}')">
+                    <span>▶</span> Continuar
+                </button>
+            </div>
+        `;
+        mainContentArea.appendChild(heroSection);
+    }
+
+    // 2. CARROSSEL DE SÉRIES (EXPLORAR)
+    const shelfTitle = document.createElement('h2');
+    shelfTitle.className = 'shelf-title';
+    shelfTitle.textContent = 'Explorar Séries';
+    mainContentArea.appendChild(shelfTitle);
+
+    const carouselContainer = document.createElement('div');
+    carouselContainer.className = 'horizontal-scroll-container';
+
+    allSeries.forEach(series => {
+        const card = document.createElement('div');
+        card.className = 'series-poster-card';
+        card.onclick = () => openSeriesModal(series.id);
+        
+        card.innerHTML = `
+            <img src="${series.coverImage}" class="poster-image" alt="${series.title}">
+            <div class="poster-overlay">
+                <div class="poster-title">${series.title}</div>
+            </div>
+        `;
+        carouselContainer.appendChild(card);
+    });
+
+    mainContentArea.appendChild(carouselContainer);
+
+    // 3. SEÇÃO DE CONQUISTAS/BADGES (Visual apenas)
+    const badgesTitle = document.createElement('h2');
+    badgesTitle.className = 'shelf-title';
+    badgesTitle.style.marginTop = '24px';
+    badgesTitle.textContent = 'Suas Conquistas Recentes';
+    mainContentArea.appendChild(badgesTitle);
+    
+    const badgesPlaceholder = document.createElement('div');
+    badgesPlaceholder.style.padding = '0 16px 40px 16px';
+    badgesPlaceholder.style.color = 'var(--text-secondary)';
+    badgesPlaceholder.style.fontSize = '0.9rem';
+    badgesPlaceholder.innerHTML = 'Jogue episódios para desbloquear novas medalhas na sua jornada!';
+    mainContentArea.appendChild(badgesPlaceholder);
 
     mainContentArea.scrollTop = 0;
 }
@@ -1198,13 +1275,18 @@ async function initiateChat() {
 }
 
 async function handleSendMessage() {
+    // CORREÇÃO: Removemos a trava rígida 'PROCESSING' que estava bloqueando o clique.
+    // Em vez disso, apenas verificamos se há texto.
+    
     const messageText = textInput.value.trim();
     if (!messageText) return;
 
+    // Agora sim definimos que está processando
     setProcessingState(true);
     textInput.value = '';
 
-    if (currentInteractionMode === 'voice' && conversationState === 'USER_LISTENING' && mediaRecorder) {
+    // Para gravação de voz se estiver ativa
+    if (currentInteractionMode === 'voice' && mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
     }
 
@@ -1599,6 +1681,8 @@ function removeVoiceStatusIndicator() {
 async function processUserMessage(messageText) {
     displayMessage(messageText, 'user');
     conversationHistory.push({ role: 'user', content: messageText });
+    
+    // Garante que o estado visual de processamento esteja ativo
     setProcessingState(true);
 
     try {
@@ -1610,11 +1694,12 @@ async function processUserMessage(messageText) {
             voiceGender: localStorage.getItem('voiceGender') 
         };
         const scenarioDetails = currentScenario.details[currentLang] || currentScenario.details['en-US'];
+        const travelerState = getTravelerState();
         
-        const rawAiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings);
+        const rawAiResponse = await getAIResponse(messageText, conversationHistory, scenarioDetails, settings, travelerState);
         let finalResponseText = rawAiResponse;
 
-        // --- LÓGICA DE RPG (NOVO) ---
+        // --- LÓGICA DE RPG (COM BLINDAGEM DE ERROS) ---
         if (rawAiResponse.includes("[Scenario Complete]")) {
             const parts = rawAiResponse.split("[Scenario Complete]");
             finalResponseText = parts[0].trim(); // Texto para o usuário
@@ -1622,18 +1707,19 @@ async function processUserMessage(messageText) {
 
             if (jsonPart) {
                 try {
+                    // Tenta ler o JSON. Se a IA errou a formatação, cai no catch interno
+                    // e não quebra o fluxo principal.
                     const rpgData = JSON.parse(jsonPart);
                     console.log("RPG Update recebido:", rpgData);
                     
-                    // Atualiza o estado no LocalStorage
                     updateTravelerStateFromGame(rpgData.updates, rpgData.journalEntry);
                     
-                    // Notifica visualmente se houve item novo
                     if (rpgData.updates && rpgData.updates.backpack && rpgData.updates.backpack.length > 0) {
                         showRewardNotification(`Item obtido: ${rpgData.updates.backpack[0]}`);
                     }
-                } catch (e) {
-                    console.error("Erro ao processar JSON de RPG:", e);
+                } catch (jsonError) {
+                    console.warn("A IA finalizou a missão mas enviou um JSON inválido. Ignorando dados de RPG.", jsonError);
+                    // Não fazemos nada, apenas seguimos o fluxo de sucesso
                 }
             }
             
@@ -1643,21 +1729,26 @@ async function processUserMessage(messageText) {
                 await handleAIResponse(finalResponseText);
             }
 
-            // Finaliza missão e dá recompensas
+            // Finaliza missão (Agora é seguro chamar pois estamos dentro do try principal)
             const coinsEarned = await finalizeConversation();
-            feedbackPromise = startBackgroundFeedbackGeneration();
-            displayCompletionScreen(coinsEarned);
+            
+            // Opcional: Se for história, não precisamos exibir o modal grande se o finalizeConversation já lidou com isso,
+            // mas mantemos a chamada aqui para garantir compatibilidade com a lógica unificada.
+            return; 
 
         } else {
-            // Fluxo normal
+            // Fluxo normal (Conversa continua)
             conversationHistory.push({ role: 'assistant', content: finalResponseText });
             await handleAIResponse(finalResponseText);
         }
 
     } catch (error) {
         console.error("Erro no processamento da mensagem:", error);
+        // Só mostra erro de conexão se falhar a requisição de rede mesmo
         const userFriendlyError = "Não foi possível conectar ao servidor. Verifique sua conexão.";
         await handleAIResponse(userFriendlyError);
+        // Destrava a interface para o usuário tentar de novo
+        setUserTurnState(true);
     }
 }
 
@@ -1684,6 +1775,122 @@ function updateMicButtonState(state) {
             micBtn.title = "Aguarde sua vez";
             break;
     }
+}
+
+// =================================================================
+//  FUNÇÕES DE CONTROLE DO MODAL DE SÉRIE E SELEÇÃO DE PERSONAGEM
+// =================================================================
+
+// Variável para guardar temporariamente qual gênero o usuário escolheu no modal
+let tempSelectedGender = 'female'; 
+
+// Função chamada quando clica nos avatares (Ele/Ela) no HTML
+function selectCharacterGender(gender) {
+    tempSelectedGender = gender;
+    
+    // 1. Remove a classe 'selected' de todos os avatares
+    const maleOpt = document.getElementById('char-opt-male');
+    const femaleOpt = document.getElementById('char-opt-female');
+    
+    if(maleOpt) maleOpt.classList.remove('selected');
+    if(femaleOpt) femaleOpt.classList.remove('selected');
+    
+    // 2. Adiciona a classe 'selected' apenas no clicado
+    const selected = document.getElementById(`char-opt-${gender}`);
+    if(selected) selected.classList.add('selected');
+}
+
+// Função para abrir o modal com os dados reais do storylines.js
+function openSeriesModal(seriesId) {
+    console.log("Tentando abrir série:", seriesId); // Debug para vermos se funciona
+
+    // Verifica se o arquivo storylines.js foi carregado corretamente
+    if (typeof STORYLINES === 'undefined') {
+        console.error("ERRO: A variável STORYLINES não existe. Verifique se importou o arquivo no index.html");
+        return;
+    }
+
+    // Busca os dados da série no arquivo storylines.js
+    const series = STORYLINES[seriesId]; 
+    
+    if (!series) {
+        console.error("ERRO: Série não encontrada para o ID:", seriesId);
+        return;
+    }
+
+    const modal = document.getElementById('series-modal');
+    if (!modal) {
+        console.error("ERRO: Modal HTML não encontrado. Verifique o Passo 1.");
+        return;
+    }
+    
+    // 1. Preencher os textos e imagens do modal
+    document.getElementById('series-modal-cover').style.backgroundImage = `url('${series.heroImage}')`;
+    document.getElementById('series-modal-title').textContent = series.title;
+    document.getElementById('series-modal-genre').textContent = series.genre;
+    
+    // Conta quantas temporadas existem
+    const seasonCount = Object.keys(series.seasons).length;
+    document.getElementById('series-modal-seasons').textContent = `${seasonCount} Temporada${seasonCount > 1 ? 's' : ''}`;
+    document.getElementById('series-modal-desc').textContent = series.description;
+
+    // 2. Resetar a seleção de personagem para o padrão do usuário
+    const savedGender = localStorage.getItem('voiceGender') || 'female'; 
+    selectCharacterGender(savedGender); // Marca visualmente o avatar correto
+
+    // 3. Renderizar a Lista de Episódios
+    const listContainer = document.getElementById('series-modal-episodes-list');
+    listContainer.innerHTML = ''; // Limpa lista antiga
+
+    // Pega a primeira temporada disponível para mostrar
+    const firstSeasonKey = Object.keys(series.seasons)[0];
+    const episodes = series.seasons[firstSeasonKey].episodes;
+
+    episodes.forEach((ep, index) => {
+        const item = document.createElement('div');
+        // Adiciona classe 'locked' se o episódio estiver bloqueado
+        item.className = `episode-item ${ep.locked ? 'locked' : ''}`;
+        
+        const icon = ep.locked ? '🔒' : '▶';
+        // Se estiver liberado, o ícone ganha a cor de destaque
+        const actionClass = ep.locked ? '' : 'color: var(--color-accent);';
+
+        // Monta o HTML de cada linha de episódio
+        // NOTA: Usamos ep.description conforme está no storylines.js (não ep.desc)
+        item.innerHTML = `
+            <div class="episode-number">${index + 1}</div>
+            <div class="episode-info">
+                <div class="episode-title">${ep.title}</div>
+                <div class="episode-desc">${ep.description}</div>
+            </div>
+            <div class="episode-action-icon" style="${actionClass}">${icon}</div>
+        `;
+
+        // Adiciona o clique apenas se não estiver bloqueado
+        if (!ep.locked) {
+            item.onclick = () => {
+                // Salva a escolha do personagem (Ele/Ela) no banco de dados do navegador
+                localStorage.setItem('voiceGender', tempSelectedGender);
+                
+                // Fecha o modal
+                modal.classList.add('modal-hidden');
+                
+                // INICIA O JOGO (Chama o motor de história)
+                startEpisode(series.id, ep.id);
+            };
+        }
+
+        listContainer.appendChild(item);
+    });
+
+    // 4. Finalmente, mostra o modal na tela
+    modal.classList.remove('modal-hidden');
+
+    // Configura o botão X para fechar
+    const closeBtn = document.getElementById('series-modal-close-btn');
+    closeBtn.onclick = () => {
+        modal.classList.add('modal-hidden');
+    };
 }
 
 // =================================================================
@@ -1799,9 +2006,11 @@ async function finalizeConversation() {
 
     let totalCoinsToAdd = 0;
 
+    // 1. Calcular Moedas da Missão
     const missionCoins = calculateMissionCoins(localStorage.getItem('proficiency'), currentInteractionMode);
     totalCoinsToAdd += missionCoins;
 
+    // 2. Calcular Streak (Sequência)
     const todayStr = getTodayDateString();
     const lastCompletionDate = localStorage.getItem('lastCompletionDate');
     let currentStreak = parseInt(localStorage.getItem('currentStreak') || '0', 10);
@@ -1811,7 +2020,6 @@ async function finalizeConversation() {
     if (lastCompletionDate !== todayStr) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-
         const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
 
         if (lastCompletionDate === yesterdayStr) {
@@ -1840,34 +2048,38 @@ async function finalizeConversation() {
         localStorage.setItem('bestStreak', bestStreak);
     }
 
+    // 3. Salvar Moedas
     const currentCoins = getCoins();
     saveCoins(currentCoins + totalCoinsToAdd);
 
+    // 4. Definir Título para o Histórico
     const currentLang = localStorage.getItem('language') || 'en-US';
     let finalScenarioName = currentScenario.details[currentLang].name;
     
-    if (currentScenario.id === "Custom Scenario" || currentScenario.categoryName === "custom") {
+    // Se for um cenário customizado ou dinâmico, tenta gerar título
+    if (currentScenario.id.startsWith("dynamic_") || currentScenario.categoryName === "custom" || currentScenario.id === "Custom Scenario") {
         try { 
             finalScenarioName = await getScenarioTitle(currentScenario.details[currentLang].goal, currentLang); 
         } catch (error) { 
-            finalScenarioName = "Custom Scenario"; 
+            finalScenarioName = "Cenário Dinâmico"; 
         }
     }
     
+    // 5. Salvar no Histórico
     const history = JSON.parse(localStorage.getItem('conversationHistory')) || [];
-
     history.unshift({
         scenarioName: finalScenarioName,
         scenarioGoal: currentScenario.details[currentLang].goal,
         scenarioId: currentScenario.id, 
         timestamp: new Date().getTime(),
         transcript: conversationHistory,
-        feedback: '',
+        feedback: '', // Feedback será gerado sob demanda ou em background
         interactionMode: currentInteractionMode,
         categoryName: currentScenario.categoryName
     });
     localStorage.setItem('conversationHistory', JSON.stringify(history));
 
+    // 6. Verificar Badges
     const newMissionData = {
         categoryName: currentScenario.categoryName,
         interactionMode: currentInteractionMode,
@@ -1878,6 +2090,17 @@ async function finalizeConversation() {
     await checkAndAwardBadges(newMissionData, true);
     processBadgeNotificationQueue();
 
+    // 7. Geração de Feedback em Background e Exibição da Tela
+    feedbackPromise = startBackgroundFeedbackGeneration();
+    
+    // UNIFICADO: Chama a tela de conclusão para ambos os modos
+    displayCompletionScreen({ 
+        missionCoins, 
+        bonusCoins, 
+        totalCoins: totalCoinsToAdd, 
+        newBalance: getCoins() 
+    });
+    
     return { missionCoins, bonusCoins, totalCoins: totalCoinsToAdd, newBalance: getCoins() };
 }
 
@@ -1909,15 +2132,42 @@ function displayCompletionScreen(rewards) {
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'completion-actions';
     
-    // REMOVIDO: Botão "Próxima Missão"
-    actionsContainer.innerHTML = `
-        <button id="feedback-btn">Ver Feedback</button>
-        <button id="finish-btn" class="completion-finish-btn">Concluir</button>
-    `;
+    // LÓGICA DE BOTÕES DIFERENCIADA POR MODO
+    if (currentScenario && currentScenario.isStoryNode) {
+        // === MODO HISTÓRIA ===
+        // CORREÇÃO: Removido o style inline que deixava cinza. Agora usa a classe secondary-btn pura.
+        actionsContainer.innerHTML = `
+            <button id="feedback-btn" class="secondary-btn">Ver Feedback</button>
+            <button id="story-continue-btn" class="primary-btn">Continuar História ➜</button>
+        `;
+        
+        // Ação: Ver Feedback
+        actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
+        
+        // Ação: Continuar História
+        actionsContainer.querySelector('#story-continue-btn').addEventListener('click', () => {
+            const nextNodeId = currentScenario.nextNodeId;
+            mainContentArea.innerHTML = '';
+            currentScenario = null;
+            renderStoryNode(nextNodeId);
+        });
 
-    actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
-    // REMOVIDO: Event Listener do botão "Próxima Missão"
-    actionsContainer.querySelector('#finish-btn').addEventListener('click', handleExitChat);
+    } else {
+        // === MODO TREINO / PADRÃO ===
+        actionsContainer.innerHTML = `
+            <button id="feedback-btn">Ver Feedback</button>
+            <button id="finish-btn" class="completion-finish-btn">Concluir</button>
+        `;
+
+        // Ação: Ver Feedback
+        actionsContainer.querySelector('#feedback-btn').addEventListener('click', handleGetFeedback);
+        
+        // Ação: Concluir (Volta para a página de Treino)
+        actionsContainer.querySelector('#finish-btn').addEventListener('click', () => {
+            handleExitChat(); 
+            renderTrainingPage();
+        });
+    }
 
     completionContainer.appendChild(actionsContainer);
     mainContentArea.appendChild(completionContainer);
@@ -1925,6 +2175,13 @@ function displayCompletionScreen(rewards) {
 
     if (exitChatBtn) {
         exitChatBtn.textContent = 'Concluir';
+        const newExitBtn = exitChatBtn.cloneNode(true);
+        exitChatBtn.parentNode.replaceChild(newExitBtn, exitChatBtn);
+        newExitBtn.addEventListener('click', () => {
+             handleExitChat();
+             if (!currentScenario?.isStoryNode) renderTrainingPage();
+             else renderHomePage(); 
+        });
     }
 }
 
@@ -1957,6 +2214,25 @@ async function handleGetFeedback() {
             <p class="typing-dots" style="justify-content: center;"><span>.</span><span>.</span><span>.</span></p>
         </div>`;
     translateBtn.classList.add('translate-btn-hidden');
+
+    // AJUSTE DO BOTÃO DE AÇÃO DO MODAL
+    const practiceBtn = document.getElementById('practice-again-btn');
+    
+    // Remove listeners antigos clonando o botão
+    const newPracticeBtn = practiceBtn.cloneNode(true);
+    practiceBtn.parentNode.replaceChild(newPracticeBtn, practiceBtn);
+
+    if (currentScenario && currentScenario.isStoryNode) {
+        // MODO HISTÓRIA: Botão apenas fecha o modal para voltar à tela de conclusão
+        newPracticeBtn.textContent = "Voltar para a História";
+        newPracticeBtn.addEventListener('click', () => {
+            feedbackModal.classList.add('modal-hidden');
+        });
+    } else {
+        // MODO TREINO: Botão reinicia o cenário (Comportamento original)
+        newPracticeBtn.textContent = "Praticar Novamente";
+        newPracticeBtn.addEventListener('click', handlePracticeAgain);
+    }
 
     try {
         if (feedbackPromise) {
@@ -2744,6 +3020,276 @@ function showTypingIndicator() {
     wrapper.appendChild(avatar);
     wrapper.appendChild(messageBubble);
     mainContentArea.appendChild(wrapper);
+}
+
+// =================================================================
+//  MOTOR DE HISTÓRIA (STORY ENGINE)
+// =================================================================
+
+// Elementos do DOM da História
+const storyStage = document.getElementById('story-stage');
+const storyBg = document.getElementById('story-bg');
+const narrativeContainer = document.getElementById('story-narrative-container');
+const narrativeText = document.getElementById('story-narrative-text');
+const storyNextBtn = document.getElementById('story-next-btn');
+const decisionContainer = document.getElementById('story-decision-container');
+const decisionText = document.getElementById('story-decision-text');
+const btnDecisionA = document.getElementById('decision-btn-a');
+const btnDecisionB = document.getElementById('decision-btn-b');
+
+let currentStoryConfig = null; // Guarda os dados do JSON do episódio atual
+
+function startEpisode(seriesId, episodeId) {
+    const series = STORYLINES[seriesId];
+    if (!series) return;
+    
+    // Localiza o episódio
+    let episode = null;
+    Object.values(series.seasons).forEach(season => {
+        const found = season.episodes.find(e => e.id === episodeId);
+        if (found) episode = found;
+    });
+    if (!episode) return;
+
+    // Define o Papel (Role) baseado no gênero escolhido
+    const userGender = localStorage.getItem('voiceGender') || 'female';
+    const roleName = series.roles[userGender] || "Protagonista";
+
+    // Salva estado inicial
+    const state = getTravelerState();
+    state.activeStory = {
+        seriesId: seriesId,
+        episodeId: episodeId,
+        nodeId: episode.initialNodeId
+    };
+    state.currentRole = roleName;
+    saveTravelerState(state);
+
+    // Configura o motor
+    currentStoryConfig = episode; // Cache do JSON do episódio
+    
+    // Inicia a renderização
+    renderStoryNode(episode.initialNodeId);
+}
+
+function renderStoryNode(nodeId) {
+    const node = currentStoryConfig.nodes[nodeId];
+    if (!node) {
+        console.error("Nó não encontrado:", nodeId);
+        return;
+    }
+
+    // Atualiza estado
+    const state = getTravelerState();
+    state.activeStory.nodeId = nodeId;
+    saveTravelerState(state);
+
+    // Prepara o palco
+    mainContentArea.innerHTML = ''; // Limpa a home antiga
+    chatInputArea.classList.add('chat-input-hidden');
+    bottomNavBar.classList.add('nav-hidden');
+    storyStage.classList.remove('hidden'); // Mostra o palco
+    
+    // Atualiza Fundo
+    if (node.backgroundImage) {
+        storyBg.style.backgroundImage = `url('${node.backgroundImage}')`;
+    }
+
+    // Roteia pelo tipo de Nó
+    if (node.type === 'narrative') {
+        renderNarrativeNode(node);
+    } else if (node.type === 'decision') {
+        renderDecisionNode(node);
+    } else if (node.type === 'interaction') {
+        setupInteractionNode(node);
+    }
+}
+
+function renderNarrativeNode(node) {
+    narrativeContainer.classList.remove('hidden');
+    decisionContainer.classList.add('hidden');
+    
+    narrativeText.textContent = node.text;
+    
+    // Configura botão "Continuar"
+    storyNextBtn.onclick = () => {
+        if (node.isEpisodeEnd) {
+            finishEpisode(node);
+        } else {
+            renderStoryNode(node.nextNodeId);
+        }
+    };
+
+    // Configura botão "Voltar" para reabrir o Modal da Série
+    const backBtn = document.getElementById('story-back-btn');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            // 1. Recupera o ID da série atual do estado salvo
+            const state = getTravelerState();
+            const currentSeriesId = state.activeStory ? state.activeStory.seriesId : null;
+
+            // 2. Esconde o palco da história
+            storyStage.classList.add('hidden');
+
+            // 3. Reseta a interface de fundo (barra de navegação, etc.)
+            renderHomePage();
+
+            // 4. Se tivermos o ID, reabrimos o modal de detalhes da série
+            if (currentSeriesId) {
+                // Pequeno delay para garantir que a Home renderizou antes de abrir o modal
+                setTimeout(() => {
+                    openSeriesModal(currentSeriesId);
+                }, 50);
+            }
+        };
+    }
+}
+
+function renderDecisionNode(node) {
+    narrativeContainer.classList.add('hidden');
+    decisionContainer.classList.remove('hidden');
+    
+    decisionText.textContent = node.text;
+    
+    // Configura Botão A
+    btnDecisionA.textContent = node.options[0].label;
+    btnDecisionA.onclick = () => {
+        recordChoice(node.options[0].label); // Salva no diário
+        renderStoryNode(node.options[0].targetNodeId);
+    };
+
+    // Configura Botão B
+    btnDecisionB.textContent = node.options[1].label;
+    btnDecisionB.onclick = () => {
+        recordChoice(node.options[1].label); // Salva no diário
+        renderStoryNode(node.options[1].targetNodeId);
+    };
+}
+
+function setupInteractionNode(node) {
+    // 1. Configura os dados do cenário
+    let scenarioToPlay = {};
+    const currentLang = localStorage.getItem('language') || 'en-US';
+    
+    if (node.sourceType === 'static') {
+        // Busca do scenarios.js
+        const base = SCENARIOS[node.baseScenarioCategory][node.baseScenarioId];
+        scenarioToPlay = JSON.parse(JSON.stringify(base)); // Cópia profunda
+        
+        // Injeta o contexto da história nos dados que vão para a IA (SILENCIOSAMENTE)
+        const langs = ['pt-BR', 'en-US', 'es-MX'];
+        langs.forEach(lang => {
+            if(scenarioToPlay[lang]) {
+                scenarioToPlay[lang].context = node.contextPrompt;
+                scenarioToPlay[lang].aiRole = node.aiRole;
+                scenarioToPlay[lang].userRole = getTravelerState().currentRole;
+            }
+        });
+        
+        // Define IDs para rastreamento
+        currentScenario = {
+            details: scenarioToPlay,
+            categoryName: node.baseScenarioCategory,
+            id: node.baseScenarioId,
+            isStoryNode: true,
+            nextNodeId: node.nextNodeId
+        };
+
+    } else if (node.sourceType === 'dynamic') {
+        // Cria cenário na hora
+        scenarioToPlay = {
+            "pt-BR": { goal: node.scenarioGoal, name: node.scenarioTitle },
+            "en-US": { goal: node.scenarioGoal, name: node.scenarioTitle },
+            "es-MX": { goal: node.scenarioGoal, name: node.scenarioTitle }
+        };
+        
+        // Injeta prompt direto para a IA (SILENCIOSAMENTE)
+        const langs = ['pt-BR', 'en-US', 'es-MX'];
+        langs.forEach(lang => {
+            if(scenarioToPlay[lang]) {
+                scenarioToPlay[lang].context = node.systemInstruction; 
+                scenarioToPlay[lang].aiRole = node.aiRole;
+                scenarioToPlay[lang].userRole = getTravelerState().currentRole;
+            }
+        });
+
+        currentScenario = {
+            details: scenarioToPlay,
+            categoryName: "story_dynamic",
+            id: "dynamic_" + Date.now(),
+            isStoryNode: true,
+            nextNodeId: node.nextNodeId
+        };
+    }
+
+    // 2. PREPARAÇÃO VISUAL DO MODAL
+    
+    // Atualiza as moedas nos botões
+    const currentLevel = localStorage.getItem('proficiency') || 'intermediate';
+    const coinsEarnedText = calculateMissionCoins(currentLevel, 'text');
+    const coinsEarnedVoice = calculateMissionCoins(currentLevel, 'voice');
+    const textPlural = coinsEarnedText === 1 ? 'moeda' : 'moedas';
+    const voicePlural = coinsEarnedVoice === 1 ? 'moeda' : 'moedas';
+
+    startTextMissionBtn.innerHTML = `<span>Por Texto</span><span class="mission-points-badge badge-text">+${coinsEarnedText} ${textPlural} 🪙</span>`;
+    startVoiceMissionBtn.innerHTML = `<span>Por Voz</span><span class="mission-points-badge badge-voice">+${coinsEarnedVoice} ${voicePlural} 🪙</span>`;
+
+    // Atualiza APENAS o objetivo visualmente (O que o usuário deve fazer)
+    missionGoalText.textContent = scenarioToPlay['pt-BR'].goal;
+
+    // Garante que o texto de contexto antigo (se houver no DOM) esteja oculto
+    const contextEl = document.getElementById('mission-context-text');
+    if (contextEl) {
+        contextEl.style.display = 'none';
+        contextEl.textContent = '';
+    }
+
+    // Atualiza a Imagem do Modal
+    let imgUrl = node.backgroundImage; 
+    if (!imgUrl && node.sourceType === 'static' && SCENARIOS[node.baseScenarioCategory]?.[node.baseScenarioId]?.image) {
+        imgUrl = SCENARIOS[node.baseScenarioCategory][node.baseScenarioId].image;
+    }
+    
+    if (imgUrl) {
+        missionImageContainer.innerHTML = `<img src="${imgUrl}" alt="Cenário">`;
+        missionImageContainer.classList.remove('modal-hidden');
+    } else {
+        missionImageContainer.innerHTML = '';
+        missionImageContainer.classList.add('modal-hidden');
+    }
+
+    // 3. LISTENERS PARA ESCONDER O PALCO DA HISTÓRIA
+    const hideStoryStage = () => {
+        storyStage.classList.add('hidden');
+    };
+    startTextMissionBtn.addEventListener('click', hideStoryStage, { once: true });
+    startVoiceMissionBtn.addEventListener('click', hideStoryStage, { once: true });
+
+    // 4. ABRE O MODAL
+    missionModal.classList.remove('modal-hidden');
+}
+
+function recordChoice(choiceText) {
+    const state = getTravelerState();
+    // Salva no diário: "Decidi: [Texto]"
+    state.journal.push({
+        text: `Decisão: ${choiceText}`,
+        timestamp: Date.now()
+    });
+    saveTravelerState(state);
+}
+
+function finishEpisode(lastNode) {
+    alert("🎉 Episódio Concluído! " + lastNode.text);
+    
+    // Limpa estado da história ativa
+    const state = getTravelerState();
+    state.activeStory = null;
+    saveTravelerState(state);
+    
+    // Volta para home
+    storyStage.classList.add('hidden');
+    renderHomePage();
 }
 
 // =================================================================

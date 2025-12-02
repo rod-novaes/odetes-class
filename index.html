@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missões da Odete 54</title>
+    <title>Missões da Odete 55</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -154,6 +154,32 @@
 
         <main class="main-area">
             
+            <!-- PALCO DA HISTÓRIA (Narrativa e Decisões) -->
+            <div id="story-stage" class="story-stage hidden">
+                <div class="story-background-layer" id="story-bg"></div>
+                <div class="story-content-layer">
+                    <!-- Conteúdo Narrativo -->
+                    <div id="story-narrative-container" class="story-container hidden">
+                        <p id="story-narrative-text" class="story-text">Texto da narrativa...</p>
+                        
+                        <!-- Wrapper para os botões -->
+                        <div class="story-actions">
+                            <button id="story-next-btn" class="primary-btn story-btn">Continuar ➜</button>
+                            <button id="story-back-btn" class="story-back-btn">Voltar</button>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo de Decisão -->
+                    <div id="story-decision-container" class="story-container hidden">
+                        <p id="story-decision-text" class="story-text">Uma escolha difícil...</p>
+                        <div class="decision-buttons-wrapper">
+                            <button id="decision-btn-a" class="decision-option-btn">Opção A</button>
+                            <button id="decision-btn-b" class="decision-option-btn">Opção B</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ÁREA DE CONTEÚDO DINÂMICA (Exibirá a Home, Histórico, Chat, etc.) -->
             <div class="main-content-area" id="main-content-area">
                 <!-- O conteúdo será renderizado pelo script.js -->
@@ -256,6 +282,53 @@
         </div>
     </div>
 
+   <!-- NOVO: Modal de Detalhes da Série -->
+    <!-- Este bloco substitui o antigo div id="series-modal" -->
+    <div id="series-modal" class="modal-overlay modal-hidden">
+        <div class="modal-content series-modal-content">
+            <div class="series-modal-header">
+                <!-- Imagem de fundo da série -->
+                <div id="series-modal-cover" class="series-header-cover"></div>
+                <button class="modal-close-btn-floating" id="series-modal-close-btn">&times;</button>
+            </div>
+            
+            <div class="series-modal-body">
+                <h2 id="series-modal-title">Título da Série</h2>
+                <div class="series-meta-info">
+                    <span id="series-modal-genre" class="series-badge">Gênero</span>
+                    <span id="series-modal-seasons" class="series-info-text">1 Temporada</span>
+                </div>
+                <p id="series-modal-desc">Descrição da série...</p>
+                
+                <hr class="series-divider">
+
+                <!-- IMPORTANTE: Esta é a parte nova que faltava -->
+                <div class="character-selector-section">
+                    <h4>Jogar como:</h4>
+                    <div class="character-options-container">
+                        <!-- Opção Masculina -->
+                        <div class="char-option" id="char-opt-male" onclick="selectCharacterGender('male')">
+                            <img src="assets/avatar-luciano.png" alt="Ele" class="char-avatar-img">
+                            <span class="char-label">Ele</span>
+                        </div>
+                        <!-- Opção Feminina -->
+                        <div class="char-option" id="char-opt-female" onclick="selectCharacterGender('female')">
+                            <img src="assets/avatar-odete2.png" alt="Ela" class="char-avatar-img">
+                            <span class="char-label">Ela</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="series-divider">
+                
+                <h3>Episódios</h3>
+                <div id="series-modal-episodes-list" class="episodes-list">
+                    <!-- A lista será preenchida automaticamente pelo script.js -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- BARRA DE NAVEGAÇÃO INFERIOR -->
     <nav class="bottom-nav-bar" id="bottom-nav-bar">
         <button class="icon-btn" id="nav-home-btn" title="Início">🏠</button>
@@ -278,7 +351,8 @@
     <script src="scenarios.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="badges.js"></script>
-    <script src="store.js"></script> 
+    <script src="store.js"></script>
+    <script src="storylines.js"></script> 
     <script src="script.js"></script>
 
 </body>

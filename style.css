@@ -1686,3 +1686,494 @@ html, body {
 .rel-enemy { background-color: #ef4444; }   /* Vermelho */
 .rel-neutral { background-color: #eab308; } /* Amarelo */
 .rel-friend { background-color: #22c55e; }  /* Verde */
+
+/* ======================================================= */
+/* ===== NOVA HOME (ESTILO STREAMING/NETFLIX) ===== */
+/* ======================================================= */
+
+/* Hero Section (Destaque Principal) */
+.hero-section {
+    position: relative;
+    width: 100%;
+    height: 380px; /* Altura do destaque */
+    background-color: #000;
+    overflow: hidden;
+    margin-bottom: 24px;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.hero-bg-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.7;
+}
+
+.hero-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0));
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+}
+
+.hero-tag {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: var(--color-accent);
+    background-color: rgb(255, 255, 255, 0.7);
+    padding: 3px;
+    padding-left: 6px;
+}
+
+.hero-title {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.hero-subtitle {
+    font-size: 0.95rem;
+    color: #e5e7eb;
+    margin-bottom: 12px;
+}
+
+.hero-btn {
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+.hero-btn:hover { background-color: var(--color-accent-hover); }
+
+/* Carrossel de Séries */
+.shelf-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-left: 16px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.horizontal-scroll-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 0 16px 24px 16px; /* Padding bottom para a sombra não cortar */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Esconde a barra de rolagem mas mantém funcionalidade */
+.horizontal-scroll-container::-webkit-scrollbar { display: none; }
+.horizontal-scroll-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+.series-poster-card {
+    flex: 0 0 140px; /* Largura fixa do poster */
+    height: 210px;   /* Proporção ~2:3 */
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    scroll-snap-align: start;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background-color: #222;
+}
+
+.series-poster-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+    z-index: 10;
+}
+
+.poster-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.poster-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 40px 8px 8px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    color: white;
+    opacity: 1; 
+}
+
+.poster-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* Modal de Série */
+.series-modal-content {
+    padding: 0 !important; /* Remove padding padrão */
+    overflow: hidden;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.series-modal-header {
+    position: relative;
+    height: 200px;
+    flex-shrink: 0;
+}
+
+.series-header-cover {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Gradiente sobre a capa no modal para o texto ficar legível */
+.series-header-cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8));
+}
+
+.modal-close-btn-floating {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.series-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    background-color: var(--bg-container);
+}
+
+/* ======================================================= */
+/* ===== SELETOR DE PERSONAGEM (MODAL DE SÉRIE) ===== */
+/* ======================================================= */
+
+.character-selector-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.character-selector-section h4 {
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.character-options-container {
+    display: flex;
+    justify-content: center;
+    gap: 24px; /* Espaço entre as opções */
+}
+
+.char-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--bg-main);
+    transition: all 0.2s ease;
+    width: 100px;
+}
+
+.char-option:hover {
+    transform: translateY(-3px);
+    border-color: var(--text-secondary);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Estado Selecionado (Importante para o feedback visual) */
+.char-option.selected {
+    border-color: var(--color-accent);
+    background-color: #fefce8; /* Um fundo levemente amarelado/destaque */
+    box-shadow: 0 0 0 2px rgba(161, 98, 7, 0.2); /* Glow sutil */
+}
+
+.char-avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid transparent; /* Reserva espaço para borda */
+}
+
+/* Borda na imagem quando selecionado */
+.char-option.selected .char-avatar-img {
+    border-color: var(--color-accent);
+}
+
+.char-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.char-option.selected .char-label {
+    color: var(--color-accent);
+}
+
+.series-badge {
+    background-color: var(--color-accent);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.series-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.series-info-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.series-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 20px 0;
+}
+
+/* Lista de Episódios */
+.episode-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: var(--bg-main);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.episode-item:hover {
+    background-color: var(--hover-light);
+}
+
+.episode-item.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+}
+
+.episode-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    width: 30px;
+    text-align: center;
+}
+
+.episode-info {
+    flex: 1;
+}
+
+.episode-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.episode-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.episode-action-icon {
+    font-size: 1.2rem;
+}
+
+/* ======================================================= */
+/* ===== MODO HISTÓRIA (STORY STAGE) ===== */
+/* ======================================================= */
+
+.story-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Texto embaixo estilo legenda/cinemático */
+}
+
+.story-background-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.6;
+    transition: background-image 0.5s ease-in-out;
+}
+
+.story-content-layer {
+    position: relative;
+    z-index: 2001;
+    width: 100%;
+    padding: 24px;
+    padding-bottom: 80px; /* Espaço para navbar se necessário */
+    background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
+    color: white;
+    min-height: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.story-text {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    font-weight: 500;
+    max-width: 600px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: fadeIn 0.5s ease;
+}
+
+.story-btn {
+    min-width: 200px;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 15px rgba(161, 98, 7, 0.4);
+}
+
+.decision-buttons-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.decision-option-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    backdrop-filter: blur(5px);
+}
+
+.decision-option-btn:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: translateX(5px);
+}
+
+/* Utilitário para esconder elementos */
+.hidden {
+    display: none !important;
+}
+
+/* Container para alinhar os botões da história */
+.story-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza os botões horizontalmente */
+    gap: 20px;           /* Espaço entre o botão Continuar e o Voltar */
+    width: 100%;
+    margin-top: 20px;    /* Garante um espaço do texto */
+}
+
+/* Garante que o botão Continuar (story-btn) mantenha o estilo original */
+/* Geralmente ele herda de .primary-btn, aqui garantimos a largura mínima */
+.story-btn {
+    min-width: 220px;
+    font-size: 1.1rem;
+    /* Os outros estilos visuais vêm da classe .primary-btn existente */
+}
+
+/* Estilo Discreto e Menor para o botão Voltar */
+.story-back-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Borda muito sutil */
+    color: rgba(255, 255, 255, 0.6);            /* Texto mais apagado */
+    padding: 8px 20px;                           /* Padding menor que o principal */
+    border-radius: 20px;
+    font-size: 0.9rem;                          /* Fonte um pouco menor */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* Importante: largura automática baseada no texto, não 100% */
+    width: auto;                                 
+    min-width: 180px;
+}
+
+.story-back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
+}
