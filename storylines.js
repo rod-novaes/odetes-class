@@ -203,8 +203,8 @@ const STORYLINES = {
         id: "mystery_main",
         title: "Sombras do Passado",
         genre: "Mistério",
-        coverImage: "assets/series/covers/misterio.png",
-        heroImage: "assets/series/backgrounds/misterio/hero_hotel.png",
+        coverImage: "assets/historias/detetives.png",
+        heroImage: "assets/historias/detetives.png",
         description: "Um hóspede desapareceu do Quarto 404. Todos no hotel parecem esconder algo.",
         roles: { male: "O Hóspede Curioso", female: "A Hóspede Curiosa" },
         seasons: {
@@ -256,8 +256,8 @@ const STORYLINES = {
         id: "romance_main",
         title: "Encontro em Paris",
         genre: "Romance",
-        coverImage: "assets/series/covers/romance.png",
-        heroImage: "assets/series/backgrounds/romance/hero_paris.png",
+        coverImage: "assets/historias/romance.png",
+        heroImage: "assets/historias/romance.png",
         description: "Cidade nova, vida nova. Será que o amor fala a mesma língua que você?",
         roles: { male: "O Viajante Sonhador", female: "A Viajante Sonhadora" },
         seasons: {
