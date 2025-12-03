@@ -881,9 +881,9 @@ const SCENARIOS = {
             image: "assets/entrevistas/placeholder.png"
         },
         "Fazendo perguntas ao entrevistador": {
-            "pt-BR": { goal: "No final da entrevista, o entrevistador pergunta se você tem alguma dúvida. Faça duas perguntas perspicazes sobre a equipe ou a cultura da empresa." },
-            "en-US": { name: "Asking questions to the interviewer", goal: "At the end of the interview, the interviewer asks if you have any questions. Ask two insightful questions about the team or company culture." },
-            "es-MX": { name: "Hacer preguntas al entrevistador", goal: "Al final de la entrevista, el entrevistador pregunta si tienes alguna pregunta. Haz dos preguntas perspicaces sobre el equipo o la cultura de la empresa." },
+            "pt-BR": { goal: "No final da entrevista, o entrevistador pergunta se você tem alguma dúvida. Faça três perguntas perspicazes sobre a equipe, o trabalho ou a empresa." },
+            "en-US": { name: "Asking questions to the interviewer", goal: "At the end of the interview, the interviewer asks if you have any questions. Ask three insightful questions about the team, the work or company." },
+            "es-MX": { name: "Hacer preguntas al entrevistador", goal: "Al final de la entrevista, el entrevistador pregunta si tienes alguna pregunta. Haz tres preguntas perspicaces sobre el equipo, el trabajo o la empresa." },
             image: "assets/entrevistas/placeholder.png"
         },
         "Discutindo a pretensão salarial": {

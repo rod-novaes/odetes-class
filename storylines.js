@@ -43,19 +43,19 @@ const STORYLINES = {
                                 nextNodeId: "node_1_interaction"
                             },
 
-                            // PASSO 1.5: INTERAÇÃO NOVA (O TESTE SECRETO)
+                            // PASSO 1.2: INTERAÇÃO NOVA (O TESTE SECRETO)
                             "node_1_interaction": {
                                 type: "interaction",
                                 sourceType: "dynamic",
-                                scenarioTitle: "Conversa com o Estranho",
+                                scenarioTitle: "Conversa com o Estranho no Café da Universidade",
                                 scenarioGoal: "Responda a 3 perguntas do estranho educadamente.",
-                                systemInstruction: "Você está num café perto de uma universidade. Você é um homem de negócios elegante e observador. Você é secretamente o Diretor de RH da Nexus Corp, mas NÃO revele isso no início. Seu objetivo é testar o usuário com 3 perguntas sobre a vida/estudos dele. REGRAS CRÍTICAS: 1. Mantenha a conversa fluindo até fazer pelo menos 3 perguntas. 2. Se o usuário der respostas curtas, pressione por mais detalhes. 3. OBRIGATÓRIO: Você SÓ PODE encerrar o cenário (usar a tag Scenario Complete) APÓS dizer a frase exata: 'Impressionante. Gostei da sua postura. Prazer, eu sou o Diretor de RH da Nexus Corp.'. NUNCA termine diálogo sem revelar que você é o Diretor de RH da Nexus Corp.",
+                                systemInstruction: "Você está num café perto de uma universidade. Você é um homem de negócios elegante e observador. Você é secretamente o Diretor de RH da Nexus Corp, mas NÃO revele isso no início. Seu objetivo é testar o usuário com 3 perguntas sobre a vida/estudos dele. REGRAS CRÍTICAS: 1. Mantenha a conversa fluindo até fazer pelo menos 3 perguntas. 2. Se o usuário der respostas curtas, pressione por mais detalhes. 3. OBRIGATÓRIO: Você SÓ PODE encerrar o cenário (usar a tag Scenario Complete) APÓS dizer a frase exata: 'Impressionante. Gostei da sua postura. Prazer, eu sou o Diretor de RH da Nexus Corp.'. NUNCA termine diálogo sem revelar que você é o Diretor de RH da Nexus Corp. E SEMPRE use o idioma da conversa.",
                                 aiRole: "Estranho Elegante",
                                 backgroundImage: "assets/series/backgrounds/carreira/cafe_table.png",
                                 nextNodeId: "node_1_transition"
                             },
 
-                            // PASSO 1.8: TRANSIÇÃO NARRATIVA (NOVO)
+                            // PASSO 1.3: TRANSIÇÃO NARRATIVA
                             "node_1_transition": {
                                 type: "narrative",
                                 text: "Após o breve diálogo, o homem se revela. Diretor de RH da Nexus Corp? A empresa mais cobiçada da cidade? O homem observa sua reação com um leve sorriso, cruza os dedos sobre a mesa e muda sua postura na cadeira. A casualidade do café desaparece instantaneamente. Ele agora te encara com o olhar afiado de um recrutador.",
@@ -66,11 +66,11 @@ const STORYLINES = {
                             // PASSO 2: A ENTREVISTA (AGORA REVELADA)
                             "node_2": {
                                 type: "interaction",
-                                sourceType: "static",
-                                baseScenarioCategory: "💼 Mestre das Entrevistas",
-                                baseScenarioId: "Fazendo perguntas ao entrevistador", 
-                                contextPrompt: "CONTEXTO DA CENA: O homem acabou de revelar que é Gerente de RH da Nexus Corp. O usuário ainda está processando a surpresa. O Gerente diz: 'Tenho uma vaga aberta para quem tem a sua garra. Quer fazer uma entrevista relâmpago agora mesmo?'. O objetivo agora é mostrar interesse e fazer perguntas inteligentes sobre a vaga.",
-                                aiRole: "Gerente de RH (Simpático mas avaliador)",
+                                sourceType: "dynamic",
+                                scenarioTitle: "Conversa com o Direto de RH da Nexus Corp",
+                                scenarioGoal: "Responda a 3 perguntas do Diretor de RH educadamente.",
+                                systemInstruction: "Você acabou de revelar que é Gerente de RH da Nexus Corp. O usuário ainda está processando a surpresa. Você inicia a nova conversa dizendo (usando o idioma do diálogo): 'Tenho uma vaga aberta para jovens promissores. Quer fazer uma entrevista relâmpago agora mesmo?'. Seu objetivo é testar o usuário com 3 perguntas sobre o interesse dele em participar do processo de seleção de estagiários da Nexus Corp. REGRAS CRÍTICAS: 1. Mantenha a conversa fluindo até fazer pelo menos 3 perguntas. 2. Se o usuário der respostas curtas, pressione por mais detalhes. 3. OBRIGATÓRIO: Você SÓ PODE encerrar o cenário (usar a tag Scenario Complete) APÓS dizer a frase exata: 'Ótimo. Você passou no primeiro teste. Te espero amanhã para a entrevista formal de seleção.'",
+                                aiRole: "Diretor de RH da Nexus Corp",
                                 backgroundImage: "assets/series/backgrounds/carreira/cafe_table.png",
                                 nextNodeId: "node_3"
                             },
